@@ -162,28 +162,31 @@ const getLeagueGames = async (req, res) => {
 
 // Get leaderboard for a league
 const getLeagueLeaderboard = async (req, res) => {
-    const { id } = req.params;
+    const { leagueId } = req.params; // This is the leagueId from the route
 
     try {
         const leaderboard = await db('users as u')
-            .join('games as g', 'g.creator_id', 'u.id')
+            .leftJoin('game_players as gp', 'gp.player_id', 'u.id') // Join with game_players to include all players
+            .leftJoin('games as g', 'gp.game_id', 'g.id') // Join with games table
             .select(
-                'u.username',
-                db.raw('SUM(CASE WHEN g.result = ? THEN 1 ELSE 0 END) AS wins', ['win']),
-                db.raw('SUM(CASE WHEN g.result = ? THEN 1 ELSE 0 END) AS losses', ['loss']),
-                db.raw('COUNT(g.id) AS total_games'),
+                'u.id as player_id',
+                'u.email',
+                db.raw('SUM(CASE WHEN g.creator_id = u.id THEN 1 ELSE 0 END) AS wins'), // Wins if the player is the creator
+                db.raw('SUM(CASE WHEN g.creator_id != u.id AND gp.player_id = u.id THEN 1 ELSE 0 END) AS losses'), // Losses if the player is not the creator
+                db.raw('COUNT(DISTINCT g.id) AS total_games'), // Total games played
                 db.raw(`
                     ROUND(
-                        SUM(CASE WHEN g.result = ? THEN 1 ELSE 0 END) /
-                        COUNT(g.id) * 100, 2
+                        SUM(CASE WHEN g.creator_id = u.id THEN 1 ELSE 0 END) /
+                        COUNT(DISTINCT g.id) * 100, 2
                     ) AS win_rate
-                `, ['win'])
+                `) // Calculate win rate
             )
-            .where('g.league_id', id)
-            .groupBy('u.id')
+            .where('g.league_id', leagueId) // Filter by leagueId
+            .groupBy('u.id', 'u.email') // Group by player
             .orderBy([
                 { column: 'win_rate', order: 'desc' },
-                { column: 'wins', order: 'desc' }
+                { column: 'wins', order: 'desc' },
+                { column: 'total_games', order: 'desc' } // Fallback sorting by total games
             ]);
 
         if (leaderboard.length === 0) {

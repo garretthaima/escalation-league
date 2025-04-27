@@ -9,7 +9,8 @@ const {
     getLeagueGames,
     searchLeagues,
     inviteToLeague,
-    getLeagueStats
+    getLeagueStats,
+    getLeagueLeaderboard
 } = require('../controllers/leaguesController');
 const authenticateToken = require('../middlewares/authentication');
 const authorizeRole = require('../middlewares/authorizeRole');
@@ -24,5 +25,7 @@ router.get('/:id/games', authenticateToken, getLeagueGames); // Get games in a l
 router.get('/search', authenticateToken, searchLeagues); // Search leagues
 router.post('/:leagueId/invite', authenticateToken, authorizeRole(['league_admin']), inviteToLeague); // Invite user to league
 router.get('/:leagueId/stats', authenticateToken, getLeagueStats); // Get league stats
+router.get('/:leagueId/leaderboard', authenticateToken, getLeagueLeaderboard); // Get league leaderboard (accessible to all authenticated users)
+
 
 module.exports = router;

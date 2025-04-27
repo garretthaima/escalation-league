@@ -83,20 +83,37 @@ const googleAuth = async (req, res) => {
     });
 
     const payload = ticket.getPayload();
-    const { email, name, picture } = payload;
+    const { sub, email, given_name, family_name, picture } = payload;
 
+    // Check if the user exists in the database
     let user = await db('users').where({ email }).first();
-
     if (!user) {
+      // Create a new user if not found
       const [userId] = await db('users').insert({
+        google_id: sub,
         email,
-        firstname: name,
-        picture,
+        firstname: given_name,
+        lastname: family_name,
+        picture, // Use Google picture for new users
       });
+      user = { id: userId, email, firstname: given_name, lastname: family_name, picture };
+    } else {
+      // Update only if the data has changed
+      const updates = {};
+      if (user.firstname !== given_name) updates.firstname = given_name;
+      if (user.lastname !== family_name) updates.lastname = family_name;
 
-      user = { id: userId, email, firstname: name };
+      // Only update the picture if it is null (user hasn't uploaded a custom picture)
+      if (!user.picture) {
+        updates.picture = picture;
+      }
+
+      if (Object.keys(updates).length > 0) {
+        await db('users').where({ email }).update(updates);
+      }
     }
 
+    // Generate a token and return it
     const jwtToken = jwt.sign(
       { id: user.id, email: user.email, role: user.role || 'user' },
       SECRET_KEY,
