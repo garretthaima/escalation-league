@@ -9,6 +9,7 @@ const {
     updateUserProfile,
     deleteUserAccount,
     changePassword,
+    updateUserStats
 } = require('../controllers/usersController');
 const authenticateToken = require('../middlewares/authentication');
 
@@ -23,5 +24,6 @@ router.get('/profile', authenticateToken, getUserProfile);
 router.put('/update', authenticateToken, updateUserProfile);
 router.delete('/delete', authenticateToken, deleteUserAccount);
 router.put('/change-password', authenticateToken, changePassword);
+router.put('/update-stats', authenticateToken, updateUserStats); // Update global user stats
 
 module.exports = router;

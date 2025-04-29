@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const {
-    logGame,
+    getGameParticipants,
     confirmGame,
     getGameHistory,
     getGameDetails,
@@ -13,26 +13,27 @@ const {
 const authenticateToken = require('../middlewares/authentication');
 const authorizeGameAccess = require('../middlewares/authorizeGameAccess');
 const authorizeRole = require('../middlewares/authorizeRole');
+const authorizeLeagueAccess = require('../middlewares/authorizeLeagueAccess');
 
-// Game Logging
-router.post('/', authenticateToken, logGame);
+// Fetch Participants for a Game
+router.get('/:gameId/participants', authenticateToken, authorizeGameAccess, getGameParticipants);
 
-// Game Confirmation
-router.put('/confirm', authenticateToken, confirmGame);
+// Confirm Game Participation
+router.put('/:gameId/confirm', authenticateToken, authorizeGameAccess, confirmGame);
 
-// Game History
+// Fetch Game History
 router.get('/history', authenticateToken, getGameHistory);
 
-// Game Details
+// Fetch Game Details
 router.get('/:gameId', authenticateToken, authorizeGameAccess, getGameDetails);
 
 // Update Game Details
 router.put('/:gameId', authenticateToken, authorizeGameAccess, updateGameDetails);
 
-// Delete Game
+// Delete a Game
 router.delete('/:gameId', authenticateToken, authorizeRole(['league_admin', 'admin']), deleteGame);
 
-// Get All Games in a League
-router.get('/league/:leagueId', authenticateToken, authorizeRole(['league_admin', 'admin']), getGamesInLeague);
+// Fetch All Games in a League
+router.get('/league/:leagueId', authenticateToken, authorizeLeagueAccess, getGamesInLeague);
 
 module.exports = router;

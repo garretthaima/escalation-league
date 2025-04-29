@@ -318,6 +318,43 @@ const deactivateUser = async (req, res) => {
   }
 };
 
-module.exports = { registerUser, loginUser, googleAuth, verifyGoogleToken, getUserProfile, updateUserProfile, deleteUserAccount, changePassword, getAllUsers };
+const updateUserStats = async (req, res) => {
+  const { userId, result } = req.body;
+
+  if (!userId || !result) {
+    return res.status(400).json({ error: 'User ID and result are required.' });
+  }
+
+  try {
+    const updates = {};
+    if (result === 'win') {
+      updates.wins = db.raw('wins + 1');
+    } else if (result === 'loss') {
+      updates.losses = db.raw('losses + 1');
+    } else {
+      return res.status(400).json({ error: 'Invalid result value.' });
+    }
+
+    await db('users').where({ id: userId }).update(updates);
+
+    res.status(200).json({ message: 'User stats updated successfully.' });
+  } catch (err) {
+    console.error('Error updating user stats:', err.message);
+    res.status(500).json({ error: 'Failed to update user stats.' });
+  }
+};
+
+module.exports = {
+  registerUser,
+  loginUser,
+  googleAuth,
+  verifyGoogleToken,
+  getUserProfile,
+  updateUserProfile,
+  deleteUserAccount,
+  changePassword,
+  getAllUsers,
+  updateUserStats
+};
 
 

@@ -105,3 +105,12 @@ export const changePassword = async (passwordData) => {
         throw error;
     }
 };
+
+export const updateUserStats = async (data) => {
+    const response = await axios.put(`${API_BASE_URL}/update-stats`, data, {
+        headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+    });
+    return response.data;
+};

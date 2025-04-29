@@ -114,10 +114,36 @@ const getLeagueParticipants = async (req, res) => {
     }
 };
 
+const updateLeagueStats = async (req, res) => {
+    const { userId, leagueId, result } = req.body;
+
+    if (!userId || !leagueId || !result) {
+        return res.status(400).json({ error: 'User ID, league ID, and result are required.' });
+    }
+
+    try {
+        const updates = {};
+        if (result === 'win') {
+            updates.league_wins = db.raw('league_wins + 1');
+        } else if (result === 'loss') {
+            updates.league_losses = db.raw('league_losses + 1');
+        } else {
+            return res.status(400).json({ error: 'Invalid result value.' });
+        }
+
+        await db('user_leagues').where({ user_id: userId, league_id: leagueId }).update(updates);
+
+        res.status(200).json({ message: 'League stats updated successfully.' });
+    } catch (err) {
+        console.error('Error updating league stats:', err.message);
+        res.status(500).json({ error: 'Failed to update league stats.' });
+    }
+};
 module.exports = {
     signUpForLeague,
     getUserLeagueStats,
     updateUserLeagueData,
     leaveLeague,
     getLeagueParticipants,
+    updateLeagueStats
 };

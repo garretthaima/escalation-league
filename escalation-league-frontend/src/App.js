@@ -10,10 +10,7 @@ import CurrentLeague from './components/Leagues/CurrentLeague';
 import SignUp from './components/Leagues/SignUp';
 import PastLeagues from './components/Leagues/PastLeagues';
 import LeagueLeaderboard from './components/Leagues/LeagueLeaderboard';
-import LogGame from './components/Games/LogGame';
-import LogPodResult from './components/Games/LogPodResult';
-import CreatePod from './components/Games/CreatePod';
-import PodList from './components/Games/PodList';
+import GamesPage from './components/Games/GamesPage';
 import AdminPage from './components/Admin/AdminPage';
 import LeagueAdminPage from './components/Admin/LeagueAdminPage';
 import Rules from './components/Static/Rules';
@@ -59,10 +56,10 @@ const App = () => {
 
                 {/* Games Section (Protected for Logged-In Users) */}
                 <Route
-                    path="/games/log"
+                    path="/games"
                     element={
                         <ProtectedRoute>
-                            <LogGame />
+                            <GamesPage />
                         </ProtectedRoute>
                     }
                 />

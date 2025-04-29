@@ -1,27 +1,28 @@
-const db = require('../models/db'); // Import the database module
+const db = require('../models/db');
 
 const authorizeGameAccess = async (req, res, next) => {
-    const userId = req.user.id;
-    const { gameId } = req.params;
-
     try {
-        // Check if the user is a league admin
-        const isLeagueAdmin = req.user.role === 'league_admin';
-        if (isLeagueAdmin) return next();
+        const playerId = req.user.id; // Assuming the user ID is attached to the request
+        const podId = req.params.podId || req.query.podId; // Extract podId from route params or query
 
-        // Check if the user is a participant in the game
-        const participant = await db('game_players')
-            .where({ game_id: gameId, player_id: userId })
+        // If no podId is provided, skip this middleware
+        if (!podId) {
+            return next();
+        }
+
+        // Check if the player is part of the pod
+        const podPlayer = await db('game_players')
+            .where({ pod_id: podId, player_id: playerId })
             .first();
 
-        if (!participant) {
-            return res.status(403).json({ error: 'Access denied. You are not a participant in this game.' });
+        if (!podPlayer) {
+            return res.status(403).json({ error: 'You do not have access to this pod.' });
         }
 
         next();
     } catch (err) {
-        console.error('Error authorizing game access:', err.message);
-        res.status(500).json({ error: 'Failed to authorize access.' });
+        console.error('Error authorizing pod access:', err.message);
+        res.status(500).json({ error: 'Failed to authorize pod access.' });
     }
 };
 

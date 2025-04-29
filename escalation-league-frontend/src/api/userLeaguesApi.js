@@ -76,3 +76,12 @@ export const getLeagueParticipants = async (leagueId) => {
         throw error;
     }
 };
+
+export const updateLeagueStats = async (data) => {
+    const response = await axios.put(`${API_BASE_URL}/update-league-stats`, data, {
+        headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+    });
+    return response.data;
+};
