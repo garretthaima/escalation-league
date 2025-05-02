@@ -1,10 +1,22 @@
 import React, { useState } from 'react';
+import { usePermissions } from '../context/PermissionsProvider';
 import ActiveGamesTab from './ActiveGamesTab';
 import CompletedGamesTab from './CompletedGamesTab';
-import ConfirmGamesTab from './ConfirmGamesTab'; // Import the new tab
+import ConfirmGamesTab from './ConfirmGamesTab';
 
 const GamesPage = () => {
     const [activeTab, setActiveTab] = useState('active'); // Default to "Active Games"
+    const { permissions, loading } = usePermissions();
+
+    if (loading) {
+        return <div>Loading...</div>; // Show a loading indicator while permissions are being fetched
+    }
+
+    // Check if the user has the required permission by name
+    const hasPermission = permissions.some((perm) => perm.name === 'pod_read');
+    if (!hasPermission) {
+        return <div>You do not have permission to view this page.</div>; // Show an error if not authorized
+    }
 
     return (
         <div className="container mt-4">
@@ -38,7 +50,7 @@ const GamesPage = () => {
 
             <div className="tab-content">
                 {activeTab === 'active' && <ActiveGamesTab />}
-                {activeTab === 'waiting' && <ConfirmGamesTab />} {/* Add the new tab */}
+                {activeTab === 'waiting' && <ConfirmGamesTab />}
                 {activeTab === 'completed' && <CompletedGamesTab />}
             </div>
         </div>

@@ -149,6 +149,65 @@ const getLeagueReport = async (req, res) => {
     }
 };
 
+const getPendingRoleRequests = async (req, res) => {
+    try {
+        const requests = await db('role_requests')
+            .join('users', 'role_requests.user_id', 'users.id')
+            .join('roles', 'role_requests.requested_role_id', 'roles.id')
+            .select(
+                'role_requests.id',
+                'users.firstname',
+                'users.lastname',
+                'users.email',
+                'roles.name as requested_role',
+                'role_requests.status',
+                'role_requests.created_at'
+            )
+            .where('role_requests.status', 'pending');
+
+        res.status(200).json({ requests });
+    } catch (err) {
+        console.error('Error fetching role requests:', err.message);
+        res.status(500).json({ error: 'Failed to fetch role requests.' });
+    }
+};
+
+const reviewRoleRequest = async (req, res) => {
+    const { requestId, status, adminComment } = req.body;
+
+    if (!['approved', 'rejected'].includes(status)) {
+        return res.status(400).json({ error: 'Invalid status. Must be "approved" or "rejected".' });
+    }
+
+    try {
+        // Fetch the role request
+        const roleRequest = await db('role_requests').where({ id: requestId }).first();
+        if (!roleRequest) {
+            return res.status(404).json({ error: 'Role request not found.' });
+        }
+
+        // Update the role request status
+        await db('role_requests')
+            .where({ id: requestId })
+            .update({
+                status,
+                admin_comment: adminComment,
+                updated_at: db.fn.now(),
+            });
+
+        // If approved, update the user's role
+        if (status === 'approved') {
+            await db('users').where({ id: roleRequest.user_id }).update({ role_id: roleRequest.requested_role_id });
+        }
+
+        res.status(200).json({ success: true, message: `Role request ${status} successfully.` });
+    } catch (err) {
+        console.error('Error reviewing role request:', err.message);
+        res.status(500).json({ error: 'Failed to review role request.' });
+    }
+};
+
+
 module.exports = {
     getAllUsers,
     deactivateUser,
@@ -157,5 +216,7 @@ module.exports = {
     getUserDetails,
     resetUserPassword,
     getUserActivityLogs,
-    getLeagueReport
+    getLeagueReport,
+    getPendingRoleRequests,
+    reviewRoleRequest
 };

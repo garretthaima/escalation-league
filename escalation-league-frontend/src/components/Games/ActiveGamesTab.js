@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getInProgressPods, getOpenPods, joinPod } from '../../api/podsApi';
+import { usePermissions } from '../context/PermissionsProvider';
 import { getUserProfile } from '../../api/authApi';
 
 const ActiveGamesTab = () => {
@@ -9,9 +10,22 @@ const ActiveGamesTab = () => {
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(true);
 
+    const { permissions } = usePermissions();
+
+    // Check permissions
+    const canReadPods = permissions.some((perm) => perm.name === 'pod_read');
+    const canCreatePods = permissions.some((perm) => perm.name === 'pod_create');
+    const canUpdatePods = permissions.some((perm) => perm.name === 'pod_update');
+
     useEffect(() => {
         const fetchData = async () => {
             try {
+                if (!canReadPods) {
+                    setError('You do not have permission to view games.');
+                    setLoading(false);
+                    return;
+                }
+
                 const userProfile = await getUserProfile();
                 setUserId(userProfile.user.id);
 
@@ -29,7 +43,7 @@ const ActiveGamesTab = () => {
         };
 
         fetchData();
-    }, []);
+    }, [canReadPods]);
 
     const handleJoinPod = async (podId) => {
         try {
@@ -71,10 +85,12 @@ const ActiveGamesTab = () => {
         return <div className="text-center mt-4">Loading pods...</div>;
     }
 
+    if (error) {
+        return <div className="alert alert-danger">{error}</div>;
+    }
+
     return (
         <div>
-            {error && <div className="alert alert-danger">{error}</div>}
-
             {/* Open Pods Section */}
             <div className="mb-4">
                 <h3>Open Games</h3>
@@ -106,7 +122,7 @@ const ActiveGamesTab = () => {
                                                 </tbody>
                                             </table>
                                         </div>
-                                        {pod.participants.length >= 3 && (
+                                        {canUpdatePods && pod.participants.length >= 3 && (
                                             <button
                                                 className="btn btn-warning mt-3"
                                                 onClick={() => handleOverridePod(pod.id)}
@@ -114,13 +130,15 @@ const ActiveGamesTab = () => {
                                                 Override to Active
                                             </button>
                                         )}
-                                        <button
-                                            className="btn btn-secondary mt-3"
-                                            onClick={() => handleJoinPod(pod.id)}
-                                            disabled={pod.participants.length >= 4}
-                                        >
-                                            {pod.participants.length >= 4 ? 'Pod Full' : 'Join Pod'}
-                                        </button>
+                                        {canCreatePods && (
+                                            <button
+                                                className="btn btn-secondary mt-3"
+                                                onClick={() => handleJoinPod(pod.id)}
+                                                disabled={pod.participants.length >= 4}
+                                            >
+                                                {pod.participants.length >= 4 ? 'Pod Full' : 'Join Pod'}
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             </div>

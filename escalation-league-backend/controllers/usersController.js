@@ -1,147 +1,16 @@
 const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
 const db = require('../models/db');
 const { OAuth2Client } = require('google-auth-library');
+const { generateToken } = require('../utils/tokenUtils');
+const { handleError } = require('../utils/errorUtils');
+
 
 // Load environment variables
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const SECRET_KEY = process.env.SECRET_KEY;
 const client = new OAuth2Client(CLIENT_ID);
 
-// Utility function for error handling
-const handleError = (res, error, statusCode = 500, message = 'Internal server error') => {
-  console.error(error);
-  res.status(statusCode).json({ error: message });
-};
 
-// Register User
-const registerUser = async (req, res) => {
-  const { firstname, lastname, email, password } = req.body;
-
-  try {
-    // Hash the password before storing it
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Insert the user into the database
-    const [userId] = await db('users').insert({
-      firstname,
-      lastname,
-      email,
-      password: hashedPassword,
-    });
-
-    // Send a success response
-    console.log('Response sent:', { success: true, userId });
-    res.status(201).json({ success: true, userId });
-  } catch (err) {
-    console.error('Error registering user:', err.message);
-
-    // Handle duplicate email error (MySQL error code 1062)
-    if (err.code === 'ER_DUP_ENTRY') {
-      return res.status(400).json({ error: 'Email is already registered.' });
-    }
-
-    res.status(500).json({ error: 'Failed to register user.' });
-  }
-};
-
-// Login User
-const loginUser = async (req, res) => {
-  const { email, password } = req.body;
-
-  if (!email || !password) {
-    return res.status(400).json({ error: 'Email and password are required.' });
-  }
-
-  try {
-    const user = await db('users').where({ email }).first();
-
-    if (!user || !(await bcrypt.compare(password, user.password))) {
-      return res.status(401).json({ error: 'Invalid email or password' });
-    }
-
-    const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
-      SECRET_KEY,
-      { expiresIn: '1h' }
-    );
-
-    res.status(200).json({ token });
-  } catch (err) {
-    handleError(res, err);
-  }
-};
-
-// Google Authentication
-const googleAuth = async (req, res) => {
-  const { token } = req.body;
-
-  try {
-    const ticket = await client.verifyIdToken({
-      idToken: token,
-      audience: CLIENT_ID,
-    });
-
-    const payload = ticket.getPayload();
-    const { sub, email, given_name, family_name, picture } = payload;
-
-    // Check if the user exists in the database
-    let user = await db('users').where({ email }).first();
-    if (!user) {
-      // Create a new user if not found
-      const [userId] = await db('users').insert({
-        google_id: sub,
-        email,
-        firstname: given_name,
-        lastname: family_name,
-        picture, // Use Google picture for new users
-      });
-      user = { id: userId, email, firstname: given_name, lastname: family_name, picture };
-    } else {
-      // Update only if the data has changed
-      const updates = {};
-      if (user.firstname !== given_name) updates.firstname = given_name;
-      if (user.lastname !== family_name) updates.lastname = family_name;
-
-      // Only update the picture if it is null (user hasn't uploaded a custom picture)
-      if (!user.picture) {
-        updates.picture = picture;
-      }
-
-      if (Object.keys(updates).length > 0) {
-        await db('users').where({ email }).update(updates);
-      }
-    }
-
-    // Generate a token and return it
-    const jwtToken = jwt.sign(
-      { id: user.id, email: user.email, role: user.role || 'user' },
-      SECRET_KEY,
-      { expiresIn: '1h' }
-    );
-
-    res.status(200).json({ success: true, token: jwtToken });
-  } catch (err) {
-    handleError(res, err, 401, 'Invalid Google token');
-  }
-};
-
-// Verify Google Token
-const verifyGoogleToken = async (req, res) => {
-  const { token } = req.body;
-
-  try {
-    const ticket = await client.verifyIdToken({
-      idToken: token,
-      audience: CLIENT_ID,
-    });
-
-    const payload = ticket.getPayload();
-    res.status(200).json({ message: 'User authenticated successfully', user: payload });
-  } catch (err) {
-    handleError(res, err, 401, 'Invalid token');
-  }
-};
 
 // Fetch User Profile
 const getUserProfile = async (req, res) => {
@@ -166,7 +35,7 @@ const getUserProfile = async (req, res) => {
         'deck_archetype',
         'last_login',
         'is_active',
-        'role'
+        'role_id'
       )
       .where({ id: req.user.id, is_deleted: false })
       .first();
@@ -200,16 +69,21 @@ const getUserProfile = async (req, res) => {
 
 // Update User Profile
 const updateUserProfile = async (req, res) => {
-  const userId = req.user.id; // Extract user ID from the token
+  const userId = req.user.id;
   const { firstname, lastname, email, picture, favorite_color, deck_archetype } = req.body;
 
   try {
-    // Fetch the user to check if they have a google_id
-    const user = await db('users').select('google_id').where({ id: userId }).first();
+    // Validate the picture field
+    const stockImages = [
+      '/images/profile-pictures/avatar1.png',
+      '/images/profile-pictures/avatar2.png',
+      '/images/profile-pictures/avatar3.png',
+    ];
 
-    // Restrict email updates if the user has a google_id
-    if (email && user.google_id) {
-      return res.status(400).json({ error: 'Email updates are not allowed for Google-authenticated users.' });
+    // Normalize the picture field to handle full URLs
+    const normalizedPicture = picture.replace(process.env.BACKEND_URL || 'http://localhost:3000', '');
+    if (!stockImages.includes(normalizedPicture)) {
+      return res.status(400).json({ error: 'Invalid profile picture selected.' });
     }
 
     // Validate input
@@ -222,7 +96,7 @@ const updateUserProfile = async (req, res) => {
     if (firstname) updates.firstname = firstname;
     if (lastname) updates.lastname = lastname;
     if (email) updates.email = email;
-    if (picture) updates.picture = picture;
+    if (picture) updates.picture = normalizedPicture; // Save the normalized path
     if (favorite_color) updates.favorite_color = favorite_color;
     if (deck_archetype) updates.deck_archetype = deck_archetype;
 
@@ -344,17 +218,104 @@ const updateUserStats = async (req, res) => {
   }
 };
 
+const requestRole = async (req, res) => {
+  const { requestedRoleId } = req.body;
+  const userId = req.user.id;
+
+  try {
+    // Check if a pending request already exists
+    const existingRequest = await db('role_requests')
+      .where({ user_id: userId, requested_role_id: requestedRoleId, status: 'pending' })
+      .first();
+
+    if (existingRequest) {
+      return res.status(400).json({ error: 'A pending request already exists.' });
+    }
+
+    // Create a new role request
+    await db('role_requests').insert({
+      user_id: userId,
+      requested_role_id: requestedRoleId,
+    });
+
+    res.status(200).json({ success: true, message: 'Role upgrade request submitted successfully.' });
+  } catch (err) {
+    console.error('Error submitting role request:', err.message);
+    res.status(500).json({ error: 'Failed to submit role request.' });
+  }
+};
+
+const getUserPermissions = async (req, res) => {
+  const { role_id } = req.user; // Assume `req.user` is populated by middleware
+
+  try {
+    // Fetch all roles the user has access to based on the role hierarchy
+    const accessibleRoles = await db('role_hierarchy')
+      .where('parent_role_id', role_id)
+      .pluck('child_role_id')
+      .then((roles) => [role_id, ...roles]); // Include the user's own role
+
+    // Fetch permissions for all accessible roles
+    const permissions = await db('role_permissions')
+      .join('permissions', 'role_permissions.permission_id', 'permissions.id')
+      .whereIn('role_permissions.role_id', accessibleRoles)
+      .select('permissions.id', 'permissions.name');
+
+    res.status(200).json({
+      accessibleRoles,
+      permissions, // Return both IDs and names
+    });
+  } catch (err) {
+    console.error('Error fetching user permissions:', err);
+    res.status(500).json({ error: 'Failed to fetch user permissions.' });
+  }
+};
+
+// Fetch basic user information
+const getUserSummary = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    // Query the database for the specified columns
+    const user = await db('users')
+      .select(
+        'id',
+        'wins',
+        'losses',
+        'firstname',
+        'lastname',
+        'winning_streak',
+        'losing_streak',
+        'current_commander',
+        'past_commanders',
+        'opponent_win_percentage',
+        'most_common_win_condition',
+        'favorite_color',
+        'deck_archetype'
+      )
+      .where({ id })
+      .first();
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    res.status(200).json(user);
+  } catch (err) {
+    console.error('Error fetching user basic info:', err.message);
+    res.status(500).json({ error: 'Failed to fetch user basic info.' });
+  }
+};
+
+
 module.exports = {
-  registerUser,
-  loginUser,
-  googleAuth,
-  verifyGoogleToken,
   getUserProfile,
   updateUserProfile,
   deleteUserAccount,
   changePassword,
   getAllUsers,
-  updateUserStats
+  updateUserStats,
+  requestRole,
+  getUserPermissions,
+  getUserSummary
 };
-
-

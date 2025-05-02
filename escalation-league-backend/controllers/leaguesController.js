@@ -129,77 +129,48 @@ const getLeagueDetails = async (req, res) => {
     }
 };
 
-// Get games in a league
-const getLeagueGames = async (req, res) => {
-    const { id } = req.params; // League ID
+// Get league stats and leaderboard
+const getLeagueStats = async (req, res) => {
+    const { leagueId } = req.params;
 
     try {
-        const games = await db('games as g')
-            .join('game_players as gp', 'g.id', 'gp.game_id') // Join with game_players table
-            .join('users as u', 'gp.player_id', 'u.id') // Join with users table to get player details
-            .select(
-                'g.id as game_id',
-                'g.league_id',
-                'g.date_played',
-                'g.result',
-                db.raw('GROUP_CONCAT(u.username) as players'), // Combine player usernames into a single string
-                db.raw('GROUP_CONCAT(u.id) as player_ids') // Combine player IDs into a single string
-            )
-            .where('g.league_id', id)
-            .groupBy('g.id') // Group by game ID to aggregate player data
-            .orderBy('g.date_played', 'desc'); // Order by the date the game was played
-
-        if (games.length === 0) {
-            return res.status(404).json({ error: 'No games found for this league.' });
-        }
-
-        res.status(200).json(games);
-    } catch (err) {
-        console.error('Error fetching league games:', err.message);
-        res.status(500).json({ error: 'Failed to fetch league games.' });
-    }
-};
-
-// Get leaderboard for a league
-const getLeagueLeaderboard = async (req, res) => {
-    const { leagueId } = req.params; // This is the leagueId from the route
-
-    try {
-        const leaderboard = await db('users as u')
-            .leftJoin('game_players as gp', 'gp.player_id', 'u.id') // Join with game_players to include all players
-            .leftJoin('games as g', 'gp.game_id', 'g.id') // Join with games table
+        // Fetch leaderboard
+        const leaderboard = await db('user_leagues as ul')
+            .join('users as u', 'ul.user_id', 'u.id')
             .select(
                 'u.id as player_id',
                 'u.email',
-                db.raw('SUM(CASE WHEN g.creator_id = u.id THEN 1 ELSE 0 END) AS wins'), // Wins if the player is the creator
-                db.raw('SUM(CASE WHEN g.creator_id != u.id AND gp.player_id = u.id THEN 1 ELSE 0 END) AS losses'), // Losses if the player is not the creator
-                db.raw('COUNT(DISTINCT g.id) AS total_games'), // Total games played
+                'ul.league_wins as wins',
+                'ul.league_losses as losses',
+                'ul.league_draws as draws',
+                db.raw('ul.league_wins + ul.league_losses + ul.league_draws AS total_games'),
                 db.raw(`
                     ROUND(
-                        SUM(CASE WHEN g.creator_id = u.id THEN 1 ELSE 0 END) /
-                        COUNT(DISTINCT g.id) * 100, 2
+                        (ul.league_wins / NULLIF(ul.league_wins + ul.league_losses + ul.league_draws, 0)) * 100, 2
                     ) AS win_rate
-                `) // Calculate win rate
+                `)
             )
-            .where('g.league_id', leagueId) // Filter by leagueId
-            .groupBy('u.id', 'u.email') // Group by player
+            .where('ul.league_id', leagueId)
             .orderBy([
                 { column: 'win_rate', order: 'desc' },
                 { column: 'wins', order: 'desc' },
-                { column: 'total_games', order: 'desc' } // Fallback sorting by total games
+                { column: 'total_games', order: 'desc' }
             ]);
 
-        if (leaderboard.length === 0) {
-            return res.status(404).json({ error: 'No leaderboard data found for this league.' });
-        }
+        // Fetch league stats
+        const stats = await db('user_leagues')
+            .where({ league_id: leagueId })
+            .count('id as total_players')
+            .first();
 
-        res.status(200).json(leaderboard);
+        res.status(200).json({ leaderboard, stats });
     } catch (err) {
-        console.error('Error fetching league leaderboard:', err.message);
-        res.status(500).json({ error: 'Failed to fetch league leaderboard.' });
+        console.error('Error fetching league stats:', err.message);
+        res.status(500).json({ error: 'Failed to fetch league stats.' });
     }
 };
 
+// Search leagues
 const searchLeagues = async (req, res) => {
     const { query } = req.query;
 
@@ -220,6 +191,7 @@ const searchLeagues = async (req, res) => {
     }
 };
 
+// Invite user to a league
 const inviteToLeague = async (req, res) => {
     const { leagueId } = req.params;
     const { userId } = req.body;
@@ -253,28 +225,77 @@ const inviteToLeague = async (req, res) => {
     }
 };
 
+// Fetch all pending signup requests
+const getSignupRequests = async (req, res) => {
+    try {
+        const requests = await db('league_signup_requests as lsr')
+            .join('users as u', 'lsr.user_id', 'u.id')
+            .join('leagues as l', 'lsr.league_id', 'l.id')
+            .select(
+                'lsr.id',
+                'u.firstname',
+                'u.lastname',
+                'u.email',
+                'l.name as league_name',
+                'lsr.status',
+                'lsr.created_at'
+            )
+            .where('lsr.status', 'pending');
 
-const getLeagueStats = async (req, res) => {
-    const { leagueId } = req.params;
+        res.status(200).json(requests);
+    } catch (err) {
+        console.error('Error fetching signup requests:', err.message);
+        res.status(500).json({ error: 'Failed to fetch signup requests.' });
+    }
+};
+
+// Approve a signup request
+const approveSignupRequest = async (req, res) => {
+    const { id } = req.params;
 
     try {
-        const stats = await db('games')
-            .where({ league_id: leagueId })
-            .count('id as total_games')
-            .first();
+        const request = await db('league_signup_requests').where({ id }).first();
 
-        const mostActivePlayers = await db('user_leagues as ul')
-            .join('users as u', 'ul.user_id', 'u.id')
-            .select('u.username', db.raw('COUNT(ul.league_id) as games_played'))
-            .where('ul.league_id', leagueId)
-            .groupBy('u.id')
-            .orderBy('games_played', 'desc')
-            .limit(5);
+        if (!request) {
+            return res.status(404).json({ error: 'Signup request not found.' });
+        }
 
-        res.status(200).json({ stats, mostActivePlayers });
+        // Approve the request
+        await db.transaction(async (trx) => {
+            await trx('league_signup_requests').where({ id }).update({ status: 'approved' });
+
+            // Add the user to the league
+            await trx('user_leagues').insert({
+                user_id: request.user_id,
+                league_id: request.league_id,
+                league_wins: 0,
+                league_losses: 0,
+                league_draws: 0,
+            });
+        });
+
+        res.status(200).json({ message: 'Signup request approved successfully.' });
     } catch (err) {
-        console.error('Error fetching league stats:', err.message);
-        res.status(500).json({ error: 'Failed to fetch league stats.' });
+        console.error('Error approving signup request:', err.message);
+        res.status(500).json({ error: 'Failed to approve signup request.' });
+    }
+};
+
+// Reject a signup request
+const rejectSignupRequest = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const result = await db('league_signup_requests').where({ id }).update({ status: 'rejected' });
+
+        if (result === 0) {
+            return res.status(404).json({ error: 'Signup request not found.' });
+        }
+
+        res.status(200).json({ message: 'Signup request rejected successfully.' });
+    } catch (err) {
+        console.error('Error rejecting signup request:', err.message);
+        res.status(500).json({ error: 'Failed to reject signup request.' });
     }
 };
 
@@ -286,9 +307,10 @@ module.exports = {
     getLeagues,
     getActiveLeague,
     getLeagueDetails,
-    getLeagueGames,
-    getLeagueLeaderboard,
+    getLeagueStats,
     searchLeagues,
     inviteToLeague,
-    getLeagueStats
+    getSignupRequests,
+    approveSignupRequest,
+    rejectSignupRequest,
 };

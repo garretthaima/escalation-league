@@ -1,116 +1,76 @@
-import axios from 'axios';
-
-const API_BASE_URL = `${process.env.REACT_APP_BACKEND_URL}/auth`; // Append 'auth/' to the base URL
+import axiosInstance from './axiosConfig';
 
 // Register a new user
 export const registerUser = async (userData) => {
-    try {
-        const response = await axios.post(`${API_BASE_URL}/register`, userData);
-        return response.data;
-    } catch (error) {
-        console.error('Error registering user:', error);
-        throw error;
-    }
+    const response = await axiosInstance.post('/auth/register', userData);
+    return response.data;
 };
 
 // Login a user
 export const loginUser = async (credentials) => {
-    try {
-        const response = await axios.post(`${API_BASE_URL}/login`, credentials);
-        return response.data;
-    } catch (error) {
-        console.error('Error logging in user:', error);
-        throw error;
-    }
+    const response = await axiosInstance.post('/auth/login', credentials);
+    const { token } = response.data;
+
+    // Store token in local storage
+    localStorage.setItem('token', token);
+
+    return response.data;
 };
 
 // Google Authentication
 export const googleAuth = async (token) => {
-    try {
-        const response = await axios.post(`${API_BASE_URL}/google-auth`, { token });
-        return response.data;
-    } catch (error) {
-        console.error('Error with Google authentication:', error);
-        throw error;
-    }
-};
+    const response = await axiosInstance.post('/auth/google-auth', { token });
+    const { token: jwtToken } = response.data;
 
-// Verify Google Token
-export const verifyGoogleToken = async (token) => {
-    try {
-        const response = await axios.post(`${API_BASE_URL}/verify-google-token`, { token });
-        return response.data;
-    } catch (error) {
-        console.error('Error verifying Google token:', error);
-        throw error;
-    }
-};
+    // Store token in local storage
+    localStorage.setItem('token', jwtToken);
 
+    return response.data;
+};
 // Fetch user profile
 export const getUserProfile = async () => {
     try {
-        const response = await axios.get(`${API_BASE_URL}/profile`, {
-            headers: {
-                Authorization: `Bearer ${localStorage.getItem('token')}`,
-            },
-        });
+        const response = await axiosInstance.get('/auth/profile');
         return response.data;
     } catch (error) {
-        console.error('Error fetching user profile:', error);
+        console.error('Error fetching user profile:', error.response?.data || error.message); // Log the error response
         throw error;
     }
 };
 
 // Update user profile
 export const updateUserProfile = async (profileData) => {
-    try {
-        const response = await axios.put(`${API_BASE_URL}/update`, profileData, {
-            headers: {
-                Authorization: `Bearer ${localStorage.getItem('token')}`,
-            },
-        });
-        return response.data;
-    } catch (error) {
-        console.error('Error updating user profile:', error);
-        throw error;
-    }
+    const response = await axiosInstance.put('/auth/update', profileData);
+    return response.data;
 };
 
 // Delete user account
 export const deleteUserAccount = async () => {
-    try {
-        const response = await axios.delete(`${API_BASE_URL}/delete`, {
-            headers: {
-                Authorization: `Bearer ${localStorage.getItem('token')}`,
-            },
-        });
-        return response.data;
-    } catch (error) {
-        console.error('Error deleting user account:', error);
-        throw error;
-    }
+    const response = await axiosInstance.delete('/auth/delete');
+    return response.data;
 };
 
 // Change user password
 export const changePassword = async (passwordData) => {
-    try {
-        const response = await axios.put(`${API_BASE_URL}/change-password`, passwordData, {
-            headers: {
-                Authorization: `Bearer ${localStorage.getItem('token')}`,
-            },
-        });
-        return response.data;
-    } catch (error) {
-        console.error('Error changing password:', error);
-        throw error;
-    }
+    const response = await axiosInstance.put('/auth/change-password', passwordData);
+    return response.data;
 };
 
-export const updateUserStats = async (data) => {
-    const response = await axios.put(`${API_BASE_URL}/update-stats`, data, {
-        headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-    });
+// Fetch user permissions and role hierarchy
+export const getUserPermissions = async () => {
+    const response = await axiosInstance.get('/auth/permissions');
+    return response.data; // { accessibleRoles: [...], permissions: [...] }
+};
+
+// Check authorization for specific permissions
+export const checkAuthorization = async (requiredPermissions) => {
+    console.log('Payload for /authorize:', { requiredPermissions }); // Debugging log
+
+    const response = await axiosInstance.post('/auth/authorize', { requiredPermissions });
+    return response.data.authorized; // Returns true if authorized
+};
+
+export const updateUserStats = async (statsData) => {
+    const response = await axiosInstance.put('/auth/update-stats', statsData);
     return response.data;
 };

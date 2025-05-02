@@ -1,21 +1,86 @@
+/**
+ * @fileoverview Main router file that combines all route modules.
+ * This file imports and mounts individual route modules for the application.
+ */
+
 const express = require('express');
 const router = express.Router();
 
-const userRoutes = require('./users');
-const gameRoutes = require('./games');
-const leagueRoutes = require('./leagues');
-const userLeagueRoutes = require('./userLeagues'); // Import user league routes
-const adminRoutes = require('./admin'); // Import admin routes
-const notificationRoutes = require('./notifications'); // Import notifications routes
-const podsRoutes = require('./pods');
+/**
+ * Mounts user-related routes at `/auth`.
+ * @module routes/auth
+ */
+try {
+    const authRoutes = require('./auth');
+    router.use('/auth', authRoutes); // Authentication-related routes
+} catch (err) {
+    console.error('Error loading authRoutes:', err.message);
+}
 
-// Define route prefixes
-router.use('/auth', userRoutes); // Authentication and user-related routes
-router.use('/games', gameRoutes); // Game-related routes
-router.use('/leagues', leagueRoutes); // League-related routes
-router.use('/user-leagues', userLeagueRoutes); // User-League related routes
-router.use('/admin', adminRoutes); // Admin-specific routes
-router.use('/notifications', notificationRoutes); // Notifications-related routes
-router.use('/pods', podsRoutes);
+/**
+ * Mounts user-related routes at `/auth`.
+ * @module routes/users
+ */
+try {
+    const userRoutes = require('./users');
+    router.use('/auth', userRoutes); // Authentication and user-related routes
+} catch (err) {
+    console.error('Error loading userRoutes:', err.message);
+}
+
+/**
+ * Mounts league-related routes at `/leagues`.
+ * @module routes/leagues
+ */
+try {
+    const leagueRoutes = require('./leagues');
+    router.use('/leagues', leagueRoutes); // League-related routes
+} catch (err) {
+    console.error('Error loading leagueRoutes:', err.message);
+}
+
+/**
+ * Mounts user-league-related routes at `/user-leagues`.
+ * @module routes/userLeagues
+ */
+try {
+    const userLeagueRoutes = require('./userLeagues');
+    router.use('/user-leagues', userLeagueRoutes); // User-League related routes
+} catch (err) {
+    console.error('Error loading userLeagueRoutes:', err.message);
+}
+
+/**
+ * Mounts admin-related routes at `/admin`.
+ * @module routes/admin
+ */
+try {
+    const adminRoutes = require('./admin');
+    router.use('/admin', adminRoutes); // Admin-specific routes
+} catch (err) {
+    console.error('Error loading adminRoutes:', err.message);
+}
+
+/**
+ * Mounts notification-related routes at `/notifications`.
+ * @module routes/notifications
+ */
+try {
+    const notificationRoutes = require('./notifications');
+    router.use('/notifications', notificationRoutes); // Notifications-related routes
+} catch (err) {
+    console.error('Error loading notificationRoutes:', err.message);
+}
+
+/**
+ * Mounts pod-related routes at `/pods`.
+ * @module routes/pods
+ */
+try {
+    const podsRoutes = require('./pods');
+    router.use('/pods', podsRoutes); // Pods-related routes
+} catch (err) {
+    console.error('Error loading podsRoutes:', err.message);
+}
 
 module.exports = router;

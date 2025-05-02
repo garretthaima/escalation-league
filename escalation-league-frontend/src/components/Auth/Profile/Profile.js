@@ -1,65 +1,61 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Tabs, Tab } from 'react-bootstrap';
 import OverviewTab from './OverviewTab';
 import SettingsTab from './SettingsTab';
 import StatisticsTab from './StatisticsTab';
 import LeagueTab from './LeagueTab';
+import { getUserProfile, updateUserProfile } from '../../../api/authApi';
 
 const Profile = () => {
     const [user, setUser] = useState(null);
     const [currentLeague, setCurrentLeague] = useState(null);
     const [error, setError] = useState('');
     const [activeTab, setActiveTab] = useState('overview');
-    const [newPicture, setNewPicture] = useState(null);
+    const navigate = useNavigate();
 
     useEffect(() => {
-        fetch(`${process.env.REACT_APP_BACKEND_URL}/auth/profile`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${localStorage.getItem('token')}`,
-            },
-        })
-            .then((res) => {
-                if (!res.ok) {
-                    throw new Error('Failed to fetch profile data.');
-                }
-                return res.json();
-            })
-            .then((data) => {
+        const fetchProfile = async () => {
+            try {
+                const data = await getUserProfile(); // Fetch user profile from the backend
                 setUser(data.user);
                 setCurrentLeague(data.currentLeague);
-            })
-            .catch((err) => {
-                setError(err.message);
-            });
-    }, []);
+            } catch (err) {
+                console.error(err);
+                setError('Failed to load profile.');
+                // Redirect to login if the user is not authenticated
+                if (err.response && err.response.status === 401) {
+                    navigate('/login'); // Redirect to login page
+                }
+            }
+        };
 
-    const handlePictureChange = (e) => {
-        const file = e.target.files[0];
-        setNewPicture(file);
+        fetchProfile();
+    }, [navigate]);
+
+    const handlePictureUpdate = async (newPicture) => {
+        try {
+            console.log('Updating profile picture with:', { picture: newPicture });
+            await updateUserProfile({ picture: newPicture });
+            setUser((prevUser) => ({ ...prevUser, picture: newPicture }));
+        } catch (err) {
+            console.error('Failed to update profile picture:', err);
+            setError('Failed to update profile picture.');
+        }
     };
 
-    const handlePictureUpload = () => {
-        if (!newPicture) return;
+    const getProfilePictureSrc = (picture) => {
+        if (!picture) {
+            // Return a default profile picture if `picture` is null or undefined
+            return `${process.env.REACT_APP_BACKEND_URL}/images/profile-pictures/default.png`;
+        }
 
-        const formData = new FormData();
-        formData.append('picture', newPicture);
+        // If the picture is a relative path, prepend the backend URL
+        if (picture.startsWith('/')) {
+            return `${process.env.REACT_APP_BACKEND_URL}${picture}`;
+        }
 
-        fetch(`${process.env.REACT_APP_BACKEND_URL}/auth/profile/picture`, {
-            method: 'POST',
-            headers: {
-                Authorization: `Bearer ${localStorage.getItem('token')}`,
-            },
-            body: formData,
-        })
-            .then((res) => res.json())
-            .then((data) => {
-                setUser((prevUser) => ({ ...prevUser, picture: data.picture }));
-            })
-            .catch((err) => {
-                setError(err.message);
-            });
+        return picture; // If it's already a full URL, return it as is
     };
 
     if (error) {
@@ -75,7 +71,7 @@ const Profile = () => {
             <div className="d-flex align-items-center mb-4">
                 <h2 className="me-3">Profile</h2>
                 <img
-                    src={user.picture}
+                    src={getProfilePictureSrc(user.picture)}
                     alt="Profile"
                     className="img-thumbnail"
                     style={{ width: '50px', height: '50px', borderRadius: '50%' }}
@@ -85,7 +81,6 @@ const Profile = () => {
                 <Tab eventKey="overview" title="Overview">
                     <OverviewTab user={user} />
                 </Tab>
-
                 <Tab eventKey="statistics" title="Deck Statistics">
                     <StatisticsTab user={user} />
                 </Tab>
@@ -93,11 +88,7 @@ const Profile = () => {
                     <LeagueTab currentLeague={currentLeague} />
                 </Tab>
                 <Tab eventKey="settings" title="Settings">
-                    <SettingsTab
-                        user={user}
-                        handlePictureChange={handlePictureChange}
-                        handlePictureUpload={handlePictureUpload}
-                    />
+                    <SettingsTab user={user} handlePictureUpdate={handlePictureUpdate} />
                 </Tab>
             </Tabs>
         </div>

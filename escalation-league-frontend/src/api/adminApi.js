@@ -1,91 +1,65 @@
-import axios from 'axios';
-
-const API_BASE_URL = `${process.env.REACT_APP_BACKEND_URL}`; // Append 'admin/' to the base URL
+import axiosInstance from './axiosConfig';
 
 // Fetch all users
 export const getAllUsers = async () => {
-    try {
-        const response = await axios.get(`${API_BASE_URL}/user/all`);
-        return response.data;
-    } catch (error) {
-        console.error('Error fetching all users:', error);
-        throw error;
-    }
+    const response = await axiosInstance.get('/user/all');
+    return response.data;
 };
 
 // Deactivate a user
 export const deactivateUser = async (userId) => {
-    try {
-        const response = await axios.put(`${API_BASE_URL}/user/deactivate/${userId}`);
-        return response.data;
-    } catch (error) {
-        console.error(`Error deactivating user with ID ${userId}:`, error);
-        throw error;
-    }
+    const response = await axiosInstance.put(`/user/deactivate/${userId}`);
+    return response.data;
 };
 
 // Activate a user
 export const activateUser = async (userId) => {
-    try {
-        const response = await axios.put(`${API_BASE_URL}/user/activate/${userId}`);
-        return response.data;
-    } catch (error) {
-        console.error(`Error activating user with ID ${userId}:`, error);
-        throw error;
-    }
+    const response = await axiosInstance.put(`/user/activate/${userId}`);
+    return response.data;
 };
 
 // Ban a user
 export const banUser = async (userId, banReason) => {
-    try {
-        const response = await axios.put(`${API_BASE_URL}/user/ban/${userId}`, { ban_reason: banReason });
-        return response.data;
-    } catch (error) {
-        console.error(`Error banning user with ID ${userId}:`, error);
-        throw error;
-    }
+    const response = await axiosInstance.put(`/user/ban/${userId}`, { ban_reason: banReason });
+    return response.data;
 };
 
 // Unban a user
 export const unbanUser = async (userId) => {
-    try {
-        const response = await axios.put(`${API_BASE_URL}/user/unban/${userId}`);
-        return response.data;
-    } catch (error) {
-        console.error(`Error unbanning user with ID ${userId}:`, error);
-        throw error;
-    }
+    const response = await axiosInstance.put(`/user/unban/${userId}`);
+    return response.data;
 };
 
 // Get user details
 export const getUserDetails = async (userId) => {
-    try {
-        const response = await axios.get(`${API_BASE_URL}/user/${userId}`);
-        return response.data;
-    } catch (error) {
-        console.error(`Error fetching details for user with ID ${userId}:`, error);
-        throw error;
-    }
+    const response = await axiosInstance.get(`/user/${userId}`);
+    return response.data;
 };
 
 // Reset user password
 export const resetUserPassword = async (userId, newPassword) => {
-    try {
-        const response = await axios.put(`${API_BASE_URL}/user/reset-password/${userId}`, { newPassword });
-        return response.data;
-    } catch (error) {
-        console.error(`Error resetting password for user with ID ${userId}:`, error);
-        throw error;
-    }
+    const response = await axiosInstance.put(`/user/reset-password/${userId}`, { newPassword });
+    return response.data;
 };
 
 // Get league report
 export const getLeagueReport = async () => {
-    try {
-        const response = await axios.get(`${API_BASE_URL}/reports/leagues`);
-        return response.data;
-    } catch (error) {
-        console.error('Error fetching league report:', error);
-        throw error;
-    }
+    const response = await axiosInstance.get('/reports/leagues');
+    return response.data;
+};
+
+// Get pending role requests
+export const getPendingRoleRequests = async () => {
+    const response = await axiosInstance.get('/admin/role-requests');
+    return response.data;
+};
+
+// Review role request
+export const reviewRoleRequest = async (requestId, status, adminComment = '') => {
+    const response = await axiosInstance.post('/admin/role-requests/review', {
+        requestId,
+        status,
+        adminComment,
+    });
+    return response.data;
 };

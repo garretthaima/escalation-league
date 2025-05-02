@@ -1,29 +1,61 @@
 const express = require('express');
 const router = express.Router();
 const {
-    registerUser,
-    loginUser,
-    googleAuth,
-    verifyGoogleToken,
     getUserProfile,
     updateUserProfile,
     deleteUserAccount,
     changePassword,
-    updateUserStats
+    updateUserStats,
+    getUserPermissions,
+    getUserSummary, // Renamed from getUserSummary
 } = require('../controllers/usersController');
 const authenticateToken = require('../middlewares/authentication');
-
-// Authentication Endpoints
-router.post('/register', registerUser);
-router.post('/login', loginUser);
-router.post('/google-auth', googleAuth);
-router.post('/verify-google-token', verifyGoogleToken);
+const authorizePermission = require('../middlewares/authorizePermission');
 
 // User Endpoints
-router.get('/profile', authenticateToken, getUserProfile);
-router.put('/update', authenticateToken, updateUserProfile);
-router.delete('/delete', authenticateToken, deleteUserAccount);
-router.put('/change-password', authenticateToken, changePassword);
-router.put('/update-stats', authenticateToken, updateUserStats); // Update global user stats
+router.get(
+    '/profile',
+    authenticateToken,
+    authorizePermission(['auth_view_profile']), // Permission to view user profile
+    getUserProfile
+);
+router.put(
+    '/update',
+    authenticateToken,
+    authorizePermission(['auth_update_profile']), // Permission to update user profile
+    updateUserProfile
+);
+router.delete(
+    '/delete',
+    authenticateToken,
+    authorizePermission(['auth_delete_account']), // Permission to delete user account
+    deleteUserAccount
+);
+router.put(
+    '/change-password',
+    authenticateToken,
+    authorizePermission(['auth_update_profile']), // Permission to change password (treated as profile update)
+    changePassword
+);
+router.put(
+    '/update-stats',
+    authenticateToken,
+    authorizePermission(['auth_update_profile']), // Permission to update user stats (treated as profile update)
+    updateUserStats
+);
+
+router.get(
+    '/permissions',
+    authenticateToken, // Ensure the user is authenticated
+    getUserPermissions
+);
+
+// Fetch basic user information
+router.get(
+    '/profile/:id',
+    authenticateToken, // Ensure the user is authenticated
+    authorizePermission(['auth_view_basic_info']), // Permission to view basic user info
+    getUserSummary // Controller method to fetch basic user info
+);
 
 module.exports = router;

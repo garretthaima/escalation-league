@@ -2,32 +2,33 @@ const db = require('../models/db');
 
 // Sign up for a league
 const signUpForLeague = async (req, res) => {
+    const { leagueId } = req.body;
     const userId = req.user.id;
-    const { league_id } = req.body;
-
-    if (!league_id) {
-        return res.status(400).json({ error: 'League ID is required.' });
-    }
 
     try {
-        // Check if the league exists
-        const league = await db('leagues').where({ id: league_id }).first();
-        if (!league) {
-            return res.status(404).json({ error: 'League not found.' });
+        // Fetch the role ID for 'league_user'
+        const leagueUserRole = await db('roles').select('id').where({ name: 'league_user' }).first();
+        if (!leagueUserRole) {
+            return res.status(500).json({ error: 'Role "league_user" not found in the database.' });
         }
 
-        // Check if the user is already signed up
-        const existingEntry = await db('user_leagues').where({ user_id: userId, league_id }).first();
-        if (existingEntry) {
-            return res.status(400).json({ error: 'User is already signed up for this league.' });
-        }
+        // Start a transaction to ensure consistency
+        await db.transaction(async (trx) => {
+            // Add the user to the league
+            await trx('user_leagues').insert({
+                user_id: userId,
+                league_id: leagueId,
+                league_wins: 0,
+                league_losses: 0,
+            });
 
-        // Add the user to the league
-        await db('user_leagues').insert({ user_id: userId, league_id });
+            // Update the user's role to 'league_user'
+            await trx('users').where({ id: userId }).update({ role_id: leagueUserRole.id });
+        });
 
-        res.status(201).json({ message: 'Successfully signed up for the league.' });
+        res.status(200).json({ success: true, message: 'Successfully signed up for the league!' });
     } catch (err) {
-        console.error('Error signing up for league:', err.message);
+        console.error('Error signing up for the league:', err.message);
         res.status(500).json({ error: 'Failed to sign up for the league.' });
     }
 };
@@ -139,11 +140,94 @@ const updateLeagueStats = async (req, res) => {
         res.status(500).json({ error: 'Failed to update league stats.' });
     }
 };
+
+const requestSignupForLeague = async (req, res) => {
+    const userId = req.user.id;
+    const leagueId = req.body.league_id;
+
+    console.log('User ID:', userId);
+    console.log('League ID:', leagueId);
+
+    try {
+        if (!leagueId) {
+            console.error('League ID is missing.');
+            return res.status(400).json({ error: 'League ID is required.' });
+        }
+
+        const existingRequest = await db('league_signup_requests')
+            .where({ user_id: userId, league_id: leagueId, status: 'pending' })
+            .first();
+
+        if (existingRequest) {
+            console.warn('Existing signup request found:', existingRequest);
+            return res.status(400).json({ error: 'You already have a pending signup request for this league.' });
+        }
+
+        await db('league_signup_requests').insert({
+            user_id: userId,
+            league_id: leagueId,
+            status: 'pending',
+        });
+
+        console.log('Signup request created successfully.');
+        res.status(200).json({ success: true, message: 'Signup request submitted successfully.' });
+    } catch (err) {
+        console.error('Error submitting signup request:', err.message);
+        res.status(500).json({ error: 'Failed to submit signup request.' });
+    }
+};
+
+const getUserPendingSignupRequests = async (req, res) => {
+    const userId = req.user.id;
+
+    try {
+        // Fetch pending signup requests for the logged-in user
+        const pendingRequests = await db('league_signup_requests')
+            .join('leagues', 'league_signup_requests.league_id', 'leagues.id')
+            .select('league_signup_requests.id', 'leagues.name as league_name', 'league_signup_requests.status')
+            .where({ 'league_signup_requests.user_id': userId, 'league_signup_requests.status': 'pending' });
+
+        res.status(200).json(pendingRequests);
+    } catch (err) {
+        console.error('Error fetching user pending signup requests:', err.message);
+        res.status(500).json({ error: 'Failed to fetch pending signup requests.' });
+    }
+};
+
+const isUserInLeague = async (req, res) => {
+    const userId = req.user.id;
+
+    try {
+        console.log('Checking league membership for user ID:', userId);
+
+        // Check if the user is in any league
+        const userLeague = await db('user_leagues')
+            .join('leagues', 'user_leagues.league_id', 'leagues.id')
+            .select('leagues.id as league_id', 'leagues.name as league_name', 'user_leagues.joined_at')
+            .where('user_leagues.user_id', userId)
+            .first();
+
+        console.log('Query result:', userLeague);
+
+        if (!userLeague) {
+            return res.status(404).json({ inLeague: false, message: 'User is not part of any league.' });
+        }
+
+        res.status(200).json({ inLeague: true, league: userLeague });
+    } catch (err) {
+        console.error('Error checking user league membership:', err.message);
+        res.status(500).json({ error: 'Failed to check user league membership.' });
+    }
+};
+
 module.exports = {
     signUpForLeague,
     getUserLeagueStats,
     updateUserLeagueData,
     leaveLeague,
     getLeagueParticipants,
-    updateLeagueStats
+    updateLeagueStats,
+    requestSignupForLeague,
+    getUserPendingSignupRequests,
+    isUserInLeague
 };
