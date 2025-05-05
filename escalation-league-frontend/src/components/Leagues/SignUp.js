@@ -1,17 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getLeagues, requestSignupForLeague, isUserInLeague, } from '../../api/leaguesApi';
-import { usePermissions } from '../context/PermissionsProvider';
-import { getUserPendingSignupRequests } from '../../api/userLeaguesApi';
+import { getLeagues } from '../../api/leaguesApi';
+import { getUserPendingSignupRequests, requestSignupForLeague, isUserInLeague } from '../../api/userLeaguesApi';
+import axios from 'axios';
 
 const SignUp = () => {
     const [leagues, setLeagues] = useState([]);
     const [selectedLeague, setSelectedLeague] = useState('');
     const [activeLeague, setActiveLeague] = useState(null);
-    const [pendingRequest, setPendingRequest] = useState(false); // Track if there is a pending request
+    const [pendingRequest, setPendingRequest] = useState(false);
     const [message, setMessage] = useState('');
     const [loading, setLoading] = useState(true);
-    const [isSubmitting, setIsSubmitting] = useState(false); // Track if a request is pending
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [commander, setCommander] = useState('');
+    const [commanderPartner, setCommanderPartner] = useState('');
+    const [commanderSuggestions, setCommanderSuggestions] = useState([]);
+    const [partnerSuggestions, setPartnerSuggestions] = useState([]);
+    const [hasPartnerAbility, setHasPartnerAbility] = useState(false); // New state to track "Partner" ability
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -44,9 +49,9 @@ const SignUp = () => {
             try {
                 const pendingRequests = await getUserPendingSignupRequests();
                 if (pendingRequests.length > 0) {
-                    setPendingRequest(true); // Mark as pending if there are any pending requests
+                    setPendingRequest(true);
                 } else {
-                    setPendingRequest(false); // No pending requests
+                    setPendingRequest(false);
                 }
             } catch (error) {
                 console.error('Error checking pending signup requests:', error);
@@ -64,24 +69,100 @@ const SignUp = () => {
 
     const handleSignUp = async (e) => {
         e.preventDefault();
-        setIsSubmitting(true); // Disable the button during the request
-        setMessage(''); // Clear any previous messages
+        setIsSubmitting(true);
+        setMessage('');
         try {
-            const response = await requestSignupForLeague(selectedLeague);
+            const response = await requestSignupForLeague(selectedLeague, {
+                commander,
+                commanderPartner: hasPartnerAbility ? commanderPartner : null, // Include partner only if applicable
+            });
             setMessage(response.message || 'Successfully signed up for the league!');
-            setPendingRequest(true); // Mark as pending request
+            setPendingRequest(true);
         } catch (error) {
             setMessage('Error signing up for the league.');
             console.error('Error signing up for the league:', error);
         } finally {
-            setIsSubmitting(false); // Re-enable the button
+            setIsSubmitting(false);
         }
+    };
+
+    const fetchCommanderSuggestions = async (query, setSuggestions) => {
+        if (!query) {
+            setSuggestions([]);
+            return;
+        }
+
+        try {
+            const response = await axios.get(`https://api.scryfall.com/cards/autocomplete?q=${query}`);
+            const suggestions = response.data.data;
+
+            // Fetch card details for each suggestion
+            const detailedSuggestions = await Promise.all(
+                suggestions.map(async (name) => {
+                    try {
+                        const cardResponse = await axios.get(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(name)}`);
+                        return {
+                            name,
+                            image: cardResponse.data.image_uris?.small || null, // Use small image if available
+                        };
+                    } catch {
+                        return { name, image: null }; // Fallback if card details fail
+                    }
+                })
+            );
+
+            setSuggestions(detailedSuggestions);
+        } catch (error) {
+            console.error('Error fetching commander suggestions:', error);
+        }
+    };
+
+    const handleCommanderChange = async (e) => {
+        const value = e.target.value;
+        setCommander(value);
+        fetchCommanderSuggestions(value, setCommanderSuggestions);
+
+        // Check if the selected commander has the "Partner" ability
+        try {
+            const response = await axios.get(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(value)}`);
+            const oracleText = response.data.oracle_text || '';
+            setHasPartnerAbility(oracleText.toLowerCase().includes('partner')); // Check for "Partner" in oracle text
+        } catch (error) {
+            console.error('Error fetching commander details:', error);
+            setHasPartnerAbility(false); // Default to false if the fetch fails
+        }
+    };
+
+    const handlePartnerChange = (e) => {
+        const value = e.target.value;
+        setCommanderPartner(value);
+        fetchCommanderSuggestions(value, setPartnerSuggestions);
+    };
+
+    const handleCommanderSelection = async (name) => {
+        setCommander(name);
+        setCommanderSuggestions([]); // Clear suggestions
+
+        // Fetch card details for the selected commander
+        try {
+            const response = await axios.get(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(name)}`);
+            const oracleText = response.data.oracle_text || '';
+            setHasPartnerAbility(oracleText.toLowerCase().includes('partner')); // Check for "Partner" in oracle text
+        } catch (error) {
+            console.error('Error fetching commander details:', error);
+            setHasPartnerAbility(false); // Default to false if the fetch fails
+        }
+    };
+
+    const handlePartnerSelection = async (name) => {
+        setCommanderPartner(name);
+        setPartnerSuggestions([]); // Clear suggestions
     };
 
     // Redirect to CurrentLeague page if the user is already in a league
     useEffect(() => {
         if (activeLeague) {
-            navigate('/current-league'); // Redirect to the CurrentLeague page
+            navigate('/current-league');
         }
     }, [activeLeague, navigate]);
 
@@ -112,7 +193,7 @@ const SignUp = () => {
                         value={selectedLeague}
                         onChange={(e) => setSelectedLeague(e.target.value)}
                         required
-                        disabled={isSubmitting} // Disable the dropdown during submission
+                        disabled={isSubmitting}
                     >
                         <option value="">Choose a league</option>
                         {leagues.map((league) => (
@@ -122,10 +203,75 @@ const SignUp = () => {
                         ))}
                     </select>
                 </div>
+                <div className="mb-3">
+                    <label htmlFor="commander" className="form-label">Commander</label>
+                    <input
+                        id="commander"
+                        className="form-control"
+                        value={commander}
+                        onChange={handleCommanderChange}
+                        placeholder="Search for a commander"
+                        required
+                    />
+                    {commanderSuggestions.length > 0 && (
+                        <ul className="list-group mt-2">
+                            {commanderSuggestions.map((suggestion) => (
+                                <li
+                                    key={suggestion.name}
+                                    className="list-group-item list-group-item-action d-flex align-items-center"
+                                    onClick={() => handleCommanderSelection(suggestion.name)} // Use the new function
+                                >
+                                    {suggestion.image && (
+                                        <img
+                                            src={suggestion.image}
+                                            alt={suggestion.name}
+                                            className="me-2"
+                                            style={{ width: '40px', height: 'auto' }}
+                                        />
+                                    )}
+                                    {suggestion.name}
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
+                {hasPartnerAbility && ( // Conditionally render the partner input
+                    <div className="mb-3">
+                        <label htmlFor="commanderPartner" className="form-label">Commander Partner</label>
+                        <input
+                            id="commanderPartner"
+                            className="form-control"
+                            value={commanderPartner}
+                            onChange={handlePartnerChange}
+                            placeholder="Search for a commander partner"
+                        />
+                        {partnerSuggestions.length > 0 && (
+                            <ul className="list-group mt-2">
+                                {partnerSuggestions.map((suggestion) => (
+                                    <li
+                                        key={suggestion.name}
+                                        className="list-group-item list-group-item-action d-flex align-items-center"
+                                        onClick={() => handlePartnerSelection(suggestion.name)} // Use the new function
+                                    >
+                                        {suggestion.image && (
+                                            <img
+                                                src={suggestion.image}
+                                                alt={suggestion.name}
+                                                className="me-2"
+                                                style={{ width: '40px', height: 'auto' }}
+                                            />
+                                        )}
+                                        {suggestion.name}
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </div>
+                )}
                 <button
                     type="submit"
                     className="btn btn-primary"
-                    disabled={isSubmitting || !selectedLeague} // Disable if no league is selected or during submission
+                    disabled={isSubmitting || !selectedLeague}
                 >
                     {isSubmitting ? 'Signing Up...' : 'Sign Up'}
                 </button>

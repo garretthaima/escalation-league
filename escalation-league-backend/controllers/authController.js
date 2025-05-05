@@ -3,11 +3,8 @@ const db = require('../models/db');
 const { OAuth2Client } = require('google-auth-library');
 const { generateToken } = require('../utils/tokenUtils');
 const { handleError } = require('../utils/errorUtils');
+const { getSetting } = require('../utils/settingsUtils');
 
-// Load environment variables
-const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const SECRET_KEY = process.env.SECRET_KEY;
-const client = new OAuth2Client(CLIENT_ID);
 
 // Register User
 const registerUser = async (req, res) => {
@@ -39,8 +36,6 @@ const registerUser = async (req, res) => {
         res.status(500).json({ error: 'Failed to register user.' });
     }
 };
-
-
 
 
 // Login User
@@ -91,14 +86,27 @@ const loginUser = async (req, res) => {
     }
 };
 
+
 // Google Authentication
 const googleAuth = async (req, res) => {
-    const { token } = req.body;
-
     try {
+        const { token } = req.body;
+
+        if (!token) {
+            return res.status(400).json({ error: 'Token is required' });
+        }
+
+        // Fetch the Google Client ID dynamically
+        const CLIENT_ID = await getSetting('google_client_id');
+        console.log('Google client ID:', CLIENT_ID);
+        console.log('Received Google token:', token);
+
+        const client = new OAuth2Client(CLIENT_ID);
+
+        // Verify the token
         const ticket = await client.verifyIdToken({
             idToken: token,
-            audience: CLIENT_ID,
+            audience: CLIENT_ID, // Must match the client ID
         });
 
         const payload = ticket.getPayload();
@@ -152,10 +160,11 @@ const googleAuth = async (req, res) => {
         }
 
         // Generate token using the utility function
-        const jwtToken = await generateToken(user); // Add `await` here
+        const jwtToken = await generateToken(user);
 
         res.status(200).json({ success: true, token: jwtToken });
     } catch (err) {
+        console.error('Error in Google Auth:', err.message);
         handleError(res, err, 401, 'Invalid Google token');
     }
 };

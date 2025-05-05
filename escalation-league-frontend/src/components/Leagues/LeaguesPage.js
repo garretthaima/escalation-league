@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Outlet, Link } from 'react-router-dom';
-import { getActiveLeague, isUserInLeague } from '../../api/leaguesApi';
+import { isUserInLeague } from '../../api/userLeaguesApi';
 import { usePermissions } from '../context/PermissionsProvider';
 
 const LeaguesPage = () => {

@@ -30,6 +30,12 @@ export const getLeagueParticipants = async (leagueId) => {
     return response.data;
 };
 
+// Get all participants in a league (league_admin only)
+export const getLeagueParticipantsDetails = async (leagueId, userId) => {
+    const response = await axiosInstance.get(`/user-leagues/${leagueId}/participants/${userId}`);
+    return response.data;
+};
+
 // Update league stats
 export const updateLeagueStats = async (data) => {
     const response = await axiosInstance.put('/user-leagues/update-league-stats', data);
@@ -44,5 +50,17 @@ export const submitSignupRequest = async (leagueId) => {
 
 export const getUserPendingSignupRequests = async () => {
     const response = await axiosInstance.get('/user-leagues/signup-request', {});
+    return response.data;
+};
+
+// Check if the user is in a league
+export const isUserInLeague = async () => {
+    const response = await axiosInstance.get('/user-leagues/in-league');
+    return response.data;
+};
+
+// Request signup for a league
+export const requestSignupForLeague = async (leagueId) => {
+    const response = await axiosInstance.post('/user-leagues/signup-request', { league_id: leagueId });
     return response.data;
 };

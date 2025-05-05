@@ -1,16 +1,5 @@
 const bcrypt = require('bcrypt');
 const db = require('../models/db');
-const { OAuth2Client } = require('google-auth-library');
-const { generateToken } = require('../utils/tokenUtils');
-const { handleError } = require('../utils/errorUtils');
-
-
-// Load environment variables
-const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const SECRET_KEY = process.env.SECRET_KEY;
-const client = new OAuth2Client(CLIENT_ID);
-
-
 
 // Fetch User Profile
 const getUserProfile = async (req, res) => {

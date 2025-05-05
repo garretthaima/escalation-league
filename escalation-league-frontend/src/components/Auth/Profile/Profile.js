@@ -5,7 +5,7 @@ import OverviewTab from './OverviewTab';
 import SettingsTab from './SettingsTab';
 import StatisticsTab from './StatisticsTab';
 import LeagueTab from './LeagueTab';
-import { getUserProfile, updateUserProfile } from '../../../api/authApi';
+import { getUserProfile, updateUserProfile } from '../../../api/usersApi';
 
 const Profile = () => {
     const [user, setUser] = useState(null);

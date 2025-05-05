@@ -23,7 +23,7 @@ try {
  */
 try {
     const userRoutes = require('./users');
-    router.use('/auth', userRoutes); // Authentication and user-related routes
+    router.use('/users', userRoutes); // Authentication and user-related routes
 } catch (err) {
     console.error('Error loading userRoutes:', err.message);
 }

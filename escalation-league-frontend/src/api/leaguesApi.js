@@ -74,14 +74,3 @@ export const rejectSignupRequest = async (requestId) => {
     return response.data;
 };
 
-// Check if the user is in a league
-export const isUserInLeague = async () => {
-    const response = await axiosInstance.get('/user-leagues/in-league');
-    return response.data;
-};
-
-// Request signup for a league
-export const requestSignupForLeague = async (leagueId) => {
-    const response = await axiosInstance.post('/user-leagues/signup-request', { league_id: leagueId });
-    return response.data;
-};

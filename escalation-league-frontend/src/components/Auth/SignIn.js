@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { loginUser, registerUser, googleAuth, getUserPermissions } from '../../api/authApi';
+import { loginUser, registerUser, googleAuth } from '../../api/authApi';
+import { getUserPermissions } from '../../api/usersApi';
 import GoogleSignInButton from './GoogleSignInButton';
 
 const SignIn = () => {
@@ -30,7 +31,7 @@ const SignIn = () => {
                 const permissionsData = await getUserPermissions();
                 localStorage.setItem('permissions', JSON.stringify(permissionsData.permissions));
 
-                navigate('/dashboard');
+                navigate('/profile');
             }
         } catch (err) {
             setError(err.response?.data?.error || 'An error occurred. Please try again.');
@@ -48,7 +49,7 @@ const SignIn = () => {
             const permissionsData = await getUserPermissions();
             localStorage.setItem('permissions', JSON.stringify(permissionsData.permissions));
 
-            navigate('/dashboard');
+            navigate('/profile');
         } catch (err) {
             setError('Google sign-in failed.');
         }

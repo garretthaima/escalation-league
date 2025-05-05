@@ -37,6 +37,7 @@ const generateToken = async (user, options = {}) => {
 
         // Sign and return the token
         const secretKey = await getSetting('secret_key');
+        console.log('Secret key fetched:', secretKey);
         return jwt.sign(payload, secretKey, { expiresIn: validatedExpiration });
     } catch (error) {
         console.error('Error generating token:', error.message);

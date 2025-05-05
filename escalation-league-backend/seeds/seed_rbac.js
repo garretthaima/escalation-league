@@ -1,10 +1,4 @@
 exports.seed = async function (knex) {
-  // Clear existing data
-  await knex('role_permissions').del();
-  await knex('role_hierarchy').del();
-  await knex('permissions').del();
-  await knex('roles').del();
-
   // Insert roles
   const roles = [
     { id: 1, name: 'super_admin', description: 'Full access to all features' },
@@ -35,6 +29,7 @@ exports.seed = async function (knex) {
     { id: 2, name: 'auth_view_profile', description: 'Allow users to view their profile' },
     { id: 3, name: 'auth_update_profile', description: 'Allow users to update their profile' },
     { id: 4, name: 'auth_delete_account', description: 'Allow users to delete their account' },
+    { id: 42, name: 'auth_view_basic_info', description: 'Allow users to view basic information about other users' },
 
     // Leagues
     { id: 5, name: 'league_create', description: 'Allow users or admins to create leagues' },
@@ -99,6 +94,7 @@ exports.seed = async function (knex) {
     { role_id: 5, permission_id: 2 }, // auth_view_profile
     { role_id: 5, permission_id: 3 }, // auth_update_profile
     { role_id: 5, permission_id: 4 }, // auth_delete_account
+    { role_id: 5, permission_id: 42 }, // auth_view_basic_info
     { role_id: 5, permission_id: 6 }, // league_read
     { role_id: 5, permission_id: 18 }, // pod_read
     { role_id: 5, permission_id: 25 }, // budget_read

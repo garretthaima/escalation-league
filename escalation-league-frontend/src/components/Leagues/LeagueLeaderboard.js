@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { getLeagueStats, isUserInLeague } from '../../api/leaguesApi';
+import { Link } from 'react-router-dom'; // Import Link from react-router-dom
+import { getLeagueStats } from '../../api/leaguesApi';
+import { isUserInLeague } from '../../api/userLeaguesApi';
 import { usePermissions } from '../context/PermissionsProvider';
 
 const LeagueLeaderboard = () => {
@@ -45,6 +47,7 @@ const LeagueLeaderboard = () => {
 
                     // Filter out players with no games played
                     const filteredLeaderboard = leaderboard.filter((player) => player.total_games > 0);
+                    console.log('Filtered Leaderboard:', filteredLeaderboard);
 
                     setLeaderboard(filteredLeaderboard);
                     setStats(stats);
@@ -102,7 +105,7 @@ const LeagueLeaderboard = () => {
             <table className="table table-striped table-hover">
                 <thead className="thead-dark">
                     <tr>
-                        <th onClick={() => sortLeaderboard('email')} style={{ cursor: 'pointer' }}>Player Email</th>
+                        <th onClick={() => sortLeaderboard('name')} style={{ cursor: 'pointer' }}>Player</th>
                         <th onClick={() => sortLeaderboard('wins')} style={{ cursor: 'pointer' }}>Wins</th>
                         <th onClick={() => sortLeaderboard('losses')} style={{ cursor: 'pointer' }}>Losses</th>
                         <th onClick={() => sortLeaderboard('draws')} style={{ cursor: 'pointer' }}>Draws</th>
@@ -113,7 +116,11 @@ const LeagueLeaderboard = () => {
                 <tbody>
                     {leaderboard.map((player) => (
                         <tr key={player.player_id}>
-                            <td>{player.email}</td>
+                            <td>
+                                <Link to={`/profile/${player.player_id}`} className="text-decoration-none">
+                                    {player.firstname} {player.lastname}
+                                </Link>
+                            </td>
                             <td>{player.wins}</td>
                             <td>{player.losses}</td>
                             <td>{player.draws}</td>

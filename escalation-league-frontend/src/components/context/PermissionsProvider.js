@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { getUserPermissions, getUserProfile } from '../../api/authApi';
+import { getUserPermissions, getUserProfile } from '../../api/usersApi';
 
 const PermissionsContext = createContext();
 

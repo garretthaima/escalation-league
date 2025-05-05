@@ -2,33 +2,34 @@ const db = require('../models/db');
 
 // Sign up for a league
 const signUpForLeague = async (req, res) => {
-    const { leagueId } = req.body;
-    const userId = req.user.id;
+    const { leagueId, commander, commanderPartner } = req.body;
+    const userId = req.user.id; // Assuming user ID is available from authentication middleware
 
     try {
-        // Fetch the role ID for 'league_user'
-        const leagueUserRole = await db('roles').select('id').where({ name: 'league_user' }).first();
-        if (!leagueUserRole) {
-            return res.status(500).json({ error: 'Role "league_user" not found in the database.' });
+        // Check if the user is already signed up for the league
+        const existingEntry = await db('user_leagues')
+            .where({ user_id: userId, league_id: leagueId })
+            .first();
+
+        if (existingEntry) {
+            return res.status(400).json({ error: 'You are already signed up for this league.' });
         }
 
-        // Start a transaction to ensure consistency
-        await db.transaction(async (trx) => {
-            // Add the user to the league
-            await trx('user_leagues').insert({
-                user_id: userId,
-                league_id: leagueId,
-                league_wins: 0,
-                league_losses: 0,
-            });
+        // Concatenate commander and partner with `//`
+        const currentCommander = commanderPartner
+            ? `${commander} // ${commanderPartner}`
+            : commander;
 
-            // Update the user's role to 'league_user'
-            await trx('users').where({ id: userId }).update({ role_id: leagueUserRole.id });
+        // Insert the new entry into the user_leagues table
+        await db('user_leagues').insert({
+            user_id: userId,
+            league_id: leagueId,
+            current_commander: currentCommander,
         });
 
-        res.status(200).json({ success: true, message: 'Successfully signed up for the league!' });
-    } catch (err) {
-        console.error('Error signing up for the league:', err.message);
+        res.status(201).json({ message: 'Successfully signed up for the league.' });
+    } catch (error) {
+        console.error('Error signing up for league:', error);
         res.status(500).json({ error: 'Failed to sign up for the league.' });
     }
 };
@@ -112,6 +113,54 @@ const getLeagueParticipants = async (req, res) => {
     } catch (err) {
         console.error('Error fetching league participants:', err.message);
         res.status(500).json({ error: 'Failed to fetch league participants.' });
+    }
+};
+
+// Fetch detailed information about a single participant in a league
+const getLeagueParticipantDetails = async (req, res) => {
+    const { league_id, user_id } = req.params;
+
+    try {
+        const participant = await db('user_leagues as ul')
+            .join('users as u', 'ul.user_id', 'u.id')
+            .select(
+                'u.id as user_id',
+                'u.firstname',
+                'u.lastname',
+                'u.email',
+                'ul.current_commander',
+                'ul.league_wins',
+                'ul.league_losses',
+                'ul.decklist_url',
+                'ul.joined_at'
+            )
+            .where({ 'ul.league_id': league_id, 'ul.user_id': user_id })
+            .first();
+
+        if (!participant) {
+            return res.status(404).json({ error: 'Participant not found in this league.' });
+        }
+
+        // Split the commander and partner if they are stored with `//`
+        const [commander, commanderPartner] = participant.current_commander
+            ? participant.current_commander.split(' // ')
+            : [null, null];
+
+        res.status(200).json({
+            user_id: participant.user_id,
+            firstname: participant.firstname,
+            lastname: participant.lastname,
+            email: participant.email,
+            commander,
+            commanderPartner: commanderPartner || null,
+            league_wins: participant.league_wins,
+            league_losses: participant.league_losses,
+            decklist_url: participant.decklist_url,
+            joined_at: participant.joined_at,
+        });
+    } catch (err) {
+        console.error('Error fetching participant details:', err.message);
+        res.status(500).json({ error: 'Failed to fetch participant details.' });
     }
 };
 
@@ -229,5 +278,6 @@ module.exports = {
     updateLeagueStats,
     requestSignupForLeague,
     getUserPendingSignupRequests,
-    isUserInLeague
+    isUserInLeague,
+    getLeagueParticipantDetails
 };

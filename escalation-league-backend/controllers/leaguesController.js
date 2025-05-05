@@ -139,7 +139,8 @@ const getLeagueStats = async (req, res) => {
             .join('users as u', 'ul.user_id', 'u.id')
             .select(
                 'u.id as player_id',
-                'u.email',
+                'u.firstname as firstname',
+                'u.lastname as lastname',
                 'ul.league_wins as wins',
                 'ul.league_losses as losses',
                 'ul.league_draws as draws',

@@ -27,40 +27,6 @@ export const googleAuth = async (token) => {
 
     return response.data;
 };
-// Fetch user profile
-export const getUserProfile = async () => {
-    try {
-        const response = await axiosInstance.get('/auth/profile');
-        return response.data;
-    } catch (error) {
-        console.error('Error fetching user profile:', error.response?.data || error.message); // Log the error response
-        throw error;
-    }
-};
-
-// Update user profile
-export const updateUserProfile = async (profileData) => {
-    const response = await axiosInstance.put('/auth/update', profileData);
-    return response.data;
-};
-
-// Delete user account
-export const deleteUserAccount = async () => {
-    const response = await axiosInstance.delete('/auth/delete');
-    return response.data;
-};
-
-// Change user password
-export const changePassword = async (passwordData) => {
-    const response = await axiosInstance.put('/auth/change-password', passwordData);
-    return response.data;
-};
-
-// Fetch user permissions and role hierarchy
-export const getUserPermissions = async () => {
-    const response = await axiosInstance.get('/auth/permissions');
-    return response.data; // { accessibleRoles: [...], permissions: [...] }
-};
 
 // Check authorization for specific permissions
 export const checkAuthorization = async (requiredPermissions) => {
@@ -70,7 +36,3 @@ export const checkAuthorization = async (requiredPermissions) => {
     return response.data.authorized; // Returns true if authorized
 };
 
-export const updateUserStats = async (statsData) => {
-    const response = await axiosInstance.put('/auth/update-stats', statsData);
-    return response.data;
-};

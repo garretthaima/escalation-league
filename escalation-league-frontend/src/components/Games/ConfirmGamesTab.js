@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getPendingPods, logPodResult } from '../../api/podsApi';
-import { getUserProfile, updateUserStats } from '../../api/authApi';
+import { getUserProfile, updateUserStats } from '../../api/usersApi';
 import { updateLeagueStats } from '../../api/userLeaguesApi';
 
 const ConfirmGamesTab = () => {

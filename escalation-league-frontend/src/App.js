@@ -13,6 +13,7 @@ import AdminPage from './components/Admin/AdminPage';
 import Rules from './components/Static/Rules';
 import Awards from './components/Static/Awards';
 import NotAuthorized from './components/Auth/NotAuthorized';
+import PublicProfile from './components/Auth/Profile/PublicProfile';
 
 const App = () => {
     const [user, setUser] = useState(null);
@@ -62,6 +63,9 @@ const App = () => {
 
                 {/* Profile Section */}
                 <Route path="/profile" element={<Profile />} />
+
+                {/* Profile Section */}
+                <Route path="/profile/:userId" element={<PublicProfile />} />
 
                 {/* Admin Section */}
                 <Route path="/admin" element={<AdminPage />} />

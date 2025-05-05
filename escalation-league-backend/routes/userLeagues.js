@@ -6,6 +6,7 @@ const {
     updateUserLeagueData,
     leaveLeague,
     getLeagueParticipants,
+    getLeagueParticipantDetails,
     updateLeagueStats,
     requestSignupForLeague,
     getUserPendingSignupRequests,
@@ -87,5 +88,13 @@ router.get(
     authorizePermission(['league_read']), // Permission to view league participants
     getLeagueParticipants
 );
+
+router.get(
+    '/:league_id/participants/:user_id',
+    authenticateToken,
+    authorizePermission(['league_read']), // Restrict access to league admins
+    getLeagueParticipantDetails
+);
+
 
 module.exports = router;

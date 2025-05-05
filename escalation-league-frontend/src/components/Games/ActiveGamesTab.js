@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getInProgressPods, getOpenPods, joinPod } from '../../api/podsApi';
 import { usePermissions } from '../context/PermissionsProvider';
-import { getUserProfile } from '../../api/authApi';
+import { getUserProfile } from '../../api/usersApi';
 
 const ActiveGamesTab = () => {
     const [openPods, setOpenPods] = useState([]);

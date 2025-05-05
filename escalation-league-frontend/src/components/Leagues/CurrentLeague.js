@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, Link } from 'react-router-dom';
 import { getLeagueDetails } from '../../api/leaguesApi';
 import { getLeagueParticipants } from '../../api/userLeaguesApi';
 
@@ -77,7 +77,12 @@ const CurrentLeague = () => {
                         <ul className="list-group">
                             {participants.map((participant) => (
                                 <li key={participant.id} className="list-group-item">
-                                    {participant.name || participant.email} {/* Display name if available, fallback to email */}
+                                    <Link
+                                        to={`/profile/${participant.id}`} // Route to the public profile page
+                                        className="text-decoration-none"
+                                    >
+                                        {participant.firstname + " " + participant.lastname || participant.email} {/* Display name if available, fallback to email */}
+                                    </Link>
                                 </li>
                             ))}
                         </ul>

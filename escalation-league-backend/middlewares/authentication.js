@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
-const SECRET_KEY = process.env.SECRET_KEY;
+const { getSetting } = require('../utils/settingsUtils'); // Import getSetting utility
 
-const authenticateToken = (req, res, next) => {
+const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
@@ -9,27 +9,39 @@ const authenticateToken = (req, res, next) => {
     return res.status(401).json({ error: 'Unauthorized. Token missing.' });
   }
 
-  jwt.verify(token, SECRET_KEY, (err, user) => {
-    if (err) {
-      return res.status(403).json({ error: 'Forbidden. Invalid token.' });
+  try {
+    // Fetch the secret key dynamically
+    const SECRET_KEY = await getSetting('secret_key');
+    if (!SECRET_KEY) {
+      return res.status(500).json({ error: 'Internal server error. Secret key not found.' });
     }
 
-    console.log('Decoded token payload:', user); // Debugging log
+    // Verify the token
+    jwt.verify(token, SECRET_KEY, (err, user) => {
+      if (err) {
+        return res.status(403).json({ error: 'Forbidden. Invalid token.' });
+      }
 
-    // Validate required fields in the token payload
-    if (!user.id || !user.role_id || !user.email) {
-      return res.status(400).json({ error: 'Invalid token payload. Missing required fields.' });
-    }
+      console.log('Decoded token payload:', user); // Debugging log
 
-    // Attach only the required fields to req.user
-    req.user = {
-      id: user.id,
-      role_id: user.role_id,
-      email: user.email,
-    };
+      // Validate required fields in the token payload
+      if (!user.id || !user.role_id || !user.email) {
+        return res.status(400).json({ error: 'Invalid token payload. Missing required fields.' });
+      }
 
-    next();
-  });
+      // Attach only the required fields to req.user
+      req.user = {
+        id: user.id,
+        role_id: user.role_id,
+        email: user.email,
+      };
+
+      next();
+    });
+  } catch (err) {
+    console.error('Error fetching secret key or verifying token:', err.message);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
 };
 
 module.exports = authenticateToken;

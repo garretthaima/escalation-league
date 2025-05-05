@@ -53,6 +53,28 @@ router.get(
     getActiveLeague
 );
 
+// Signup Request Management Endpoints (moved above dynamic routes)
+router.get(
+    '/signup-requests',
+    authenticateToken,
+    authorizePermission(['league_manage_requests']), // Permission to manage signup requests
+    getSignupRequests
+);
+
+router.put(
+    '/signup-requests/:id/approve',
+    authenticateToken,
+    authorizePermission(['league_manage_requests']), // Permission to approve signup requests
+    approveSignupRequest
+);
+
+router.put(
+    '/signup-requests/:id/reject',
+    authenticateToken,
+    authorizePermission(['league_manage_requests']), // Permission to reject signup requests
+    rejectSignupRequest
+);
+
 router.get(
     '/:id',
     authenticateToken,
@@ -79,28 +101,6 @@ router.post(
     authenticateToken,
     authorizePermission(['league_manage_players']), // Permission to invite users to a league
     inviteToLeague
-);
-
-// Signup Request Management Endpoints
-router.get(
-    '/signup-requests',
-    authenticateToken,
-    authorizePermission(['league_manage_requests']), // Permission to manage signup requests
-    getSignupRequests
-);
-
-router.put(
-    '/signup-requests/:id/approve',
-    authenticateToken,
-    authorizePermission(['league_manage_requests']), // Permission to approve signup requests
-    approveSignupRequest
-);
-
-router.put(
-    '/signup-requests/:id/reject',
-    authenticateToken,
-    authorizePermission(['league_manage_requests']), // Permission to reject signup requests
-    rejectSignupRequest
 );
 
 module.exports = router;
