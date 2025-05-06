@@ -18,7 +18,6 @@ const createPod = async (req, res) => {
         await db('game_players').insert({
             pod_id: podId,
             player_id: creatorId,
-            game_id: null, // No game associated yet
         });
 
         // Fetch the created pod to return it in the response

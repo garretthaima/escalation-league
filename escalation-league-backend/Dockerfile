@@ -20,5 +20,8 @@ EXPOSE 3000
 COPY ./scripts/wait-for-db.sh /wait-for-db.sh
 RUN chmod +x /wait-for-db.sh
 
+# Set the NODE_ENV environment variable
+# ENV NODE_ENV=production
+
 # Set the command to start the application
 CMD ["npm", "start"]

@@ -11,6 +11,23 @@ services:
       - "3306:3306"
     volumes:
       - db_prod_data:/var/lib/mysql
+    env_file:
+      - .env.prod
+
+  card-db:
+    image: mysql:8
+    container_name: escalation-league-card-db
+    environment:
+      MYSQL_ROOT_PASSWORD: ${CARD_MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${CARD_MYSQL_DATABASE}
+      MYSQL_USER: ${CARD_MYSQL_USER}
+      MYSQL_PASSWORD: ${CARD_MYSQL_PASSWORD}
+    ports:
+      - "3307:3306"
+    volumes:
+      - card_db_data:/var/lib/mysql
+    env_file:
+      - .env.prod
 
   backend-prod:
     build:
@@ -19,13 +36,22 @@ services:
     container_name: escalation-league-backend-prod
     environment:
       NODE_ENV: production
-      DATABASE_URL: mysql://${PROD_MYSQL_USER}:${PROD_MYSQL_PASSWORD}@db-prod:3306/${PROD_MYSQL_DATABASE}
-    env_file:
-      - ./escalation-league-backend/.env.prod
+      DATABASE_URL: mysql://${PROD_MYSQL_USER}:${PROD_MYSQL_PASSWORD}@db-prod:${PROD_PORT}/${PROD_MYSQL_DATABASE}
     ports:
       - "3000:3000"
     depends_on:
       - db-prod
+    env_file:
+      - .env.prod
+
+  redis-prod:
+    image: redis:7
+    container_name: escalation-league-redis-prod
+    ports:
+      - "6379:6379"
+    command: [ "redis-server", "--appendonly", "yes" ] # Enable persistence
+    volumes:
+      - redis-data:/data
 
   frontend-prod:
     build:
@@ -37,6 +63,8 @@ services:
       API_URL: https://api.escalationleague.com
     ports:
       - "8080:80" # Map external port 8080 to internal port 80
+    env_file:
+      - .env.prod
 
   nginx-prod:
     image: nginx:latest
@@ -53,3 +81,5 @@ services:
 
 volumes:
   db_prod_data:
+  card_db_data:
+  redis-data:

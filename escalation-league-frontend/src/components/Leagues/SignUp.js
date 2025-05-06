@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getLeagues } from '../../api/leaguesApi';
 import { getUserPendingSignupRequests, requestSignupForLeague, isUserInLeague } from '../../api/userLeaguesApi';
+import { validateAndCacheDeck } from '../../api/decksApi'; // Import the function
 import axios from 'axios';
 
 const SignUp = () => {
@@ -16,7 +17,9 @@ const SignUp = () => {
     const [commanderPartner, setCommanderPartner] = useState('');
     const [commanderSuggestions, setCommanderSuggestions] = useState([]);
     const [partnerSuggestions, setPartnerSuggestions] = useState([]);
-    const [hasPartnerAbility, setHasPartnerAbility] = useState(false); // New state to track "Partner" ability
+    const [hasPartnerAbility, setHasPartnerAbility] = useState(false);
+    const [decklistUrl, setDecklistUrl] = useState('');
+    const [deckValidationError, setDeckValidationError] = useState(''); // Validation error state
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -67,14 +70,37 @@ const SignUp = () => {
         initialize();
     }, []);
 
+    const handleDeckValidation = async () => {
+        try {
+            const response = await validateAndCacheDeck({ decklistUrl });
+            console.log('Deck validation response:', response);
+            setDeckValidationError(''); // Clear any previous errors
+            return true; // Validation successful
+        } catch (error) {
+            console.error('Error validating deck:', error);
+            setDeckValidationError('Invalid decklist URL. Please provide a valid decklist.');
+            return false; // Validation failed
+        }
+    };
+
     const handleSignUp = async (e) => {
         e.preventDefault();
         setIsSubmitting(true);
         setMessage('');
+        setDeckValidationError('');
+
+        // Validate the decklist URL before proceeding
+        const isDeckValid = await handleDeckValidation();
+        if (!isDeckValid) {
+            setIsSubmitting(false);
+            return; // Stop the signup process if validation fails
+        }
+
         try {
             const response = await requestSignupForLeague(selectedLeague, {
                 commander,
-                commanderPartner: hasPartnerAbility ? commanderPartner : null, // Include partner only if applicable
+                commanderPartner: hasPartnerAbility ? commanderPartner : null,
+                decklistUrl,
             });
             setMessage(response.message || 'Successfully signed up for the league!');
             setPendingRequest(true);
@@ -96,17 +122,16 @@ const SignUp = () => {
             const response = await axios.get(`https://api.scryfall.com/cards/autocomplete?q=${query}`);
             const suggestions = response.data.data;
 
-            // Fetch card details for each suggestion
             const detailedSuggestions = await Promise.all(
                 suggestions.map(async (name) => {
                     try {
                         const cardResponse = await axios.get(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(name)}`);
                         return {
                             name,
-                            image: cardResponse.data.image_uris?.small || null, // Use small image if available
+                            image: cardResponse.data.image_uris?.small || null,
                         };
                     } catch {
-                        return { name, image: null }; // Fallback if card details fail
+                        return { name, image: null };
                     }
                 })
             );
@@ -122,14 +147,13 @@ const SignUp = () => {
         setCommander(value);
         fetchCommanderSuggestions(value, setCommanderSuggestions);
 
-        // Check if the selected commander has the "Partner" ability
         try {
             const response = await axios.get(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(value)}`);
             const oracleText = response.data.oracle_text || '';
-            setHasPartnerAbility(oracleText.toLowerCase().includes('partner')); // Check for "Partner" in oracle text
+            setHasPartnerAbility(oracleText.toLowerCase().includes('partner'));
         } catch (error) {
             console.error('Error fetching commander details:', error);
-            setHasPartnerAbility(false); // Default to false if the fetch fails
+            setHasPartnerAbility(false);
         }
     };
 
@@ -141,25 +165,23 @@ const SignUp = () => {
 
     const handleCommanderSelection = async (name) => {
         setCommander(name);
-        setCommanderSuggestions([]); // Clear suggestions
+        setCommanderSuggestions([]);
 
-        // Fetch card details for the selected commander
         try {
             const response = await axios.get(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(name)}`);
             const oracleText = response.data.oracle_text || '';
-            setHasPartnerAbility(oracleText.toLowerCase().includes('partner')); // Check for "Partner" in oracle text
+            setHasPartnerAbility(oracleText.toLowerCase().includes('partner'));
         } catch (error) {
             console.error('Error fetching commander details:', error);
-            setHasPartnerAbility(false); // Default to false if the fetch fails
+            setHasPartnerAbility(false);
         }
     };
 
     const handlePartnerSelection = async (name) => {
         setCommanderPartner(name);
-        setPartnerSuggestions([]); // Clear suggestions
+        setPartnerSuggestions([]);
     };
 
-    // Redirect to CurrentLeague page if the user is already in a league
     useEffect(() => {
         if (activeLeague) {
             navigate('/current-league');
@@ -219,7 +241,7 @@ const SignUp = () => {
                                 <li
                                     key={suggestion.name}
                                     className="list-group-item list-group-item-action d-flex align-items-center"
-                                    onClick={() => handleCommanderSelection(suggestion.name)} // Use the new function
+                                    onClick={() => handleCommanderSelection(suggestion.name)}
                                 >
                                     {suggestion.image && (
                                         <img
@@ -235,7 +257,7 @@ const SignUp = () => {
                         </ul>
                     )}
                 </div>
-                {hasPartnerAbility && ( // Conditionally render the partner input
+                {hasPartnerAbility && (
                     <div className="mb-3">
                         <label htmlFor="commanderPartner" className="form-label">Commander Partner</label>
                         <input
@@ -251,7 +273,7 @@ const SignUp = () => {
                                     <li
                                         key={suggestion.name}
                                         className="list-group-item list-group-item-action d-flex align-items-center"
-                                        onClick={() => handlePartnerSelection(suggestion.name)} // Use the new function
+                                        onClick={() => handlePartnerSelection(suggestion.name)}
                                     >
                                         {suggestion.image && (
                                             <img
@@ -268,6 +290,18 @@ const SignUp = () => {
                         )}
                     </div>
                 )}
+                <div className="mb-3">
+                    <label htmlFor="decklistUrl" className="form-label">Decklist URL</label>
+                    <input
+                        id="decklistUrl"
+                        className="form-control"
+                        value={decklistUrl}
+                        onChange={(e) => setDecklistUrl(e.target.value)}
+                        placeholder="https://archidekt.com/decks/123456"
+                        required
+                    />
+                    {deckValidationError && <p className="text-danger">{deckValidationError}</p>}
+                </div>
                 <button
                     type="submit"
                     className="btn btn-primary"

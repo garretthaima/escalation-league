@@ -18,7 +18,7 @@ try {
 }
 
 /**
- * Mounts user-related routes at `/auth`.
+ * Mounts user-related routes at `/users`.
  * @module routes/users
  */
 try {
@@ -81,6 +81,17 @@ try {
     router.use('/pods', podsRoutes); // Pods-related routes
 } catch (err) {
     console.error('Error loading podsRoutes:', err.message);
+}
+
+/**
+ * Mounts deck-related routes at `/decks`.
+ * @module routes/decks
+ */
+try {
+    const decksRoutes = require('./decks');
+    router.use('/decks', decksRoutes); // Decks-related routes
+} catch (err) {
+    console.error('Error loading decksRoutes:', err.message);
 }
 
 module.exports = router;

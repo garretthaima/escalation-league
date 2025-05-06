@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { getInProgressPods, getOpenPods, joinPod } from '../../api/podsApi';
+import { getInProgressPods, getOpenPods, joinPod, createPod } from '../../api/podsApi';
+import { isUserInLeague } from '../../api/userLeaguesApi';
 import { usePermissions } from '../context/PermissionsProvider';
 import { getUserProfile } from '../../api/usersApi';
 
@@ -32,8 +33,8 @@ const ActiveGamesTab = () => {
                 const openPodsData = await getOpenPods();
                 const inProgressPodsData = await getInProgressPods();
 
-                setOpenPods(openPodsData);
-                setActivePods(inProgressPodsData);
+                setOpenPods(openPodsData || []);
+                setActivePods(inProgressPodsData || []);
             } catch (err) {
                 console.error('Error fetching pods:', err);
                 setError('Failed to fetch pods.');
@@ -57,11 +58,30 @@ const ActiveGamesTab = () => {
         }
     };
 
+    const handleCreatePod = async () => {
+        try {
+            const response = await isUserInLeague();
+            if (!response.inLeague || !response.league) {
+                alert('You are not part of any league.');
+                return;
+            }
+
+            const leagueId = response.league.league_id;
+            const newPod = await createPod({ leagueId });
+            setOpenPods((prev) => [...prev, newPod]);
+            alert(`New pod created successfully in league: ${response.league.league_name}!`);
+        } catch (err) {
+            console.error('Error creating pod:', err.response?.data?.error || err.message);
+            alert(err.response?.data?.error || 'Failed to create pod.');
+        }
+    };
+
     const handleOverridePod = async (podId) => {
         try {
             const response = await fetch(`/api/pods/${podId}/override`, {
                 method: 'POST',
                 headers: {
+                    'Content-Type': 'application/json',
                     Authorization: `Bearer ${localStorage.getItem('token')}`,
                 },
             });
@@ -73,8 +93,8 @@ const ActiveGamesTab = () => {
             alert('Pod successfully overridden to active!');
             const openPodsData = await getOpenPods();
             const inProgressPodsData = await getInProgressPods();
-            setOpenPods(openPodsData);
-            setActivePods(inProgressPodsData);
+            setOpenPods(openPodsData || []);
+            setActivePods(inProgressPodsData || []);
         } catch (err) {
             console.error('Error overriding pod:', err.message);
             alert(err.message || 'Failed to override pod.');
@@ -94,6 +114,14 @@ const ActiveGamesTab = () => {
             {/* Open Pods Section */}
             <div className="mb-4">
                 <h3>Open Games</h3>
+                {canCreatePods && (
+                    <button
+                        className="btn btn-primary mb-3"
+                        onClick={handleCreatePod}
+                    >
+                        Create New Game
+                    </button>
+                )}
                 <div className="row">
                     {openPods.length > 0 ? (
                         openPods.map((pod) => (
@@ -134,9 +162,16 @@ const ActiveGamesTab = () => {
                                             <button
                                                 className="btn btn-secondary mt-3"
                                                 onClick={() => handleJoinPod(pod.id)}
-                                                disabled={pod.participants.length >= 4}
+                                                disabled={
+                                                    pod.participants?.some((p) => p.player_id === userId) || // Check if user is already in the pod
+                                                    pod.participants.length >= 4 // Check if pod is full
+                                                }
                                             >
-                                                {pod.participants.length >= 4 ? 'Pod Full' : 'Join Pod'}
+                                                {pod.participants?.some((p) => p.player_id === userId)
+                                                    ? 'Already Joined'
+                                                    : pod.participants.length >= 4
+                                                        ? 'Pod Full'
+                                                        : 'Join Pod'}
                                             </button>
                                         )}
                                     </div>

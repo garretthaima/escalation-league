@@ -4,17 +4,23 @@ FROM node:18-alpine AS build
 # Set the working directory
 WORKDIR /app
 
-# Copy package.json and install dependencies
+# Copy package.json and package-lock.json to the container
 COPY package*.json ./
+
+# Install dependencies
 RUN npm install
 
-# Copy the rest of the app and build it
+# Copy the rest of the application code
 COPY . .
+
+# Build the frontend
 RUN npm run build
 
 # Use an official Nginx image to serve the app
 FROM nginx:stable-alpine
-COPY --from=build /app/build /usr/share/nginx/html
+
+# Copy the contents of the build directory to the Nginx HTML directory
+COPY --from=build /app/build/ /usr/share/nginx/html/
 
 # Expose port 80
 EXPOSE 80

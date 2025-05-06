@@ -10,6 +10,7 @@ import PastLeagues from './components/Leagues/PastLeagues';
 import LeagueLeaderboard from './components/Leagues/LeagueLeaderboard';
 import GamesPage from './components/Games/GamesPage';
 import AdminPage from './components/Admin/AdminPage';
+import CreateLeaguePage from './components/Admin/CreateLeaguePage';
 import Rules from './components/Static/Rules';
 import Awards from './components/Static/Awards';
 import NotAuthorized from './components/Auth/NotAuthorized';
@@ -69,6 +70,8 @@ const App = () => {
 
                 {/* Admin Section */}
                 <Route path="/admin" element={<AdminPage />} />
+                <Route path="/admin/leagues/create" element={<CreateLeaguePage />} />
+
 
                 {/* Not Authorized Page */}
                 <Route path="/not-authorized" element={<NotAuthorized />} />

@@ -36,7 +36,7 @@ const AdminPage = () => {
                             className={`nav-link ${activeTab === 'leagueRequests' ? 'active' : ''}`}
                             onClick={() => setActiveTab('leagueRequests')}
                         >
-                            League Signup Requests
+                            League Management
                         </button>
                     </li>
                 )}
@@ -44,7 +44,6 @@ const AdminPage = () => {
             <div className="tab-content mt-4">
                 {activeTab === 'roleRequests' && canAccessRoleRequests && (
                     <div>
-                        {/* Existing Role Requests Logic */}
                         <h2>Role Requests</h2>
                         {/* Role requests table or content */}
                     </div>

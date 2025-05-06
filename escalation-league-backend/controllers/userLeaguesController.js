@@ -25,6 +25,7 @@ const signUpForLeague = async (req, res) => {
             user_id: userId,
             league_id: leagueId,
             current_commander: currentCommander,
+            decklist_url,
         });
 
         res.status(201).json({ message: 'Successfully signed up for the league.' });

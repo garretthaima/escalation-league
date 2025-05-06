@@ -1,95 +1,154 @@
 import React, { useEffect, useState } from 'react';
-import { getSignupRequests, approveSignupRequest, rejectSignupRequest } from '../../api/leaguesApi';
+import { useNavigate } from 'react-router-dom';
+import {
+    getLeagues,
+    setActiveLeague,
+    getSignupRequests,
+    approveSignupRequest,
+    rejectSignupRequest,
+} from '../../api/leaguesApi';
 
 const LeagueAdminPage = () => {
-    const [requests, setRequests] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
+    const [leagues, setLeagues] = useState([]);
+    const [signupRequests, setSignupRequests] = useState([]);
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
+    // Fetch leagues and signup requests on component mount
     useEffect(() => {
-        const fetchRequests = async () => {
+        const fetchData = async () => {
             try {
-                const data = await getSignupRequests();
-                setRequests(data);
+                setLoading(true);
+                const leaguesData = await getLeagues();
+                const signupRequestsData = await getSignupRequests();
+                setLeagues(leaguesData);
+                setSignupRequests(signupRequestsData);
             } catch (err) {
-                console.error('Error fetching signup requests:', err);
-                setError('Failed to fetch signup requests.');
+                setError('Failed to fetch data. Please try again.');
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchRequests();
+        fetchData();
     }, []);
 
-    const handleApprove = async (requestId) => {
+    // Handle setting a league as active
+    const handleSetActiveLeague = async (leagueId) => {
+        try {
+            await setActiveLeague(leagueId);
+            alert('League set as active successfully!');
+            setLeagues((prev) =>
+                prev.map((league) =>
+                    league.id === leagueId ? { ...league, is_active: true } : { ...league, is_active: false }
+                )
+            );
+        } catch (err) {
+            alert('Failed to set league as active. Please try again.');
+        }
+    };
+
+    // Handle approving a signup request
+    const handleApproveRequest = async (requestId) => {
         try {
             await approveSignupRequest(requestId);
-            setRequests((prev) => prev.filter((req) => req.id !== requestId));
+            alert('Signup request approved!');
+            setSignupRequests((prev) => prev.filter((req) => req.id !== requestId));
         } catch (err) {
-            console.error('Error approving signup request:', err);
-            setError('Failed to approve signup request.');
+            alert('Failed to approve signup request. Please try again.');
         }
     };
 
-    const handleReject = async (requestId) => {
+    // Handle rejecting a signup request
+    const handleRejectRequest = async (requestId) => {
         try {
             await rejectSignupRequest(requestId);
-            setRequests((prev) => prev.filter((req) => req.id !== requestId));
+            alert('Signup request rejected!');
+            setSignupRequests((prev) => prev.filter((req) => req.id !== requestId));
         } catch (err) {
-            console.error('Error rejecting signup request:', err);
-            setError('Failed to reject signup request.');
+            alert('Failed to reject signup request. Please try again.');
         }
     };
 
-    if (loading) {
-        return <div>Loading...</div>;
-    }
-
-    if (error) {
-        return <div className="alert alert-danger">{error}</div>;
-    }
+    if (loading) return <div>Loading...</div>;
+    if (error) return <div>{error}</div>;
 
     return (
         <div>
-            <h2>League Signup Requests</h2>
-            {requests.length === 0 ? (
-                <p>No pending signup requests.</p>
-            ) : (
-                <table className="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>User</th>
-                            <th>League</th>
-                            <th>Request Date</th>
-                            <th>Actions</th>
+            <h2>League Management</h2>
+            <button
+                className="btn btn-primary mb-4"
+                onClick={() => navigate('/admin/leagues/create')}
+            >
+                Create League
+            </button>
+
+            <h3>Leagues</h3>
+            <table className="table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {leagues.map((league) => (
+                        <tr key={league.id}>
+                            <td>{league.id}</td>
+                            <td>{league.name}</td>
+                            <td>{league.is_active ? 'Active' : 'Inactive'}</td>
+                            <td>
+                                {!league.is_active && (
+                                    <button
+                                        className="btn btn-primary btn-sm"
+                                        onClick={() => handleSetActiveLeague(league.id)}
+                                    >
+                                        Set Active
+                                    </button>
+                                )}
+                            </td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        {requests.map((req) => (
-                            <tr key={req.id}>
-                                <td>{`${req.firstname} ${req.lastname}`}</td>
-                                <td>{req.league_name}</td>
-                                <td>{new Date(req.created_at).toLocaleString()}</td>
-                                <td>
-                                    <button
-                                        className="btn btn-success btn-sm me-2"
-                                        onClick={() => handleApprove(req.id)}
-                                    >
-                                        Approve
-                                    </button>
-                                    <button
-                                        className="btn btn-danger btn-sm"
-                                        onClick={() => handleReject(req.id)}
-                                    >
-                                        Reject
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            )}
+                    ))}
+                </tbody>
+            </table>
+
+            <h3>Signup Requests</h3>
+            <table className="table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>User</th>
+                        <th>League</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {signupRequests.map((request) => (
+                        <tr key={request.id}>
+                            <td>{request.id}</td>
+                            <td>{request.user_name}</td>
+                            <td>{request.league_name}</td>
+                            <td>
+                                <button
+                                    className="btn btn-success btn-sm"
+                                    onClick={() => handleApproveRequest(request.id)}
+                                >
+                                    Approve
+                                </button>
+                                <button
+                                    className="btn btn-danger btn-sm"
+                                    onClick={() => handleRejectRequest(request.id)}
+                                >
+                                    Reject
+                                </button>
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
         </div>
     );
 };

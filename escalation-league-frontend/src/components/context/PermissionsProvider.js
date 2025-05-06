@@ -5,7 +5,7 @@ const PermissionsContext = createContext();
 
 export const PermissionsProvider = ({ children }) => {
     const [permissions, setPermissions] = useState([]);
-    const [user, setUser] = useState(null); // Add user state
+    const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -31,7 +31,7 @@ export const PermissionsProvider = ({ children }) => {
     }, []); // Runs only once when the provider mounts
 
     return (
-        <PermissionsContext.Provider value={{ permissions, user, loading }}>
+        <PermissionsContext.Provider value={{ permissions, setPermissions, user, setUser, loading }}>
             {children}
         </PermissionsContext.Provider>
     );

@@ -1,11 +1,15 @@
-require('dotenv').config();
-const express = require('express');
 const path = require('path');
+
+// Dynamically load the correct .env file based on NODE_ENV
+const envFile = process.env.NODE_ENV === 'production' ? '.env.prod' : '.env.dev';
+require('dotenv').config({ path: path.resolve(__dirname, `../${envFile}`) });
+
+const express = require('express');
 const cors = require('cors');
-const { getSetting } = require('./utils/settingsUtils');
+// const { getSetting } = require('./utils/settingsUtils');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 4000;
 
 // Middleware to parse JSON request bodies
 app.use(express.json());

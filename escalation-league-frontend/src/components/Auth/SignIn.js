@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { loginUser, registerUser, googleAuth } from '../../api/authApi';
 import { getUserPermissions } from '../../api/usersApi';
+import { usePermissions } from '../context/PermissionsProvider';
 import GoogleSignInButton from './GoogleSignInButton';
 
 const SignIn = () => {
@@ -9,11 +10,11 @@ const SignIn = () => {
     const [formData, setFormData] = useState({ email: '', password: '', firstname: '', lastname: '' });
     const [error, setError] = useState('');
     const navigate = useNavigate();
+    const { setUser, setPermissions } = usePermissions(); // Access context functions
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
-
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -27,11 +28,19 @@ const SignIn = () => {
                 console.log('Token received from login:', data.token);
                 localStorage.setItem('token', data.token);
 
-                // Fetch user permissions
-                const permissionsData = await getUserPermissions();
-                localStorage.setItem('permissions', JSON.stringify(permissionsData.permissions));
+                // Decode token and update user in context
+                const tokenPayload = JSON.parse(atob(data.token.split('.')[1]));
+                setUser({
+                    id: tokenPayload.id,
+                    email: tokenPayload.email,
+                    role_id: tokenPayload.role_id,
+                });
 
-                navigate('/profile');
+                // Fetch and update permissions in context
+                const permissionsData = await getUserPermissions();
+                setPermissions(permissionsData.permissions);
+
+                navigate('/profile'); // Redirect to profile page
             }
         } catch (err) {
             setError(err.response?.data?.error || 'An error occurred. Please try again.');
@@ -45,12 +54,24 @@ const SignIn = () => {
             console.log('Token received from Google Auth:', data.token);
             localStorage.setItem('token', data.token);
 
-            // Fetch user permissions
-            const permissionsData = await getUserPermissions();
-            localStorage.setItem('permissions', JSON.stringify(permissionsData.permissions));
+            // Decode token and update user in context
+            const tokenPayload = JSON.parse(atob(data.token.split('.')[1]));
+            setUser({
+                id: tokenPayload.id,
+                email: tokenPayload.email,
+                role_id: tokenPayload.role_id,
+            });
+            console.log('User set in context:', tokenPayload);
 
-            navigate('/profile');
+            // Fetch and update permissions in context
+            const permissionsData = await getUserPermissions();
+            setPermissions(permissionsData.permissions);
+            console.log('Permissions set in context:', permissionsData.permissions);
+
+            console.log('Redirecting to /profile...');
+            navigate('/profile'); // Redirect to profile page
         } catch (err) {
+            console.error('Google sign-in failed:', err);
             setError('Google sign-in failed.');
         }
     };

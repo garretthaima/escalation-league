@@ -1,5 +1,6 @@
 const bcrypt = require('bcrypt');
 const db = require('../models/db');
+const redis = require('../utils/redisClient');
 
 // Fetch User Profile
 const getUserProfile = async (req, res) => {
@@ -38,17 +39,29 @@ const getUserProfile = async (req, res) => {
       .join('leagues', 'user_leagues.league_id', 'leagues.id')
       .select(
         'leagues.name as league_name',
-        'user_leagues.decklist_url',
+        'user_leagues.deck_id',
         'user_leagues.league_wins',
         'user_leagues.league_losses'
       )
       .where('user_leagues.user_id', req.user.id)
       .first();
 
-    // Respond with user details and current league (if any)
+    // Fetch the decklist_url from Redis using the deck_id
+    let decklistUrl = null;
+    if (currentLeague && currentLeague.deck_id) {
+      const cachedDeck = await redis.get(`deck:${currentLeague.deck_id}`);
+      if (cachedDeck) {
+        const deckData = JSON.parse(cachedDeck);
+        decklistUrl = deckData.decklistUrl || null; // Extract decklistUrl from the cached data
+      }
+    }
+
+    // Respond with user details, current league, and decklist URL
     res.status(200).json({
       user,
-      currentLeague: currentLeague || null, // Explicitly return null if no league is found
+      currentLeague: currentLeague
+        ? { ...currentLeague, decklistUrl } // Include the decklistUrl in the currentLeague object
+        : null,
     });
   } catch (err) {
     console.error('Error fetching user profile:', err);
@@ -234,25 +247,17 @@ const requestRole = async (req, res) => {
   }
 };
 
+const { resolveRolesAndPermissions } = require('../utils/permissionsUtils');
+
 const getUserPermissions = async (req, res) => {
   const { role_id } = req.user; // Assume `req.user` is populated by middleware
 
   try {
-    // Fetch all roles the user has access to based on the role hierarchy
-    const accessibleRoles = await db('role_hierarchy')
-      .where('parent_role_id', role_id)
-      .pluck('child_role_id')
-      .then((roles) => [role_id, ...roles]); // Include the user's own role
-
-    // Fetch permissions for all accessible roles
-    const permissions = await db('role_permissions')
-      .join('permissions', 'role_permissions.permission_id', 'permissions.id')
-      .whereIn('role_permissions.role_id', accessibleRoles)
-      .select('permissions.id', 'permissions.name');
+    const { accessibleRoles, permissions } = await resolveRolesAndPermissions(role_id);
 
     res.status(200).json({
       accessibleRoles,
-      permissions, // Return both IDs and names
+      permissions, // Return deduplicated permissions
     });
   } catch (err) {
     console.error('Error fetching user permissions:', err);

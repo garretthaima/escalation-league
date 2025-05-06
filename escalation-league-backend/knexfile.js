@@ -1,4 +1,8 @@
-require('dotenv').config({ path: '../.env' }); // Adjust the path to point to the root .env file
+const path = require('path');
+
+// Load the appropriate .env file based on NODE_ENV
+const envFile = process.env.NODE_ENV === 'production' ? '../.env.prod' : '../.env.dev';
+require('dotenv').config({ path: path.resolve(__dirname, envFile) });
 
 module.exports = {
     development: {
@@ -8,7 +12,7 @@ module.exports = {
             user: process.env.DEV_MYSQL_USER,
             password: process.env.DEV_MYSQL_PASSWORD,
             database: process.env.DEV_MYSQL_DATABASE,
-            port: process.env.DEV_PORT || 3306,
+            port: process.env.DEV_PORT || 3308,
         },
         migrations: {
             directory: './migrations',

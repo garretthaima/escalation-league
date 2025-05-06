@@ -56,12 +56,6 @@ const Navbar = ({ handleLogout }) => {
                             </li>
                         )}
 
-                        {/* League Admin Section - Only visible to users with league_manage_requests permission */}
-                        {user && canAccessLeagueAdmin && (
-                            <li className="nav-item">
-                                <Link className="nav-link" to="/league-admin">League Admin</Link>
-                            </li>
-                        )}
                     </ul>
                     {/* Profile Section on the Right */}
                     {user ? (

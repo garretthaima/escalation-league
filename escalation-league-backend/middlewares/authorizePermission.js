@@ -1,4 +1,4 @@
-const db = require('../models/db');
+const { resolveRolesAndPermissions } = require('../utils/permissionsUtils');
 
 module.exports = (requiredPermissions) => {
     return async (req, res, next) => {
@@ -7,20 +7,9 @@ module.exports = (requiredPermissions) => {
         }
 
         try {
-            // Fetch all roles inherited by the user's role
-            const inheritedRoles = await db('role_hierarchy')
-                .select('parent_role_id')
-                .where('child_role_id', req.user.role_id);
+            const { permissions } = await resolveRolesAndPermissions(req.user.role_id);
 
-            const roleIds = [req.user.role_id, ...inheritedRoles.map((r) => r.parent_role_id)];
-
-            // Fetch all permissions for the user's roles
-            const userPermissions = await db('role_permissions')
-                .join('permissions', 'role_permissions.permission_id', 'permissions.id')
-                .whereIn('role_permissions.role_id', roleIds)
-                .select('permissions.name');
-
-            const userPermissionNames = userPermissions.map((perm) => perm.name);
+            const userPermissionNames = permissions.map((perm) => perm.name);
 
             // Check if the user has all required permissions
             const hasPermission = requiredPermissions.every((perm) =>
