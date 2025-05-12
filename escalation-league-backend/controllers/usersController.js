@@ -1,6 +1,7 @@
 const bcrypt = require('bcrypt');
 const db = require('../models/db');
 const redis = require('../utils/redisClient');
+const { updateStats } = require('../utils/statsUtils');
 
 // Fetch User Profile
 const getUserProfile = async (req, res) => {
@@ -194,24 +195,23 @@ const deactivateUser = async (req, res) => {
   }
 };
 
-const updateUserStats = async (req, res) => {
-  const { userId, result } = req.body;
 
-  if (!userId || !result) {
-    return res.status(400).json({ error: 'User ID and result are required.' });
+const updateUserStats = async (req, res) => {
+  const { userId, wins, losses, draws } = req.body;
+
+  console.log('Request body:', req.body); // Log the request body for debugging
+
+  if (!userId) {
+    return res.status(400).json({ error: 'User ID is required.' });
+  }
+
+  if (wins === undefined && losses === undefined && draws === undefined) {
+    return res.status(400).json({ error: 'At least one of wins, losses, or draws must be provided.' });
   }
 
   try {
-    const updates = {};
-    if (result === 'win') {
-      updates.wins = db.raw('wins + 1');
-    } else if (result === 'loss') {
-      updates.losses = db.raw('losses + 1');
-    } else {
-      return res.status(400).json({ error: 'Invalid result value.' });
-    }
-
-    await db('users').where({ id: userId }).update(updates);
+    // Use the utility function to update user stats
+    await updateStats('users', { id: userId }, { wins, losses, draws });
 
     res.status(200).json({ message: 'User stats updated successfully.' });
   } catch (err) {
@@ -301,6 +301,65 @@ const getUserSummary = async (req, res) => {
   }
 };
 
+const getUserSetting = async (req, res) => {
+  const userId = req.user.id;
+  const { key_name } = req.query;
+
+  if (!key_name) {
+    return res.status(400).json({ error: 'key_name is required.' });
+  }
+
+  try {
+    const setting = await db('user_settings')
+      .select('value')
+      .where({ user_id: userId, key_name })
+      .first();
+
+    // Return a default value if the setting does not exist
+    const defaultValue = key_name === 'dark_mode' ? 'false' : null;
+    const value = setting ? setting.value : defaultValue;
+
+    res.status(200).json({ key_name, value });
+  } catch (err) {
+    console.error(`Error fetching setting "${key_name}":`, err.message);
+    res.status(500).json({ error: `Failed to fetch setting "${key_name}".` });
+  }
+};
+
+const updateUserSetting = async (req, res) => {
+  const userId = req.user.id;
+  const { key_name, value } = req.body;
+
+  if (!key_name || value === undefined) {
+    return res.status(400).json({ error: 'key_name and value are required.' });
+  }
+
+  try {
+    const existingSetting = await db('user_settings')
+      .where({ user_id: userId, key_name })
+      .first();
+
+    if (existingSetting) {
+      // Update the existing setting
+      await db('user_settings')
+        .where({ user_id: userId, key_name })
+        .update({ value: value.toString(), updated_at: db.fn.now() });
+    } else {
+      // Insert a new setting
+      await db('user_settings').insert({
+        user_id: userId,
+        key_name,
+        value: value.toString(),
+      });
+    }
+
+    res.status(200).json({ message: `Setting "${key_name}" updated successfully.` });
+  } catch (err) {
+    console.error(`Error updating setting "${key_name}":`, err.message);
+    res.status(500).json({ error: `Failed to update setting "${key_name}".` });
+  }
+};
+
 
 module.exports = {
   getUserProfile,
@@ -311,5 +370,7 @@ module.exports = {
   updateUserStats,
   requestRole,
   getUserPermissions,
-  getUserSummary
+  getUserSummary,
+  getUserSetting,
+  updateUserSetting,
 };

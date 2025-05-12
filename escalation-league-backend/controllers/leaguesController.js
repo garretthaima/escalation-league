@@ -252,9 +252,10 @@ const getSignupRequests = async (req, res) => {
 
 // Approve a signup request
 const approveSignupRequest = async (req, res) => {
-    const { id } = req.params;
+    const { id } = req.params; // ID of the signup request
 
     try {
+        // Fetch the signup request
         const request = await db('league_signup_requests').where({ id }).first();
 
         if (!request) {
@@ -263,16 +264,13 @@ const approveSignupRequest = async (req, res) => {
 
         // Approve the request
         await db.transaction(async (trx) => {
+            // Update the signup request status to 'approved'
             await trx('league_signup_requests').where({ id }).update({ status: 'approved' });
 
-            // Add the user to the league
-            await trx('user_leagues').insert({
-                user_id: request.user_id,
-                league_id: request.league_id,
-                league_wins: 0,
-                league_losses: 0,
-                league_draws: 0,
-            });
+            // Activate the corresponding user_leagues entry
+            await trx('user_leagues')
+                .where({ request_id: id }) // Use request_id to find the corresponding user_leagues entry
+                .update({ is_active: true });
         });
 
         res.status(200).json({ message: 'Signup request approved successfully.' });
@@ -284,14 +282,26 @@ const approveSignupRequest = async (req, res) => {
 
 // Reject a signup request
 const rejectSignupRequest = async (req, res) => {
-    const { id } = req.params;
+    const { id } = req.params; // ID of the signup request
 
     try {
-        const result = await db('league_signup_requests').where({ id }).update({ status: 'rejected' });
+        // Fetch the signup request
+        const request = await db('league_signup_requests').where({ id }).first();
 
-        if (result === 0) {
+        if (!request) {
             return res.status(404).json({ error: 'Signup request not found.' });
         }
+
+        // Reject the request
+        await db.transaction(async (trx) => {
+            // Update the signup request status to 'rejected'
+            await trx('league_signup_requests').where({ id }).update({ status: 'rejected' });
+
+            // Ensure the corresponding user_leagues entry remains inactive
+            await trx('user_leagues')
+                .where({ request_id: id }) // Use request_id to find the corresponding user_leagues entry
+                .update({ is_active: false });
+        });
 
         res.status(200).json({ message: 'Signup request rejected successfully.' });
     } catch (err) {

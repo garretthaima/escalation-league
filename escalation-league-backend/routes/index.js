@@ -94,4 +94,15 @@ try {
     console.error('Error loading decksRoutes:', err.message);
 }
 
+/**
+ * Mounts scryfall-related routes at `/scryfall`.
+ * @module routes/scryfall
+ */
+try {
+    const scryfallRoutes = require('./scryfall');
+    router.use('/scryfall', scryfallRoutes); // Scryfall-related routes
+} catch (err) {
+    console.error('Error loading scryfallRoutes:', err.message);
+}
+
 module.exports = router;

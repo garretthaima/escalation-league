@@ -15,6 +15,9 @@ const {
 const authenticateToken = require('../middlewares/authentication');
 const authorizePermission = require('../middlewares/authorizePermission');
 
+// Import podsAdmin routes
+const podsAdminRoutes = require('./podsAdmin');
+
 // Admin Endpoints
 router.get(
     '/user/all',
@@ -77,5 +80,7 @@ router.post(
     reviewRoleRequest
 );
 
+// Add podsAdmin routes as a subroute
+router.use('/pods', podsAdminRoutes);
 
 module.exports = router;

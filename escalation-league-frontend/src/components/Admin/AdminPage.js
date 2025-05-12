@@ -1,55 +1,19 @@
-import React, { useState } from 'react';
-import { usePermissions } from '../context/PermissionsProvider';
-import LeagueAdminPage from './LeagueAdminPage';
+import React from 'react';
+import { Link } from 'react-router-dom';
 
 const AdminPage = () => {
-    const [activeTab, setActiveTab] = useState('roleRequests'); // Default tab
-    const { permissions } = usePermissions();
-
-    // Check permissions for tab access
-    const canAccessRoleRequests = permissions.some((perm) => perm.name === 'role_request_view');
-    const canAccessLeagueRequests = permissions.some((perm) => perm.name === 'league_manage_requests');
-
-    // Check if the user can access the AdminPage
-    const canAccessAdminPage = permissions.some((perm) => perm.name === 'admin_page_access');
-    if (!canAccessAdminPage) {
-        return <div>You do not have permission to access this page.</div>;
-    }
-
     return (
         <div className="container mt-4">
-            <h1 className="mb-4">Admin Dashboard</h1>
-            <ul className="nav nav-tabs">
-                {canAccessRoleRequests && (
-                    <li className="nav-item">
-                        <button
-                            className={`nav-link ${activeTab === 'roleRequests' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('roleRequests')}
-                        >
-                            Role Requests
-                        </button>
-                    </li>
-                )}
-                {canAccessLeagueRequests && (
-                    <li className="nav-item">
-                        <button
-                            className={`nav-link ${activeTab === 'leagueRequests' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('leagueRequests')}
-                        >
-                            League Management
-                        </button>
-                    </li>
-                )}
+            <h1>Admin Dashboard</h1>
+            <p>Welcome to the admin dashboard. Use the links below to manage the application:</p>
+            <ul>
+                <li>
+                    <Link to="/admin/leagues">League Management</Link>
+                </li>
+                <li>
+                    <Link to="/admin/pods">Pods</Link>
+                </li>
             </ul>
-            <div className="tab-content mt-4">
-                {activeTab === 'roleRequests' && canAccessRoleRequests && (
-                    <div>
-                        <h2>Role Requests</h2>
-                        {/* Role requests table or content */}
-                    </div>
-                )}
-                {activeTab === 'leagueRequests' && canAccessLeagueRequests && <LeagueAdminPage />}
-            </div>
         </div>
     );
 };

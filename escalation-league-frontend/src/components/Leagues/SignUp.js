@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getLeagues } from '../../api/leaguesApi';
 import { getUserPendingSignupRequests, requestSignupForLeague, isUserInLeague } from '../../api/userLeaguesApi';
 import { validateAndCacheDeck } from '../../api/decksApi'; // Import the function
-import axios from 'axios';
+import ScryfallApi from '../../api/scryfallApi';
 
 const SignUp = () => {
     const [leagues, setLeagues] = useState([]);
@@ -72,14 +72,13 @@ const SignUp = () => {
 
     const handleDeckValidation = async () => {
         try {
-            const response = await validateAndCacheDeck({ decklistUrl });
-            console.log('Deck validation response:', response);
+            const response = await validateAndCacheDeck({ decklistUrl }); // Call the backend
             setDeckValidationError(''); // Clear any previous errors
-            return true; // Validation successful
+            return response.deck.id; // Return the deck_id from the backend response
         } catch (error) {
             console.error('Error validating deck:', error);
             setDeckValidationError('Invalid decklist URL. Please provide a valid decklist.');
-            return false; // Validation failed
+            return null; // Validation failed
         }
     };
 
@@ -89,19 +88,28 @@ const SignUp = () => {
         setMessage('');
         setDeckValidationError('');
 
-        // Validate the decklist URL before proceeding
-        const isDeckValid = await handleDeckValidation();
-        if (!isDeckValid) {
+        // Validate the decklist URL and get the deck_id
+        const deckId = await handleDeckValidation();
+        if (!deckId) {
             setIsSubmitting(false);
             return; // Stop the signup process if validation fails
         }
 
         try {
-            const response = await requestSignupForLeague(selectedLeague, {
-                commander,
-                commanderPartner: hasPartnerAbility ? commanderPartner : null,
-                decklistUrl,
+            console.log('Request body:', {
+                league_id: selectedLeague,
+                deck_id: deckId,
+                current_commander: commander,
+                commander_partner: hasPartnerAbility ? commanderPartner : null,
             });
+            // Send the signup request to the backend
+            const response = await requestSignupForLeague({
+                league_id: parseInt(selectedLeague, 10),
+                deck_id: parseInt(deckId, 10),
+                current_commander: commander,
+                commander_partner: hasPartnerAbility ? commanderPartner : null,
+            });
+
             setMessage(response.message || 'Successfully signed up for the league!');
             setPendingRequest(true);
         } catch (error) {
@@ -119,16 +127,15 @@ const SignUp = () => {
         }
 
         try {
-            const response = await axios.get(`https://api.scryfall.com/cards/autocomplete?q=${query}`);
-            const suggestions = response.data.data;
+            const suggestions = await ScryfallApi.autocomplete(query);
 
             const detailedSuggestions = await Promise.all(
                 suggestions.map(async (name) => {
                     try {
-                        const cardResponse = await axios.get(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(name)}`);
+                        const card = await ScryfallApi.getCardByName(name);
                         return {
                             name,
-                            image: cardResponse.data.image_uris?.small || null,
+                            image: card.image_uris?.small || null,
                         };
                     } catch {
                         return { name, image: null };
@@ -148,8 +155,8 @@ const SignUp = () => {
         fetchCommanderSuggestions(value, setCommanderSuggestions);
 
         try {
-            const response = await axios.get(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(value)}`);
-            const oracleText = response.data.oracle_text || '';
+            const card = await ScryfallApi.getCardByName(value);
+            const oracleText = card.oracle_text || '';
             setHasPartnerAbility(oracleText.toLowerCase().includes('partner'));
         } catch (error) {
             console.error('Error fetching commander details:', error);
@@ -168,7 +175,7 @@ const SignUp = () => {
         setCommanderSuggestions([]);
 
         try {
-            const response = await axios.get(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(name)}`);
+            const response = await ScryfallApi.getCardByName(name);
             const oracleText = response.data.oracle_text || '';
             setHasPartnerAbility(oracleText.toLowerCase().includes('partner'));
         } catch (error) {

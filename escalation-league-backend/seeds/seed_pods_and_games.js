@@ -5,8 +5,26 @@
 const { getUserIds, getLeagueId } = require('./helpers');
 
 exports.seed = async function (knex) {
+  // Reset user stats
+  await knex('users').update({
+    wins: 0,
+    losses: 0,
+    draws: 0,
+  });
+
+  await knex('user_leagues').update({
+    league_wins: 0,
+    league_losses: 0,
+    league_draws: 0,
+  });
+
+  // Delete data from tables
   await knex('game_pods').del();
   await knex('game_players').del();
+
+  // Reset the auto-increment values for the tables (MySQL-specific)
+  await knex.raw('ALTER TABLE game_pods AUTO_INCREMENT = 1');
+  await knex.raw('ALTER TABLE game_players AUTO_INCREMENT = 1');
 
   const userIds = await getUserIds(knex);
   const leagueId = await getLeagueId(knex);
@@ -60,7 +78,7 @@ exports.seed = async function (knex) {
     // Open Games
     { pod_id: podId1, player_id: userId2, result: null, confirmed: 0 },
     { pod_id: podId1, player_id: userId3, result: null, confirmed: 0 },
-    { pod_id: podId1, player_id: userId7, result: null, confirmed: 0 }, // Garrett added to this pod
+    { pod_id: podId1, player_id: userId7, result: null, confirmed: 0 },
 
     { pod_id: podId2, player_id: userId3, result: null, confirmed: 0 },
     { pod_id: podId2, player_id: userId4, result: null, confirmed: 0 },
@@ -84,15 +102,15 @@ exports.seed = async function (knex) {
     // Pending Games
     { pod_id: podId6, player_id: userId7, result: 'win', confirmed: 1 },
     { pod_id: podId6, player_id: userId2, result: 'loss', confirmed: 1 },
-    { pod_id: podId6, player_id: userId3, result: null, confirmed: 0 }, // Requires confirmation
+    { pod_id: podId6, player_id: userId3, result: null, confirmed: 0 },
 
     { pod_id: podId7, player_id: userId2, result: 'win', confirmed: 1 },
     { pod_id: podId7, player_id: userId4, result: 'loss', confirmed: 1 },
-    { pod_id: podId7, player_id: userId5, result: null, confirmed: 0 }, // Requires confirmation
+    { pod_id: podId7, player_id: userId5, result: null, confirmed: 0 },
 
     { pod_id: podId8, player_id: userId3, result: 'draw', confirmed: 1 },
     { pod_id: podId8, player_id: userId6, result: 'draw', confirmed: 1 },
-    { pod_id: podId8, player_id: userId7, result: null, confirmed: 0 }, // Requires confirmation
+    { pod_id: podId8, player_id: userId7, result: null, confirmed: 0 },
 
     // Completed Games
     { pod_id: podId9, player_id: userId4, result: 'win', confirmed: 1 },

@@ -25,7 +25,6 @@ const SignIn = () => {
                 setIsRegistering(false);
             } else {
                 const data = await loginUser({ email: formData.email, password: formData.password });
-                console.log('Token received from login:', data.token);
                 localStorage.setItem('token', data.token);
 
                 // Decode token and update user in context
@@ -51,7 +50,6 @@ const SignIn = () => {
         const { credential } = response;
         try {
             const data = await googleAuth(credential);
-            console.log('Token received from Google Auth:', data.token);
             localStorage.setItem('token', data.token);
 
             // Decode token and update user in context
@@ -61,14 +59,11 @@ const SignIn = () => {
                 email: tokenPayload.email,
                 role_id: tokenPayload.role_id,
             });
-            console.log('User set in context:', tokenPayload);
 
             // Fetch and update permissions in context
             const permissionsData = await getUserPermissions();
             setPermissions(permissionsData.permissions);
-            console.log('Permissions set in context:', permissionsData.permissions);
 
-            console.log('Redirecting to /profile...');
             navigate('/profile'); // Redirect to profile page
         } catch (err) {
             console.error('Google sign-in failed:', err);

@@ -1,0 +1,155 @@
+/* ===========================
+   1. Reset/Global Styles
+   =========================== */
+
+/* ===========================
+   2. Utility Classes
+   =========================== */
+.nav-link.active {
+    font-weight: bold;
+    color: #007bff !important;
+}
+
+.nav-link:hover {
+    color: #0056b3 !important;
+    /* Darker blue on hover */
+    text-decoration: underline;
+    /* Add underline effect */
+}
+
+.dropdown-item {
+    cursor: pointer;
+}
+
+.dropdown-item:hover {
+    background-color: #f8f9fa;
+    /* Light gray background */
+    color: #007bff;
+    /* Blue text */
+}
+
+.dropdown-item i {
+    margin-right: 8px;
+    /* Add spacing for icons */
+    font-size: 1rem;
+    /* Adjust icon size */
+}
+
+.dropdown-divider {
+    border-top: 1px solid #ddd;
+    margin: 0.5rem 0;
+}
+
+/* ===========================
+   3. Layout Styles
+   =========================== */
+.navbar {
+    position: sticky;
+    top: 0;
+    z-index: 1030;
+    /* Ensure it stays above other elements */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    /* Subtle shadow */
+    background-color: rgba(0, 0, 0, 0.5);
+    /* Semi-transparent black */
+    color: white;
+}
+
+.container-fluid {
+    padding: 0 15px;
+}
+
+.dropdown-menu {
+    min-width: 200px;
+    border: 1px solid #007bff;
+    /* Blue border */
+    border-radius: 5px;
+    /* Rounded corners */
+    transition: all 0.3s ease-in-out;
+    opacity: 0;
+    transform: translateY(-10px);
+    display: none;
+}
+
+.nav-item.dropdown:hover .dropdown-menu {
+    display: block;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* ===========================
+   4. Component Styles
+   =========================== */
+.dropdown-item.active {
+    background-color: #007bff;
+    /* Blue background */
+    color: white;
+    /* White text */
+    font-weight: bold;
+}
+
+/* ===========================
+   5. State/Modifier Styles
+   =========================== */
+.navbar.dark-mode {
+    background-color: #333;
+    color: white;
+}
+
+.navbar.dark-mode .dropdown-menu {
+    background-color: #444;
+    border-color: #555;
+}
+
+.navbar.dark-mode .dropdown-item {
+    color: white;
+}
+
+.navbar.dark-mode .dropdown-item:hover {
+    background-color: #555;
+    color: #ddd;
+}
+
+/* ===========================
+   6. Button Styles
+   =========================== */
+/* Light mode button */
+.btn-outline-dark {
+    background-color: #f8f9fa;
+    /* Light gray background */
+    color: #000;
+    /* Black text */
+    border-color: #000;
+    /* Black border */
+}
+
+.btn-outline-dark:hover {
+    background-color: #000;
+    /* Black background on hover */
+    color: #fff;
+    /* White text on hover */
+}
+
+/* Dark mode button */
+.btn-outline-light {
+    background-color: #343a40;
+    /* Dark gray background */
+    color: #fff;
+    /* White text */
+    border-color: #fff;
+    /* White border */
+}
+
+.btn-outline-light:hover {
+    background-color: #fff;
+    /* White background on hover */
+    color: #000;
+    /* Black text on hover */
+}
+
+.btn i {
+    font-size: 1.2rem;
+    /* Adjust icon size */
+    margin-right: 5px;
+    /* Add spacing if needed */
+}

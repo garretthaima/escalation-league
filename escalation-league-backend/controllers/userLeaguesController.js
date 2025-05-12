@@ -1,4 +1,7 @@
 const db = require('../models/db');
+const redis = require('../utils/redisClient'); // Import the Redis client
+const { updateStats } = require('../utils/statsUtils');
+
 
 // Sign up for a league
 const signUpForLeague = async (req, res) => {
@@ -122,17 +125,21 @@ const getLeagueParticipantDetails = async (req, res) => {
     const { league_id, user_id } = req.params;
 
     try {
+        // Fetch participant details from the database, including decklist_url from the decks table
         const participant = await db('user_leagues as ul')
             .join('users as u', 'ul.user_id', 'u.id')
+            .join('decks as d', 'ul.deck_id', 'd.id') // Join with the decks table
             .select(
                 'u.id as user_id',
                 'u.firstname',
                 'u.lastname',
                 'u.email',
                 'ul.current_commander',
+                'ul.commander_partner',
                 'ul.league_wins',
                 'ul.league_losses',
-                'ul.decklist_url',
+                'ul.deck_id',
+                'd.decklist_url', // Fetch the decklist_url from the decks table
                 'ul.joined_at'
             )
             .where({ 'ul.league_id': league_id, 'ul.user_id': user_id })
@@ -142,21 +149,16 @@ const getLeagueParticipantDetails = async (req, res) => {
             return res.status(404).json({ error: 'Participant not found in this league.' });
         }
 
-        // Split the commander and partner if they are stored with `//`
-        const [commander, commanderPartner] = participant.current_commander
-            ? participant.current_commander.split(' // ')
-            : [null, null];
-
         res.status(200).json({
             user_id: participant.user_id,
             firstname: participant.firstname,
             lastname: participant.lastname,
             email: participant.email,
-            commander,
-            commanderPartner: commanderPartner || null,
+            commander: participant.current_commander,
+            commanderPartner: participant.commander_partner,
             league_wins: participant.league_wins,
             league_losses: participant.league_losses,
-            decklist_url: participant.decklist_url,
+            decklist_url: participant.decklist_url || null, // Use the decklist_url from the decks table
             joined_at: participant.joined_at,
         });
     } catch (err) {
@@ -166,23 +168,23 @@ const getLeagueParticipantDetails = async (req, res) => {
 };
 
 const updateLeagueStats = async (req, res) => {
-    const { userId, leagueId, result } = req.body;
+    const { userId, leagueId, leagueWins, leagueLosses, leagueDraws } = req.body;
 
-    if (!userId || !leagueId || !result) {
-        return res.status(400).json({ error: 'User ID, league ID, and result are required.' });
+    if (!userId || !leagueId) {
+        return res.status(400).json({ error: 'User ID and league ID are required.' });
+    }
+
+    if (leagueWins === undefined && leagueLosses === undefined && leagueDraws === undefined) {
+        return res.status(400).json({ error: 'At least one of leagueWins, leagueLosses, or leagueDraws must be provided.' });
     }
 
     try {
-        const updates = {};
-        if (result === 'win') {
-            updates.league_wins = db.raw('league_wins + 1');
-        } else if (result === 'loss') {
-            updates.league_losses = db.raw('league_losses + 1');
-        } else {
-            return res.status(400).json({ error: 'Invalid result value.' });
-        }
-
-        await db('user_leagues').where({ user_id: userId, league_id: leagueId }).update(updates);
+        // Use the utility function to update league stats
+        await updateStats(
+            'user_leagues',
+            { user_id: userId, league_id: leagueId },
+            { league_wins: leagueWins, league_losses: leagueLosses, league_draws: leagueDraws }
+        );
 
         res.status(200).json({ message: 'League stats updated successfully.' });
     } catch (err) {
@@ -193,33 +195,61 @@ const updateLeagueStats = async (req, res) => {
 
 const requestSignupForLeague = async (req, res) => {
     const userId = req.user.id;
-    const leagueId = req.body.league_id;
+    const { league_id, deck_id, current_commander, commander_partner } = req.body.data;
 
-    console.log('User ID:', userId);
-    console.log('League ID:', leagueId);
+    console.log('Incoming request body:', req.body.data);
+    console.log('Destructured values:', { league_id, deck_id, current_commander, commander_partner });
+    console.log('league_id type:', typeof league_id, 'value:', league_id);
+    console.log('deck_id type:', typeof deck_id, 'value:', deck_id);
+    console.log('league_id is null:', league_id == null);
+    console.log('deck_id is null:', deck_id == null);
+    if (league_id == null || deck_id == null) {
+        console.log('Missing league_id or deck_id in request body.');
+        return res.status(400).json({ error: 'League ID and Deck ID are required.' });
+    }
+    console.log('Got passed the if check for null values.');
 
     try {
-        if (!leagueId) {
-            console.error('League ID is missing.');
-            return res.status(400).json({ error: 'League ID is required.' });
-        }
 
+        // Check if the user already has a pending or approved entry
         const existingRequest = await db('league_signup_requests')
-            .where({ user_id: userId, league_id: leagueId, status: 'pending' })
+            .where({ user_id: userId, league_id })
+            .whereIn('status', ['pending', 'approved'])
             .first();
 
         if (existingRequest) {
-            console.warn('Existing signup request found:', existingRequest);
-            return res.status(400).json({ error: 'You already have a pending signup request for this league.' });
+            return res.status(400).json({ error: 'You already have a pending or approved signup for this league.' });
         }
 
-        await db('league_signup_requests').insert({
-            user_id: userId,
-            league_id: leagueId,
-            status: 'pending',
+        // Start a transaction to ensure both tables are updated atomically
+        await db.transaction(async (trx) => {
+            // Insert into league_signup_requests
+            const requestId = await trx('league_signup_requests').insert({
+                user_id: userId,
+                league_id,
+                status: 'pending',
+            }).then(([id]) => id);
+
+            // Insert into user_leagues with a reference to the signup request
+            await trx('user_leagues').insert({
+                user_id: userId,
+                league_id,
+                deck_id,
+                current_commander: current_commander || null,
+                commander_partner: commander_partner || null,
+                league_wins: 0,
+                league_losses: 0,
+                league_draws: 0,
+                total_points: 0,
+                matches_played: 0,
+                is_active: false, // Set to false until approved
+                rank: null,
+                disqualified: false,
+                league_role: 'player',
+                request_id: requestId, // Reference the signup request
+            });
         });
 
-        console.log('Signup request created successfully.');
         res.status(200).json({ success: true, message: 'Signup request submitted successfully.' });
     } catch (err) {
         console.error('Error submitting signup request:', err.message);

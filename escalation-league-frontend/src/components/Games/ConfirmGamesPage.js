@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getPendingPods, logPodResult } from '../../api/podsApi';
+import { getPods, logPodResult } from '../../api/podsApi'; // Use unified getPods
 import { getUserProfile, updateUserStats } from '../../api/usersApi';
 import { updateLeagueStats } from '../../api/userLeaguesApi';
 
@@ -14,7 +14,8 @@ const ConfirmGamesTab = () => {
                 const userProfile = await getUserProfile();
                 setUserId(userProfile.user.id);
 
-                const pods = await getPendingPods();
+                // Fetch pending pods using getPods with a filter
+                const pods = await getPods({ confirmation_status: 'pending' });
                 setGamesWaitingConfirmation(pods);
             } catch (err) {
                 console.error('Error fetching games waiting confirmation:', err);
@@ -52,7 +53,7 @@ const ConfirmGamesTab = () => {
             });
 
             alert('Game successfully confirmed!');
-            const pods = await getPendingPods();
+            const pods = await getPods({ confirmation_status: 'pending' }); // Refresh pending pods
             setGamesWaitingConfirmation(pods);
         } catch (err) {
             console.error('Error confirming game:', err.message);

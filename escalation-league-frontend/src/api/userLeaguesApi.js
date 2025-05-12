@@ -60,7 +60,7 @@ export const isUserInLeague = async () => {
 };
 
 // Request signup for a league
-export const requestSignupForLeague = async (leagueId) => {
-    const response = await axiosInstance.post('/user-leagues/signup-request', { league_id: leagueId });
+export const requestSignupForLeague = async (data) => {
+    const response = await axiosInstance.post('/user-leagues/signup-request', { data });
     return response.data;
 };

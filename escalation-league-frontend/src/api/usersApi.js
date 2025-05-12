@@ -76,3 +76,30 @@ export const getUserSummary = async (userId) => {
         throw error; // Re-throw the error to be handled by the calling code
     }
 };
+
+// Fetch a specific user setting by key_name
+export const getUserSetting = async (key_name) => {
+    try {
+        const response = await axiosInstance.get('/users/settings', {
+            params: { key_name }, // Pass key_name as a query parameter
+        });
+        return response.data; // Return the setting data
+    } catch (error) {
+        console.error(`Error fetching user setting "${key_name}":`, error);
+        throw error; // Re-throw the error to be handled by the calling code
+    }
+};
+
+// Update a specific user setting by key_name
+export const updateUserSetting = async (key_name, value) => {
+    try {
+        const response = await axiosInstance.put('/users/settings', {
+            key_name, // Include key_name in the request body
+            value,    // Include value in the request body
+        });
+        return response.data; // Return the success message
+    } catch (error) {
+        console.error(`Error updating user setting "${key_name}":`, error);
+        throw error; // Re-throw the error to be handled by the calling code
+    }
+};

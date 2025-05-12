@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getInProgressPods, getOpenPods, joinPod, createPod } from '../../api/podsApi';
+import { getPods, joinPod, createPod } from '../../api/podsApi'; // Use unified getPods
 import { isUserInLeague } from '../../api/userLeaguesApi';
 import { usePermissions } from '../context/PermissionsProvider';
 import { getUserProfile } from '../../api/usersApi';
@@ -19,7 +19,7 @@ const ActiveGamesTab = () => {
     const canUpdatePods = permissions.some((perm) => perm.name === 'pod_update');
 
     useEffect(() => {
-        const fetchData = async () => {
+        const fetchPods = async () => {
             try {
                 if (!canReadPods) {
                     setError('You do not have permission to view games.');
@@ -30,11 +30,14 @@ const ActiveGamesTab = () => {
                 const userProfile = await getUserProfile();
                 setUserId(userProfile.user.id);
 
-                const openPodsData = await getOpenPods();
-                const inProgressPodsData = await getInProgressPods();
+                // Fetch open and active pods using getPods with filters
+                const [openPodsData, activePodsData] = await Promise.all([
+                    getPods({ confirmation_status: 'open' }), // Open pods
+                    getPods({ confirmation_status: 'active' }), // Active pods
+                ]);
 
                 setOpenPods(openPodsData || []);
-                setActivePods(inProgressPodsData || []);
+                setActivePods(activePodsData || []);
             } catch (err) {
                 console.error('Error fetching pods:', err);
                 setError('Failed to fetch pods.');
@@ -43,14 +46,14 @@ const ActiveGamesTab = () => {
             }
         };
 
-        fetchData();
+        fetchPods();
     }, [canReadPods]);
 
     const handleJoinPod = async (podId) => {
         try {
             await joinPod(podId);
             alert('Joined pod successfully!');
-            const openPodsData = await getOpenPods();
+            const openPodsData = await getPods({ status: 'open' }); // Refresh open pods
             setOpenPods(openPodsData);
         } catch (err) {
             console.error('Error joining pod:', err.response?.data?.error || err.message);
@@ -91,10 +94,12 @@ const ActiveGamesTab = () => {
             }
 
             alert('Pod successfully overridden to active!');
-            const openPodsData = await getOpenPods();
-            const inProgressPodsData = await getInProgressPods();
+            const [openPodsData, activePodsData] = await Promise.all([
+                getPods({ status: 'open' }), // Refresh open pods
+                getPods({ status: 'active' }), // Refresh active pods
+            ]);
             setOpenPods(openPodsData || []);
-            setActivePods(inProgressPodsData || []);
+            setActivePods(activePodsData || []);
         } catch (err) {
             console.error('Error overriding pod:', err.message);
             alert(err.message || 'Failed to override pod.');

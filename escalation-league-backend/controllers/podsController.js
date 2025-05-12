@@ -30,80 +30,6 @@ const createPod = async (req, res) => {
     }
 };
 
-// Fetch Participants for a Pod
-const getPodParticipants = async (req, res) => {
-    const { podId } = req.params;
-
-    try {
-        const participants = await gameService.getParticipants('pod', podId);
-        res.status(200).json(participants);
-    } catch (err) {
-        console.error('Error fetching pod participants:', err.message);
-        res.status(500).json({ error: 'Failed to fetch pod participants.' });
-    }
-};
-
-// Delete a Pod
-const deletePod = async (req, res) => {
-    const { podId } = req.params;
-
-    try {
-        await gameService.deleteById('game_pods', podId);
-        res.status(200).json({ message: 'Pod deleted successfully.' });
-    } catch (err) {
-        console.error('Error deleting pod:', err.message);
-        res.status(500).json({ error: 'Failed to delete pod.' });
-    }
-};
-
-const getCompletedGames = async (req, res) => {
-    try {
-        const games = await db('games').whereNotNull('result');
-
-        if (games.length === 0) {
-            return res.status(404).json({ error: 'No completed games found.' });
-        }
-
-        res.status(200).json(games);
-    } catch (err) {
-        console.error('Error fetching completed games:', err.message);
-        res.status(500).json({ error: 'Failed to fetch completed games.' });
-    }
-};
-
-const getPodDetails = async (req, res) => {
-    const { podId } = req.params;
-
-    try {
-        const pod = await db('game_pods').where({ id: podId }).first();
-
-        if (!pod) {
-            return res.status(404).json({ error: 'Pod not found.' });
-        }
-
-        // Fetch participants from game_players
-        const participants = await db('game_players as gp')
-            .join('users as u', 'gp.player_id', 'u.id')
-            .select('u.id as player_id', 'u.firstname', 'u.lastname', 'u.email')
-            .where('gp.pod_id', podId);
-
-        // Add the creator to the participants list if not already included
-        const creator = await db('users')
-            .select('id as player_id', 'firstname', 'lastname', 'email')
-            .where('id', pod.creator_id)
-            .first();
-
-        const allParticipants = participants.some((p) => p.player_id === creator.player_id)
-            ? participants
-            : [creator, ...participants];
-
-        res.status(200).json({ ...pod, participants: allParticipants });
-    } catch (err) {
-        console.error('Error fetching pod details:', err.message);
-        res.status(500).json({ error: 'Failed to fetch pod details.' });
-    }
-};
-
 const joinPod = async (req, res) => {
     const { podId } = req.params;
     const playerId = req.user.id;
@@ -219,14 +145,26 @@ const logPodResult = async (req, res) => {
 };
 
 
-const getInProgressPods = async (req, res) => {
-    const { leagueId } = req.query; // Optional filter by league
+const getPods = async (req, res) => {
+    const { podId, status, confirmation_status, league_id } = req.query; // Optional filters
 
     try {
-        const query = db('game_pods').where({ confirmation_status: 'active', deleted_at: null });
+        const query = db('game_pods').where({ deleted_at: null });
 
-        if (leagueId) {
-            query.andWhere({ league_id: leagueId });
+        if (podId) {
+            query.andWhere({ id: podId });
+        }
+
+        if (status) {
+            query.andWhere({ status });
+        }
+
+        if (confirmation_status) {
+            query.andWhere({ confirmation_status });
+        }
+
+        if (league_id) {
+            query.andWhere({ league_id });
         }
 
         const pods = await query;
@@ -250,136 +188,22 @@ const getInProgressPods = async (req, res) => {
             })
         );
 
-        res.status(200).json(podsWithParticipants);
-    } catch (err) {
-        console.error('Error fetching in-progress pods:', err.message);
-        res.status(500).json({ error: 'Failed to fetch in-progress pods.' });
-    }
-};
-
-const getPendingPods = async (req, res) => {
-    try {
-        const pods = await db('game_pods')
-            .where({ confirmation_status: 'pending', deleted_at: null })
-            .select('id', 'league_id', 'creator_id', 'created_at', 'confirmation_status'); // Exclude result
-
-        const podsWithParticipants = await Promise.all(
-            pods.map(async (pod) => {
-                const participants = await db('game_players as gp')
-                    .join('users as u', 'gp.player_id', 'u.id')
-                    .select(
-                        'u.id as player_id',
-                        'u.firstname',
-                        'u.lastname',
-                        'u.email',
-                        'gp.result',
-                        'gp.confirmed'
-                    )
-                    .where('gp.pod_id', pod.id);
-
-                return { ...pod, participants };
-            })
-        );
+        // If a specific podId was requested, return only that pod
+        if (podId) {
+            return res.status(200).json(podsWithParticipants[0] || null);
+        }
 
         res.status(200).json(podsWithParticipants);
     } catch (err) {
-        console.error('Error fetching pending pods:', err.message);
-        res.status(500).json({ error: 'Failed to fetch pending pods.' });
+        console.error('Error fetching pods:', err.message);
+        res.status(500).json({ error: 'Failed to fetch pods.' });
     }
 };
 
-const getOpenPods = async (req, res) => {
-    try {
-        // Fetch pods with confirmation_status = 'open'
-        const pods = await db('game_pods')
-            .where({ confirmation_status: 'open', deleted_at: null });
-
-        // Fetch participants for each pod
-        const podsWithParticipants = await Promise.all(
-            pods.map(async (pod) => {
-                const participants = await db('game_players as gp')
-                    .join('users as u', 'gp.player_id', 'u.id')
-                    .select(
-                        'u.id as player_id',
-                        'u.firstname',
-                        'u.lastname',
-                        'u.email',
-                        'gp.result',
-                        'gp.confirmed'
-                    )
-                    .where('gp.pod_id', pod.id);
-
-                return { ...pod, participants };
-            })
-        );
-
-        res.status(200).json(podsWithParticipants);
-    } catch (err) {
-        console.error('Error fetching open pods:', err.message);
-        res.status(500).json({ error: 'Failed to fetch open pods.' });
-    }
-};
-
-const getCompletedPods = async (req, res) => {
-    try {
-        // Fetch completed pods with their win_condition_id
-        const pods = await db('game_pods')
-            .where({ confirmation_status: 'complete', deleted_at: null })
-            .select(
-                'id',
-                'league_id',
-                'creator_id',
-                'result',
-                'created_at',
-                'confirmation_status',
-                'win_condition_id' // Include win_condition_id
-            );
-
-        const podsWithParticipantsAndWinCondition = await Promise.all(
-            pods.map(async (pod) => {
-                // Fetch participants for the pod
-                const participants = await db('game_players as gp')
-                    .join('users as u', 'gp.player_id', 'u.id')
-                    .select(
-                        'u.id as player_id',
-                        'u.firstname',
-                        'u.lastname',
-                        'u.email',
-                        'gp.result',
-                        'gp.confirmed'
-                    )
-                    .where('gp.pod_id', pod.id);
-
-                // Fetch the win condition details if win_condition_id is present
-                let winCondition = null;
-                if (pod.win_condition_id) {
-                    winCondition = await db('win_conditions')
-                        .where({ id: pod.win_condition_id })
-                        .select('id', 'name', 'description', 'category')
-                        .first();
-                }
-
-                return { ...pod, participants, win_condition: winCondition };
-            })
-        );
-
-        res.status(200).json(podsWithParticipantsAndWinCondition);
-    } catch (err) {
-        console.error('Error fetching completed pods:', err.message);
-        res.status(500).json({ error: 'Failed to fetch completed pods.' });
-    }
-};
 
 module.exports = {
     createPod,
-    getPodParticipants,
-    deletePod,
-    getInProgressPods, // Renamed from getActivePods
-    getCompletedGames,
-    getPodDetails,
+    getPods,
     joinPod,
     logPodResult,
-    getCompletedPods, // Renamed from getCompletedPods
-    getPendingPods, // Renamed from getPodsWaitingConfirmation
-    getOpenPods
 };

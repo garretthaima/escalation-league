@@ -7,10 +7,13 @@ const {
     changePassword,
     updateUserStats,
     getUserPermissions,
-    getUserSummary, // Renamed from getUserSummary
+    getUserSummary,
+    getUserSetting,
+    updateUserSetting,
 } = require('../controllers/usersController');
 const authenticateToken = require('../middlewares/authentication');
 const authorizePermission = require('../middlewares/authorizePermission');
+const authorizeUserOrAdmin = require('../middlewares/authorizeUserOrAdmin'); // Middleware to check if the user is the owner or an admin
 
 // User Endpoints
 router.get(
@@ -48,6 +51,18 @@ router.get(
     '/permissions',
     authenticateToken, // Ensure the user is authenticated
     getUserPermissions
+);
+
+router.get(
+    '/settings',
+    authenticateToken, // Ensure the user is authenticated
+    getUserSetting // Controller method to fetch user settings
+);
+
+router.put(
+    '/settings',
+    authenticateToken, // Ensure the user is authenticated
+    updateUserSetting // Controller method to update user settings
 );
 
 // Fetch basic user information

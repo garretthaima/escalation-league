@@ -1,6 +1,7 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "Escalation League",
+  "name": "Escalation League",
+  "description": "A web application for managing and tracking Magic the Gathering Commander leagues.",
   "icons": [
     {
       "src": "favicon.ico",

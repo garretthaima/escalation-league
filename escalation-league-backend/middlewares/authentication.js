@@ -22,8 +22,6 @@ const authenticateToken = async (req, res, next) => {
         return res.status(403).json({ error: 'Forbidden. Invalid token.' });
       }
 
-      console.log('Decoded token payload:', user); // Debugging log
-
       // Validate required fields in the token payload
       if (!user.id || !user.role_id || !user.email) {
         return res.status(400).json({ error: 'Invalid token payload. Missing required fields.' });

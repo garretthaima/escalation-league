@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getCompletedPods } from '../../api/podsApi';
+import { getPods } from '../../api/podsApi'; // Use unified getPods
 
 const CompletedGamesTab = () => {
     const [completedGames, setCompletedGames] = useState([]);
@@ -8,7 +8,8 @@ const CompletedGamesTab = () => {
     useEffect(() => {
         const fetchCompletedGames = async () => {
             try {
-                const games = await getCompletedPods();
+                // Fetch completed pods using getPods with a filter
+                const games = await getPods({ confirmation_status: 'complete' });
                 setCompletedGames(games);
             } catch (err) {
                 console.error('Error fetching completed games:', err);

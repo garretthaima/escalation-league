@@ -1,38 +1,15 @@
 import axiosInstance from './axiosConfig';
 
+// Fetch pods with optional filtering
+export const getPods = async (filter = {}) => {
+    const queryParams = new URLSearchParams(filter).toString(); // Convert filter object to query string
+    const response = await axiosInstance.get(`/pods?${queryParams}`);
+    return response.data;
+};
+
 // Create a pod
 export const createPod = async (data) => {
     const response = await axiosInstance.post('/pods', data);
-    return response.data;
-};
-
-// Get in-progress pods
-export const getInProgressPods = async () => {
-    const response = await axiosInstance.get('/pods/in-progress');
-    return response.data;
-};
-
-// Get completed pods
-export const getCompletedPods = async () => {
-    const response = await axiosInstance.get('/pods/completed-pods');
-    return response.data;
-};
-
-// Get pods waiting for confirmation
-export const getPendingPods = async () => {
-    const response = await axiosInstance.get('/pods/pending');
-    return response.data;
-};
-
-// Get completed games
-export const getCompletedGames = async () => {
-    const response = await axiosInstance.get('/pods/completed-games');
-    return response.data;
-};
-
-// Get pod details
-export const getPodDetails = async (podId) => {
-    const response = await axiosInstance.get(`/pods/${podId}`);
     return response.data;
 };
 
@@ -48,20 +25,8 @@ export const logPodResult = async (podId, data) => {
     return response.data;
 };
 
-// Get participants for a pod
-export const getPodParticipants = async (podId) => {
-    const response = await axiosInstance.get(`/pods/${podId}/participants`);
-    return response.data;
-};
-
-// Delete a pod
-export const deletePod = async (podId) => {
-    const response = await axiosInstance.delete(`/pods/${podId}`);
-    return response.data;
-};
-
-// Get open pods
-export const getOpenPods = async () => {
-    const response = await axiosInstance.get('/pods/open');
+// Update a pod
+export const updatePod = async (podId, updates) => {
+    const response = await axiosInstance.put(`/pods/${podId}`, updates);
     return response.data;
 };
