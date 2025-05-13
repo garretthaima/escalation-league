@@ -18,7 +18,7 @@ app.use(express.json());
 (async () => {
   const allowedOrigins = [
     'http://frontend-prod',
-    'http://localhost:3001',
+    'http://localhost:3000',
     'https://escalationleague.com',
     'https://www.escalationleague.com',
   ];

@@ -13,7 +13,6 @@ const {
 } = require('../controllers/usersController');
 const authenticateToken = require('../middlewares/authentication');
 const authorizePermission = require('../middlewares/authorizePermission');
-const authorizeUserOrAdmin = require('../middlewares/authorizeUserOrAdmin'); // Middleware to check if the user is the owner or an admin
 
 // User Endpoints
 router.get(

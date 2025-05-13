@@ -21,15 +21,15 @@ const HomePage = () => {
 
             {/* Quick Links */}
             <div className="quick-links">
-                <div className="card" onClick={() => navigate('/leagues')}>
+                <div className="homepage-card" onClick={() => navigate('/leagues')}>
                     <h3>Join a League</h3>
                     <p>Find and join an active league to start competing.</p>
                 </div>
-                <div className="card" onClick={() => navigate('/pods/active')}>
+                <div className="homepage-card" onClick={() => navigate('/pods/active')}>
                     <h3>View Active Pods</h3>
                     <p>See the current games and their participants.</p>
                 </div>
-                <div className="card" onClick={() => navigate('/leaderboard')}>
+                <div className="homepage-card" onClick={() => navigate('/leagues/leaderboard')}>
                     <h3>Leaderboard</h3>
                     <p>Track your progress and see how you rank.</p>
                 </div>

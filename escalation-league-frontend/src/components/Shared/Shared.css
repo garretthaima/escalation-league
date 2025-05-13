@@ -33,7 +33,7 @@
     margin: 2rem 0;
 }
 
-.card {
+.quick-links .homepage-card {
     background: white;
     border: 1px solid #ddd;
     border-radius: 8px;
@@ -45,8 +45,25 @@
     transition: transform 0.2s;
 }
 
-.card:hover {
+.quick-links .homepage-card:hover {
     transform: scale(1.05);
+}
+
+/* Dark Mode for Quick Links */
+body.dark-mode .quick-links .homepage-card {
+    background: #333;
+    /* Dark background for cards */
+    color: white;
+    /* White text for better contrast */
+    border: 1px solid #555;
+    /* Subtle border for dark mode */
+}
+
+body.dark-mode .quick-links .homepage-card:hover {
+    background: #444;
+    /* Slightly lighter background on hover */
+    transform: scale(1.05);
+    /* Keep the hover effect */
 }
 
 .contact-page {

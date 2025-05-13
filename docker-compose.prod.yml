@@ -67,19 +67,23 @@ services:
       - .env.prod
 
   nginx-prod:
-    image: nginx:latest
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
     container_name: escalation-league-nginx-prod
     ports:
       - "80:80"
       - "443:443"
     volumes:
-      - ./nginx/nginx.prod.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro # Mount Let's Encrypt directory
     depends_on:
       - backend-prod
       - frontend-prod
 
 volumes:
   db_prod_data:
+    driver: local
   card_db_data:
+    driver: local
   redis-data:
+    driver: local

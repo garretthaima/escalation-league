@@ -16,11 +16,6 @@ const LeaguesPage = () => {
 
     useEffect(() => {
         const fetchLeagueData = async () => {
-            if (!canReadLeagues) {
-                setLoading(false); // Stop loading if the user lacks permission
-                return;
-            }
-
             try {
                 // Check if the user is in a league
                 const { inLeague, league } = await isUserInLeague();
@@ -34,6 +29,9 @@ const LeaguesPage = () => {
                 if (err.response && err.response.status === 404) {
                     console.warn('User is not part of any league.');
                     setInLeague(false);
+                } else if (err.response && err.response.status === 403) {
+                    console.warn('User does not have the league_read permission.');
+                    setError('You do not have permission to view this page.');
                 } else {
                     console.error('Error fetching league data:', err);
                     setError('Failed to fetch league data.');
@@ -46,21 +44,19 @@ const LeaguesPage = () => {
         if (!loadingPermissions) {
             fetchLeagueData();
         }
-    }, [loadingPermissions, canReadLeagues]);
+    }, [loadingPermissions]);
 
     if (loadingPermissions || loading) {
         return <div>Loading...</div>; // Show a loading indicator while permissions or league data are being fetched
     }
 
-    if (!canReadLeagues) {
-        console.warn('User does not have the league_read permission.');
-        return <div>You do not have permission to view this page.</div>; // Show an error if not authorized
+    if (error) {
+        return <div className="alert alert-danger">{error}</div>; // Show an error message if something went wrong
     }
 
     return (
         <div className="container mt-4">
             <h1 className="mb-4">Leagues</h1>
-            {error && <div className="alert alert-danger">{error}</div>}
             <nav>
                 <ul className="nav nav-pills mb-4">
                     {inLeague ? (
