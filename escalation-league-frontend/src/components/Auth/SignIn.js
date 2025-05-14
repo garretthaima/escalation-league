@@ -10,7 +10,7 @@ const SignIn = () => {
     const [formData, setFormData] = useState({ email: '', password: '', firstname: '', lastname: '' });
     const [error, setError] = useState('');
     const navigate = useNavigate();
-    const { setUser, setPermissions } = usePermissions(); // Access context functions
+    const { setUser, setPermissions } = usePermissions();
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -27,7 +27,6 @@ const SignIn = () => {
                 const data = await loginUser({ email: formData.email, password: formData.password });
                 localStorage.setItem('token', data.token);
 
-                // Decode token and update user in context
                 const tokenPayload = JSON.parse(atob(data.token.split('.')[1]));
                 setUser({
                     id: tokenPayload.id,
@@ -35,11 +34,10 @@ const SignIn = () => {
                     role_id: tokenPayload.role_id,
                 });
 
-                // Fetch and update permissions in context
                 const permissionsData = await getUserPermissions();
                 setPermissions(permissionsData.permissions);
 
-                navigate('/profile'); // Redirect to profile page
+                navigate('/profile');
             }
         } catch (err) {
             setError(err.response?.data?.error || 'An error occurred. Please try again.');
@@ -52,7 +50,6 @@ const SignIn = () => {
             const data = await googleAuth(credential);
             localStorage.setItem('token', data.token);
 
-            // Decode token and update user in context
             const tokenPayload = JSON.parse(atob(data.token.split('.')[1]));
             setUser({
                 id: tokenPayload.id,
@@ -60,11 +57,10 @@ const SignIn = () => {
                 role_id: tokenPayload.role_id,
             });
 
-            // Fetch and update permissions in context
             const permissionsData = await getUserPermissions();
             setPermissions(permissionsData.permissions);
 
-            navigate('/profile'); // Redirect to profile page
+            navigate('/profile');
         } catch (err) {
             console.error('Google sign-in failed:', err);
             setError('Google sign-in failed.');
@@ -72,78 +68,86 @@ const SignIn = () => {
     };
 
     return (
-        <div className="container mt-4">
-            <h2 className="mb-4">{isRegistering ? 'Register' : 'Sign In'}</h2>
-            {error && <p className="text-danger">{error}</p>}
-            <form onSubmit={handleSubmit}>
-                {isRegistering && (
-                    <>
-                        <div className="mb-3">
-                            <label htmlFor="firstname" className="form-label">First Name</label>
-                            <input
-                                type="text"
-                                className="form-control"
-                                id="firstname"
-                                name="firstname"
-                                value={formData.firstname}
-                                onChange={handleChange}
-                                required
-                            />
+        <div className="container mt-5">
+            <div className="row justify-content-center">
+                <div className="col-md-6 col-lg-5">
+                    <div className="card shadow-sm">
+                        <div className="card-body">
+                            <h2 className="text-center mb-4">{isRegistering ? 'Register' : 'Sign In'}</h2>
+                            {error && <div className="alert alert-danger">{error}</div>}
+                            <form onSubmit={handleSubmit}>
+                                {isRegistering && (
+                                    <>
+                                        <div className="mb-3">
+                                            <label htmlFor="firstname" className="form-label">First Name</label>
+                                            <input
+                                                type="text"
+                                                className="form-control"
+                                                id="firstname"
+                                                name="firstname"
+                                                value={formData.firstname}
+                                                onChange={handleChange}
+                                                required
+                                            />
+                                        </div>
+                                        <div className="mb-3">
+                                            <label htmlFor="lastname" className="form-label">Last Name</label>
+                                            <input
+                                                type="text"
+                                                className="form-control"
+                                                id="lastname"
+                                                name="lastname"
+                                                value={formData.lastname}
+                                                onChange={handleChange}
+                                                required
+                                            />
+                                        </div>
+                                    </>
+                                )}
+                                <div className="mb-3">
+                                    <label htmlFor="email" className="form-label">Email</label>
+                                    <input
+                                        type="email"
+                                        className="form-control"
+                                        id="email"
+                                        name="email"
+                                        value={formData.email}
+                                        onChange={handleChange}
+                                        required
+                                    />
+                                </div>
+                                <div className="mb-3">
+                                    <label htmlFor="password" className="form-label">Password</label>
+                                    <input
+                                        type="password"
+                                        className="form-control"
+                                        id="password"
+                                        name="password"
+                                        value={formData.password}
+                                        onChange={handleChange}
+                                        required
+                                    />
+                                </div>
+                                <button type="submit" className="btn btn-primary w-100">
+                                    {isRegistering ? 'Register' : 'Sign In'}
+                                </button>
+                            </form>
+                            <div className="mt-3">
+                                <GoogleSignInButton onSuccess={handleGoogleSuccess} />
+                            </div>
+                            <p className="mt-3 text-center">
+                                {isRegistering ? 'Already have an account?' : "Don't have an account?"}{' '}
+                                <button
+                                    className="btn btn-link p-0"
+                                    onClick={() => setIsRegistering(!isRegistering)}
+                                >
+                                    {isRegistering ? 'Sign In' : 'Register'}
+                                </button>
+                            </p>
                         </div>
-                        <div className="mb-3">
-                            <label htmlFor="lastname" className="form-label">Last Name</label>
-                            <input
-                                type="text"
-                                className="form-control"
-                                id="lastname"
-                                name="lastname"
-                                value={formData.lastname}
-                                onChange={handleChange}
-                                required
-                            />
-                        </div>
-                    </>
-                )}
-                <div className="mb-3">
-                    <label htmlFor="email" className="form-label">Email</label>
-                    <input
-                        type="email"
-                        className="form-control"
-                        id="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleChange}
-                        required
-                    />
+                    </div>
                 </div>
-                <div className="mb-3">
-                    <label htmlFor="password" className="form-label">Password</label>
-                    <input
-                        type="password"
-                        className="form-control"
-                        id="password"
-                        name="password"
-                        value={formData.password}
-                        onChange={handleChange}
-                        required
-                    />
-                </div>
-                <button type="submit" className="btn btn-primary">
-                    {isRegistering ? 'Register' : 'Sign In'}
-                </button>
-            </form>
-            <div className="mt-3">
-                <GoogleSignInButton onSuccess={handleGoogleSuccess} />
             </div>
-            <p className="mt-3">
-                {isRegistering ? 'Already have an account?' : "Don't have an account?"}{' '}
-                <button
-                    className="btn btn-link p-0"
-                    onClick={() => setIsRegistering(!isRegistering)}
-                >
-                    {isRegistering ? 'Sign In' : 'Register'}
-                </button>
-            </p>
         </div>
     );
 };

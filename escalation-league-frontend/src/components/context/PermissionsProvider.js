@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { getUserPermissions, getUserProfile, getUserSetting, updateUserSetting } from '../../api/usersApi'; // Add API calls
 import { useNavigate } from 'react-router-dom';
+import { isUserInLeague } from '../../api/userLeaguesApi'; // Import the API call for activeLeague
 
 const PermissionsContext = createContext();
 
@@ -9,6 +10,7 @@ export const PermissionsProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [darkMode, setDarkMode] = useState(false); // Add dark mode state
+    const [activeLeague, setActiveLeague] = useState(null); // Add activeLeague state
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -43,6 +45,14 @@ export const PermissionsProvider = ({ children }) => {
                 // Fetch user settings (including dark mode)
                 const darkModeSetting = await getUserSetting('dark_mode'); // Fetch dark_mode setting
                 setDarkMode(darkModeSetting.value === 'true'); // Set dark mode based on the backend value
+
+                // Fetch active league
+                const { inLeague, league } = await isUserInLeague();
+                if (inLeague) {
+                    setActiveLeague(league);
+                } else {
+                    setActiveLeague(null);
+                }
             } catch (err) {
                 console.error('Failed to fetch permissions, user profile, or settings:', err);
             } finally {
@@ -80,6 +90,8 @@ export const PermissionsProvider = ({ children }) => {
                 setPermissions,
                 user,
                 setUser,
+                activeLeague, // Expose activeLeague
+                setActiveLeague, // Expose setter for activeLeague
                 loading,
                 darkMode,
                 toggleDarkMode, // Expose toggle function

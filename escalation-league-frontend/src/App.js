@@ -9,6 +9,7 @@ import CurrentLeague from './components/Leagues/CurrentLeague';
 import SignUp from './components/Leagues/SignUp';
 import PastLeagues from './components/Leagues/PastLeagues';
 import LeagueLeaderboard from './components/Leagues/LeagueLeaderboard';
+import PriceCheckPage from './components/Leagues/PriceCheckPage';
 import { GamesPage, CompletedGamesPage, ConfirmGamesPage, ActiveGamesPage } from './components/Games';
 import CreateLeaguePage from './components/Admin/CreateLeaguePage';
 import Rules from './components/Static/Rules';
@@ -63,6 +64,7 @@ const App = () => {
                         <Route path="current" element={<CurrentLeague />} />
                         <Route path="signup" element={<SignUp />} />
                         <Route path="leaderboard" element={<LeagueLeaderboard />} />
+                        <Route path="price-check" element={<PriceCheckPage />} />
                         <Route path="past" element={<PastLeagues />} />
                     </Route>
 

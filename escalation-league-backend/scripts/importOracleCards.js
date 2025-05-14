@@ -1,10 +1,14 @@
 const fs = require('fs');
 const knex = require('knex')(require('../knexfile.js').scryfall);
 
-const importOracleCards = async () => {
+const importOracleCards = async (filePath) => {
     try {
+        if (!filePath) {
+            throw new Error('File path is required.');
+        }
+
         // Read and parse the Oracle Cards JSON file
-        const data = JSON.parse(fs.readFileSync('default-cards.json', 'utf8'));
+        const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
 
         // Track Commander-legal card IDs
         const commanderLegalIds = new Set();
@@ -23,6 +27,9 @@ const importOracleCards = async () => {
             // Add the card ID to the set of Commander-legal IDs
             commanderLegalIds.add(card.id);
 
+            // Prepare the card_faces data
+            const cardFaces = card.card_faces ? JSON.stringify(card.card_faces) : null;
+
             // Insert or update the card in the database
             const result = await knex('cards')
                 .insert({
@@ -39,7 +46,8 @@ const importOracleCards = async () => {
                     layout: card.layout,
                     highres_image: card.highres_image,
                     image_status: card.image_status,
-                    image_uris: JSON.stringify(card.image_uris || {}),
+                    image_uris: card.image_uris ? JSON.stringify(card.image_uris) : null, // Single-face cards
+                    card_faces: cardFaces, // Multi-face cards
                     mana_cost: card.mana_cost,
                     cmc: card.cmc,
                     type_line: card.type_line,
@@ -119,4 +127,6 @@ const importOracleCards = async () => {
     }
 };
 
-importOracleCards();
+// Get the file path from the command-line arguments
+const filePath = process.argv[2];
+importOracleCards(filePath);

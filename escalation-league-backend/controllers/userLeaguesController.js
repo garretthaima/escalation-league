@@ -159,6 +159,7 @@ const getLeagueParticipantDetails = async (req, res) => {
             league_wins: participant.league_wins,
             league_losses: participant.league_losses,
             decklist_url: participant.decklist_url || null, // Use the decklist_url from the decks table
+            deck_id: participant.deck_id,
             joined_at: participant.joined_at,
         });
     } catch (err) {

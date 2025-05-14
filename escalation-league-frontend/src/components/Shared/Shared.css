@@ -7,7 +7,7 @@
 }
 
 .hero-background {
-    background-image: url('../../../public/images/hero-background.jpg');
+    background-image: url('../../../public/images/hero-background.png');
     /* Replace with your image path */
     background-attachment: fixed;
     /* Parallax effect */

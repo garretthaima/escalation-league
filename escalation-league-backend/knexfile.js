@@ -1,3 +1,5 @@
+const { debug } = require('console');
+const { connect } = require('http2');
 const path = require('path');
 
 // Load the appropriate .env file based on NODE_ENV
@@ -40,17 +42,17 @@ module.exports = {
     scryfall: {
         client: 'mysql2',
         connection: {
-            host: process.env.CARD_MYSQL_HOST || 'localhost',
+            host: '10.10.11.20',
             user: process.env.CARD_MYSQL_USER,
             password: process.env.CARD_MYSQL_PASSWORD,
             database: process.env.CARD_MYSQL_DATABASE || 'scryfall_card_db',
-            port: process.env.CARD_MYSQL_PORT || 3307,
+            port: process.env.CARD_MYSQL_PORT || 3307
         },
         migrations: {
             directory: './migrations/scryfall',
         },
         seeds: {
             directory: './seeds/scryfall',
-        },
+        }
     },
 };
