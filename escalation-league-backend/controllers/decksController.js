@@ -78,6 +78,7 @@ const fetchArchidektDeck = async (deckId) => {
 
 // Helper function: Save deck data to the database
 const saveDeckToDatabase = async (deckData) => {
+    console.log('Saving deck to database:', deckData); // Log the deck data
     const { id, decklist_url, platform, name, commanders, cards } = deckData;
 
     try {
@@ -138,23 +139,28 @@ const validateAndCacheDeck = async (req, res) => {
 
         // Check if the deck is already cached
         const cachedDeck = await redis.get(cacheKey);
+        let deckData;
         if (cachedDeck) {
-            return res.status(200).json({ deck: JSON.parse(cachedDeck), cached: true });
+            console.log('Deck found in cache:', deckId);
+            deckData = JSON.parse(cachedDeck);
+
+            // Save the cached deck to the database to ensure it is persisted
+            await saveDeckToDatabase(deckData);
+        } else {
+            // Fetch deck data from the appropriate platform
+            deckData = platform === 'Moxfield'
+                ? await fetchMoxfieldDeck(deckId)
+                : await fetchArchidektDeck(deckId);
+
+            // Cache the deck data
+            await redis.set(cacheKey, JSON.stringify(deckData), 'EX', 3600); // Cache for 1 hour
+            console.log('Deck cached successfully:', deckId);
+
+            // Save the deck data to the database
+            await saveDeckToDatabase(deckData);
         }
 
-        // Fetch deck data from the appropriate platform
-        const deckData = platform === 'Moxfield'
-            ? await fetchMoxfieldDeck(deckId)
-            : await fetchArchidektDeck(deckId);
-
-        // Cache the deck data
-        await redis.set(cacheKey, JSON.stringify(deckData), 'EX', 3600); // Cache for 1 hour
-        console.log('Deck cached successfully:', deckId);
-
-        // Save the deck data to the database
-        await saveDeckToDatabase(deckData);
-
-        res.status(200).json({ deck: deckData, cached: false });
+        res.status(200).json({ deck: deckData, cached: !!cachedDeck });
     } catch (error) {
         console.error('Error validating or caching deck:', error.message);
         res.status(500).json({ error: 'Failed to validate or cache deck.' });

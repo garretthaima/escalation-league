@@ -72,7 +72,9 @@ const SignUp = () => {
 
     const handleDeckValidation = async () => {
         try {
+            console.log('Validating deck with URL:', decklistUrl); // Log the decklist URL
             const response = await validateAndCacheDeck({ decklistUrl }); // Call the backend
+            console.log('Deck validation response:', response); // Log the response
             setDeckValidationError(''); // Clear any previous errors
             return response.deck.id; // Return the deck_id from the backend response
         } catch (error) {

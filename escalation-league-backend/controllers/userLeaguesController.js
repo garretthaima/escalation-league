@@ -198,17 +198,10 @@ const requestSignupForLeague = async (req, res) => {
     const userId = req.user.id;
     const { league_id, deck_id, current_commander, commander_partner } = req.body.data;
 
-    console.log('Incoming request body:', req.body.data);
-    console.log('Destructured values:', { league_id, deck_id, current_commander, commander_partner });
-    console.log('league_id type:', typeof league_id, 'value:', league_id);
-    console.log('deck_id type:', typeof deck_id, 'value:', deck_id);
-    console.log('league_id is null:', league_id == null);
-    console.log('deck_id is null:', deck_id == null);
     if (league_id == null || deck_id == null) {
         console.log('Missing league_id or deck_id in request body.');
         return res.status(400).json({ error: 'League ID and Deck ID are required.' });
     }
-    console.log('Got passed the if check for null values.');
 
     try {
 
