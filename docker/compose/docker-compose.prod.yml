@@ -12,7 +12,7 @@ services:
     volumes:
       - db_prod_data:/var/lib/mysql
     env_file:
-      - .env.prod
+      - ../../.env.prod
 
   card-db:
     image: mysql:8
@@ -27,22 +27,28 @@ services:
     volumes:
       - card_db_data:/var/lib/mysql
     env_file:
-      - .env.prod
+      - ../../.env.prod
 
   backend-prod:
     build:
-      context: ./escalation-league-backend
+      context: ../../escalation-league-backend
       dockerfile: Dockerfile
     container_name: escalation-league-backend-prod
     environment:
       NODE_ENV: production
-      DATABASE_URL: mysql://${PROD_MYSQL_USER}:${PROD_MYSQL_PASSWORD}@db-prod:${PROD_PORT}/${PROD_MYSQL_DATABASE}
-    ports:
-      - "3000:3000"
+      PROD_DB_HOST: db-prod
+      PROD_DB_PORT: 3306
+      PROD_MYSQL_USER: ${PROD_MYSQL_USER}
+      PROD_MYSQL_PASSWORD: ${PROD_MYSQL_PASSWORD}
+      PROD_MYSQL_DATABASE: ${PROD_MYSQL_DATABASE}
     depends_on:
       - db-prod
     env_file:
-      - .env.prod
+      - ../../.env.prod
+      - ../../escalation-league-backend/.env.prod
+    networks:
+      - default
+      - edge
 
   redis-prod:
     image: redis:7
@@ -55,30 +61,31 @@ services:
 
   frontend-prod:
     build:
-      context: ./escalation-league-frontend
+      context: ../../escalation-league-frontend
       dockerfile: Dockerfile
     container_name: escalation-league-frontend-prod
     environment:
       NODE_ENV: production
       API_URL: https://api.escalationleague.com
-    ports:
-      - "8080:80" # Map external port 8080 to internal port 80
     env_file:
-      - .env.prod
-
-  nginx-prod:
-    build:
-      context: ./nginx
-      dockerfile: Dockerfile
-    container_name: escalation-league-nginx-prod
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - /etc/letsencrypt:/etc/letsencrypt:ro # Mount Let's Encrypt directory
-    depends_on:
-      - backend-prod
-      - frontend-prod
+      - ../../.env.prod
+    networks:
+      - default
+      - edge
+  # nginx-prod:
+  #   build:
+  #     context: ../../nginx
+  #     dockerfile: Dockerfile
+  #   container_name: escalation-league-nginx-prod
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - /etc/letsencrypt:/etc/letsencrypt:ro # Mount Let's Encrypt directory
+  #     - /var/www/certbot:/var/www/certbot:ro # Webroot for ACME challenges (Certbot)
+  #   depends_on:
+  #     - backend-prod
+  #     - frontend-prod
 
 volumes:
   db_prod_data:
@@ -87,3 +94,7 @@ volumes:
     driver: local
   redis-data:
     driver: local
+
+networks:
+  edge:
+    external: true

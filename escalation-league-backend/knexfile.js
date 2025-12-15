@@ -26,7 +26,7 @@ module.exports = {
     production: {
         client: 'mysql2',
         connection: {
-            host: process.env.PROD_MYSQL_HOST || 'localhost',
+            host: '10.10.60.5',
             user: process.env.PROD_MYSQL_USER,
             password: process.env.PROD_MYSQL_PASSWORD,
             database: process.env.PROD_MYSQL_DATABASE,
@@ -42,7 +42,7 @@ module.exports = {
     scryfall: {
         client: 'mysql2',
         connection: {
-            host: '10.10.11.20',
+            host: '10.10.60.5',
             user: process.env.CARD_MYSQL_USER,
             password: process.env.CARD_MYSQL_PASSWORD,
             database: process.env.CARD_MYSQL_DATABASE || 'scryfall_card_db',

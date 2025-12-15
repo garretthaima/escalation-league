@@ -1,0 +1,65 @@
+services:
+  db-dev:
+    image: mysql:8
+    container_name: escalation-league-db-dev
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DEV_MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DEV_MYSQL_DATABASE}
+      MYSQL_USER: ${DEV_MYSQL_USER}
+      MYSQL_PASSWORD: ${DEV_MYSQL_PASSWORD}
+    ports:
+      - "3308:3306" # External MySQL access
+    volumes:
+      - db_dev_data:/var/lib/mysql
+    env_file:
+      - ../../.env.dev
+
+  backend-dev:
+    build:
+      context: ../../escalation-league-backend
+      dockerfile: Dockerfile
+    container_name: escalation-league-backend-dev
+    environment:
+      NODE_ENV: development
+      DEV_MYSQL_HOST: db-dev
+      DEV_PORT: 3306
+      DEV_MYSQL_USER: ${DEV_MYSQL_USER}
+      DEV_MYSQL_PASSWORD: ${DEV_MYSQL_PASSWORD}
+      DEV_MYSQL_DATABASE: ${DEV_MYSQL_DATABASE}
+    depends_on:
+      - db-dev
+    env_file:
+      - ../../.env.dev
+    networks:
+      - default
+      - edge
+
+  redis-dev:
+    image: redis:7
+    container_name: escalation-league-redis-dev
+    command: [ "redis-server", "--appendonly", "yes" ]
+    volumes:
+      - redis_dev_data:/data
+
+  frontend-dev:
+    build:
+      context: ../../escalation-league-frontend
+      dockerfile: Dockerfile
+    container_name: escalation-league-frontend-dev
+    environment:
+      NODE_ENV: development
+      API_URL: https://api.dev.escalationleague.com
+    env_file:
+      - ../../.env.dev
+    networks:
+      - default
+      - edge
+
+volumes:
+  db_dev_data:
+  redis_dev_data:
+
+
+networks:
+  edge:
+    external: true

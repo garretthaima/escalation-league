@@ -1,0 +1,19 @@
+services:
+  nginx-edge:
+    build:
+      context: ../nginx
+      dockerfile: Dockerfile
+    container_name: nginx-edge
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/www/certbot:/var/www/certbot:ro
+    networks:
+      - edge
+    restart: unless-stopped
+
+networks:
+  edge:
+    external: true
