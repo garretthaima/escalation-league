@@ -1,58 +1,78 @@
-const { debug } = require('console');
-const { connect } = require('http2');
-const path = require('path');
-
-// Load the appropriate .env file based on NODE_ENV
-const envFile = process.env.NODE_ENV === 'production' ? '../.env.prod' : '../.env.dev';
-require('dotenv').config({ path: path.resolve(__dirname, envFile) });
+require('dotenv').config({ path: '../.env.prod' });
+require('dotenv').config({ path: '../.env.dev' });
+require('dotenv').config({ path: '.env.prod' });
+require('dotenv').config({ path: '.env.dev' });
 
 module.exports = {
-    development: {
-        client: 'mysql2',
-        connection: {
-            host: process.env.DEV_MYSQL_HOST || 'localhost',
-            user: process.env.DEV_MYSQL_USER,
-            password: process.env.DEV_MYSQL_PASSWORD,
-            database: process.env.DEV_MYSQL_DATABASE,
-            port: process.env.DEV_PORT || 3308
-        },
-        migrations: {
-            directory: './migrations/escalation_league',
-        },
-        seeds: {
-            directory: './seeds',
-        },
-    },
     production: {
         client: 'mysql2',
         connection: {
-            host: '10.10.60.5',
-            user: process.env.PROD_MYSQL_USER,
-            password: process.env.PROD_MYSQL_PASSWORD,
-            database: process.env.PROD_MYSQL_DATABASE,
-            port: process.env.PROD_PORT || 3306,
+            host: process.env.DB_HOST || 'db-prod',
+            port: parseInt(process.env.DB_PORT || '3306'),
+            user: process.env.DB_USER || 'prod_user',
+            password: process.env.DB_PASSWORD,
+            database: process.env.DB_NAME || 'escalation_league_prod',
         },
         migrations: {
             directory: './migrations/escalation_league',
+            tableName: 'knex_migrations',
         },
         seeds: {
             directory: './seeds',
         },
     },
+
+    development: {
+        client: 'mysql2',
+        connection: {
+            host: process.env.DB_HOST || 'db-dev',
+            port: parseInt(process.env.DB_PORT || '3306'),
+            user: process.env.DB_USER || 'league_user',
+            password: process.env.DB_PASSWORD || 'uwtsSU8WTdGSTk!cH&%6kEeb!pN996T&jL*ZcnUwdn2zEZd@',
+            database: process.env.DB_NAME || 'escalation_league_dev',
+        },
+        migrations: {
+            directory: './migrations/escalation_league',
+            tableName: 'knex_migrations',
+        },
+        seeds: {
+            directory: './seeds',
+        },
+    },
+
     scryfall: {
         client: 'mysql2',
         connection: {
-            host: '10.10.60.5',
-            user: process.env.CARD_MYSQL_USER,
-            password: process.env.CARD_MYSQL_PASSWORD,
-            database: process.env.CARD_MYSQL_DATABASE || 'scryfall_card_db',
-            port: process.env.CARD_MYSQL_PORT || 3307
+            host: process.env.CARD_DB_HOST || 'card-db',
+            port: parseInt(process.env.CARD_DB_PORT || '3306'),
+            user: process.env.CARD_DB_USER || 'card_user',
+            password: process.env.CARD_DB_PASSWORD,
+            database: process.env.CARD_DB_NAME || 'scryfall_card_db',
         },
         migrations: {
             directory: './migrations/scryfall',
+            tableName: 'knex_migrations_scryfall',
         },
         seeds: {
             directory: './seeds/scryfall',
-        }
+        },
+    },
+
+    test: {
+        client: 'mysql2',
+        connection: {
+            host: process.env.TEST_DB_HOST || 'db-dev',
+            port: parseInt(process.env.TEST_DB_PORT || '3306'),
+            user: process.env.TEST_DB_USER || 'league_user',
+            password: process.env.TEST_DB_PASSWORD,
+            database: process.env.TEST_DB_NAME || 'escalation_league_test',
+        },
+        migrations: {
+            directory: './migrations/escalation_league',
+            tableName: 'knex_migrations',
+        },
+        seeds: {
+            directory: './seeds',
+        },
     },
 };

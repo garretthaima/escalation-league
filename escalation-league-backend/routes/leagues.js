@@ -76,6 +76,13 @@ router.put(
 );
 
 router.get(
+    '/search',
+    authenticateToken,
+    authorizePermission(['league_read']), // Permission to search leagues
+    searchLeagues
+);
+
+router.get(
     '/:id',
     authenticateToken,
     authorizePermission(['league_view_details']), // Permission to view league details
@@ -89,12 +96,6 @@ router.get(
     getLeagueStats
 );
 
-router.get(
-    '/search',
-    authenticateToken,
-    authorizePermission(['league_read']), // Permission to search leagues
-    searchLeagues
-);
 
 router.post(
     '/:leagueId/invite',

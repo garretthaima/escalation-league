@@ -2,32 +2,44 @@ services:
   db-prod:
     image: mysql:8
     container_name: escalation-league-db-prod
+    command: --mysql-native-password=ON
     environment:
-      MYSQL_ROOT_PASSWORD: ${PROD_MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${PROD_MYSQL_DATABASE}
-      MYSQL_USER: ${PROD_MYSQL_USER}
-      MYSQL_PASSWORD: ${PROD_MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
     ports:
       - "3306:3306"
     volumes:
-      - db_prod_data:/var/lib/mysql
-    env_file:
-      - ../../.env.prod
+      - compose_db_prod_data:/var/lib/mysql
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD}" ]
+      timeout: 20s
+      retries: 10
+      interval: 10s
+      start_period: 40s
 
   card-db:
     image: mysql:8
     container_name: escalation-league-card-db
+    command: --mysql-native-password=ON
     environment:
-      MYSQL_ROOT_PASSWORD: ${CARD_MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${CARD_MYSQL_DATABASE}
-      MYSQL_USER: ${CARD_MYSQL_USER}
-      MYSQL_PASSWORD: ${CARD_MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${CARD_DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${CARD_DB_NAME}
+      MYSQL_USER: ${CARD_DB_USER}
+      MYSQL_PASSWORD: ${CARD_DB_PASSWORD}
     ports:
       - "3307:3306"
     volumes:
-      - card_db_data:/var/lib/mysql
-    env_file:
-      - ../../.env.prod
+      - compose_card_db_data:/var/lib/mysql
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${CARD_DB_ROOT_PASSWORD}" ]
+      timeout: 20s
+      retries: 10
+      interval: 10s
+      start_period: 40s
 
   backend-prod:
     build:
@@ -36,64 +48,74 @@ services:
     container_name: escalation-league-backend-prod
     environment:
       NODE_ENV: production
-      PROD_DB_HOST: db-prod
-      PROD_DB_PORT: 3306
-      PROD_MYSQL_USER: ${PROD_MYSQL_USER}
-      PROD_MYSQL_PASSWORD: ${PROD_MYSQL_PASSWORD}
-      PROD_MYSQL_DATABASE: ${PROD_MYSQL_DATABASE}
+      # Main Database
+      DB_HOST: db-prod
+      DB_PORT: 3306
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      # Card Database
+      CARD_DB_HOST: card-db
+      CARD_DB_PORT: 3306
+      CARD_DB_USER: ${CARD_DB_USER}
+      CARD_DB_PASSWORD: ${CARD_DB_PASSWORD}
+      CARD_DB_NAME: ${CARD_DB_NAME}
+      # Auth
+      JWT_SECRET: ${JWT_SECRET}
+      EL_ADMIN_SECRET: ${EL_ADMIN_SECRET}
+      # URLs
+      FRONTEND_URL: ${FRONTEND_URL}
+      BACKEND_URL: ${BACKEND_URL}
+      PORT: ${BACKEND_PORT}
+      # Redis
+      REDIS_HOST: redis-prod
+      REDIS_PORT: 6379
+      # External APIs
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      MOXFIELD_USER_AGENT: ${MOXFIELD_USER_AGENT}
+      SCRYFALL_USER_AGENT: ${SCRYFALL_USER_AGENT}
     depends_on:
-      - db-prod
-    env_file:
-      - ../../.env.prod
-      - ../../escalation-league-backend/.env.prod
+      db-prod:
+        condition: service_healthy
+      card-db:
+        condition: service_healthy
+      redis-prod:
+        condition: service_started
     networks:
       - default
       - edge
+    restart: unless-stopped
 
   redis-prod:
     image: redis:7
     container_name: escalation-league-redis-prod
     ports:
       - "6379:6379"
-    command: [ "redis-server", "--appendonly", "yes" ] # Enable persistence
+    command: [ "redis-server", "--appendonly", "yes" ]
     volumes:
-      - redis-data:/data
+      - compose_redis-data:/data
+    restart: unless-stopped
 
   frontend-prod:
     build:
       context: ../../escalation-league-frontend
       dockerfile: Dockerfile
+      args:
+        REACT_APP_BACKEND_URL: https://api.escalationleague.com/api
+        REACT_APP_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+        REACT_APP_SCRYFALL_USER_AGENT: EscalationLeague-Prod/1.0; garretthaima@gmail.com
     container_name: escalation-league-frontend-prod
-    environment:
-      NODE_ENV: production
-      API_URL: https://api.escalationleague.com
-    env_file:
-      - ../../.env.prod
-    networks:
-      - default
-      - edge
-  # nginx-prod:
-  #   build:
-  #     context: ../../nginx
-  #     dockerfile: Dockerfile
-  #   container_name: escalation-league-nginx-prod
-  #   ports:
-  #     - "80:80"
-  #     - "443:443"
-  #   volumes:
-  #     - /etc/letsencrypt:/etc/letsencrypt:ro # Mount Let's Encrypt directory
-  #     - /var/www/certbot:/var/www/certbot:ro # Webroot for ACME challenges (Certbot)
-  #   depends_on:
-  #     - backend-prod
-  #     - frontend-prod
+    networks: sudo certbot certonly --nginx -d escalationleague.com -d www.escalationleague.com -d api.escalationleague.com -d dev.escalationleague.com -d api.dev.escalationleague.com    sudo certbot certonly --nginx -d escalationleague.com -d www.escalationleague.com -d api.escalationleague.com -d dev.escalationleague.com -d api.dev.escalationleague.com - default - edge
+    restart: unless-stopped
 
 volumes:
-  db_prod_data:
-    driver: local
-  card_db_data:
-    driver: local
-  redis-data:
-    driver: local
+  compose_db_prod_data:
+    external: true
+  compose_card_db_data:
+    external: true
+  compose_redis-data:
+    external: true
 
 networks:
   edge:

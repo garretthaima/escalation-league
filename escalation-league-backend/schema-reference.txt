@@ -1,0 +1,206 @@
+=== Table: activity_logs ===
+Field	Type	Null	Key	Default	Extra
+id	int unsigned	NO	PRI	NULL	auto_increment
+user_id	int unsigned	YES	MUL	NULL	
+action	varchar(255)	NO		NULL	
+timestamp	timestamp	YES		CURRENT_TIMESTAMP	DEFAULT_GENERATED
+metadata	json	YES		NULL	
+
+=== Table: awards ===
+Field	Type	Null	Key	Default	Extra
+id	int unsigned	NO	PRI	NULL	auto_increment
+name	varchar(255)	NO		NULL	
+description	text	YES		NULL	
+
+=== Table: decks ===
+Field	Type	Null	Key	Default	Extra
+id	varchar(255)	NO	PRI	NULL	
+decklist_url	varchar(255)	NO		NULL	
+platform	varchar(255)	NO		NULL	
+name	varchar(255)	NO		NULL	
+commanders	json	NO		NULL	
+cards	json	NO		NULL	
+created_at	timestamp	NO		CURRENT_TIMESTAMP	DEFAULT_GENERATED
+updated_at	timestamp	NO		CURRENT_TIMESTAMP	DEFAULT_GENERATED
+last_synced_at	timestamp	YES		NULL	
+
+=== Table: game_players ===
+Field	Type	Null	Key	Default	Extra
+id	int unsigned	NO	PRI	NULL	auto_increment
+player_id	int unsigned	NO	MUL	NULL	
+confirmed	tinyint(1)	YES		0	
+turn_order	int	YES		NULL	
+pod_id	int unsigned	YES	MUL	NULL	
+result	varchar(255)	YES		NULL	
+confirmation_time	timestamp	YES		NULL	
+
+=== Table: game_pods ===
+Field	Type	Null	Key	Default	Extra
+id	int unsigned	NO	PRI	NULL	auto_increment
+league_id	int unsigned	NO	MUL	NULL	
+creator_id	int unsigned	NO	MUL	NULL	
+status	enum('active','completed')	YES		active	
+created_at	timestamp	YES		CURRENT_TIMESTAMP	DEFAULT_GENERATED
+deleted_at	timestamp	YES		NULL	
+result	varchar(255)	YES		NULL	
+confirmation_status	enum('open','active','pending','complete')	YES		open	
+win_condition_id	int unsigned	YES	MUL	NULL	
+
+=== Table: knex_migrations ===
+Field	Type	Null	Key	Default	Extra
+id	int unsigned	NO	PRI	NULL	auto_increment
+name	varchar(255)	YES		NULL	
+batch	int	YES		NULL	
+migration_time	timestamp	YES		NULL	
+
+=== Table: knex_migrations_lock ===
+Field	Type	Null	Key	Default	Extra
+index	int unsigned	NO	PRI	NULL	auto_increment
+is_locked	int	YES		NULL	
+
+=== Table: league_signup_requests ===
+Field	Type	Null	Key	Default	Extra
+id	int unsigned	NO	PRI	NULL	auto_increment
+user_id	int unsigned	NO	MUL	NULL	
+league_id	int unsigned	NO	MUL	NULL	
+status	enum('pending','approved','rejected')	YES		pending	
+created_at	timestamp	YES		CURRENT_TIMESTAMP	DEFAULT_GENERATED
+
+=== Table: leagues ===
+Field	Type	Null	Key	Default	Extra
+id	int unsigned	NO	PRI	NULL	auto_increment
+name	varchar(255)	NO		NULL	
+start_date	date	NO		NULL	
+end_date	date	NO		NULL	
+current_week	int	YES		1	
+weekly_budget	decimal(10,2)	YES		0.00	
+is_active	tinyint(1)	YES		0	
+league_code	varchar(255)	YES	UNI	NULL	
+description	text	YES		NULL	
+max_players	int	YES		NULL	
+created_at	timestamp	YES		CURRENT_TIMESTAMP	DEFAULT_GENERATED
+
+=== Table: permissions ===
+Field	Type	Null	Key	Default	Extra
+id	int unsigned	NO	PRI	NULL	auto_increment
+name	varchar(255)	NO	UNI	NULL	
+description	varchar(255)	YES		NULL	
+created_at	timestamp	NO		CURRENT_TIMESTAMP	DEFAULT_GENERATED
+updated_at	timestamp	NO		CURRENT_TIMESTAMP	DEFAULT_GENERATED
+
+=== Table: role_hierarchy ===
+Field	Type	Null	Key	Default	Extra
+parent_role_id	int unsigned	NO	PRI	NULL	
+child_role_id	int unsigned	NO	PRI	NULL	
+
+=== Table: role_permissions ===
+Field	Type	Null	Key	Default	Extra
+id	int unsigned	NO	PRI	NULL	auto_increment
+role_id	int unsigned	NO	MUL	NULL	
+permission_id	int unsigned	NO	MUL	NULL	
+created_at	timestamp	NO		CURRENT_TIMESTAMP	DEFAULT_GENERATED
+updated_at	timestamp	NO		CURRENT_TIMESTAMP	DEFAULT_GENERATED
+
+=== Table: role_requests ===
+Field	Type	Null	Key	Default	Extra
+id	int unsigned	NO	PRI	NULL	auto_increment
+user_id	int unsigned	NO	MUL	NULL	
+requested_role_id	int unsigned	NO	MUL	NULL	
+status	varchar(255)	NO		pending	
+admin_comment	text	YES		NULL	
+created_at	timestamp	YES		CURRENT_TIMESTAMP	DEFAULT_GENERATED
+updated_at	timestamp	YES		CURRENT_TIMESTAMP	DEFAULT_GENERATED
+
+=== Table: roles ===
+Field	Type	Null	Key	Default	Extra
+id	int unsigned	NO	PRI	NULL	auto_increment
+name	varchar(255)	NO	UNI	NULL	
+description	varchar(255)	YES		NULL	
+created_at	timestamp	NO		CURRENT_TIMESTAMP	DEFAULT_GENERATED
+updated_at	timestamp	NO		CURRENT_TIMESTAMP	DEFAULT_GENERATED
+
+=== Table: settings ===
+Field	Type	Null	Key	Default	Extra
+id	int unsigned	NO	PRI	NULL	auto_increment
+key_name	varchar(255)	NO	UNI	NULL	
+value	text	NO		NULL	
+description	text	YES		NULL	
+created_at	timestamp	NO		CURRENT_TIMESTAMP	DEFAULT_GENERATED
+updated_at	timestamp	NO		CURRENT_TIMESTAMP	DEFAULT_GENERATED
+
+=== Table: user_awards ===
+Field	Type	Null	Key	Default	Extra
+id	int unsigned	NO	PRI	NULL	auto_increment
+league_id	int unsigned	NO	MUL	NULL	
+user_id	int unsigned	NO	MUL	NULL	
+award_id	int unsigned	NO	MUL	NULL	
+awarded_at	timestamp	YES		CURRENT_TIMESTAMP	DEFAULT_GENERATED
+
+=== Table: user_leagues ===
+Field	Type	Null	Key	Default	Extra
+id	int unsigned	NO	PRI	NULL	auto_increment
+user_id	int unsigned	NO	MUL	NULL	
+league_id	int unsigned	NO	MUL	NULL	
+league_wins	int	YES		0	
+league_losses	int	YES		0	
+current_commander	varchar(255)	YES		NULL	
+joined_at	timestamp	YES		CURRENT_TIMESTAMP	DEFAULT_GENERATED
+deck_id	varchar(255)	YES		NULL	
+league_draws	int	NO		0	
+total_points	int	YES		0	
+matches_played	int	YES		0	
+is_active	tinyint(1)	YES		1	
+last_updated	timestamp	YES		CURRENT_TIMESTAMP	DEFAULT_GENERATED
+rank	int	YES		NULL	
+disqualified	tinyint(1)	YES		0	
+finals_qualified	tinyint(1)	YES		0	
+league_role	varchar(50)	YES		player	
+request_id	int unsigned	YES	MUL	NULL	
+commander_partner	varchar(255)	YES		NULL	
+
+=== Table: user_settings ===
+Field	Type	Null	Key	Default	Extra
+id	int unsigned	NO	PRI	NULL	auto_increment
+user_id	int unsigned	NO	MUL	NULL	
+key_name	varchar(255)	NO		NULL	
+value	varchar(255)	NO		NULL	
+created_at	timestamp	NO		CURRENT_TIMESTAMP	DEFAULT_GENERATED
+updated_at	timestamp	NO		CURRENT_TIMESTAMP	DEFAULT_GENERATED
+
+=== Table: users ===
+Field	Type	Null	Key	Default	Extra
+id	int unsigned	NO	PRI	NULL	auto_increment
+password	varchar(255)	YES		NULL	
+wins	int	YES		0	
+losses	int	YES		0	
+email	varchar(255)	NO	UNI	NULL	
+firstname	varchar(255)	YES		NULL	
+lastname	varchar(255)	YES		NULL	
+picture	varchar(255)	YES		NULL	
+winning_streak	int	YES		0	
+losing_streak	int	YES		0	
+current_commander	varchar(255)	YES		NULL	
+past_commanders	text	YES		NULL	
+opponent_win_percentage	decimal(5,2)	YES		0.00	
+most_common_win_condition	varchar(255)	YES		NULL	
+favorite_color	varchar(255)	YES		NULL	
+deck_archetype	varchar(255)	YES		NULL	
+last_login	timestamp	YES		NULL	
+is_active	tinyint(1)	YES		1	
+is_banned	tinyint(1)	YES		0	
+ban_reason	text	YES		NULL	
+google_id	varchar(255)	YES	UNI	NULL	
+is_deleted	tinyint(1)	YES		0	
+draws	int	NO		0	
+role_id	int unsigned	YES	MUL	NULL	
+
+=== Table: win_conditions ===
+Field	Type	Null	Key	Default	Extra
+id	int unsigned	NO	PRI	NULL	auto_increment
+name	varchar(255)	NO		NULL	
+description	text	YES		NULL	
+category	enum('Combat','Alternate','Combo','Other')	YES		Other	
+scryfall_card_id	varchar(255)	YES		NULL	
+created_at	timestamp	NO		CURRENT_TIMESTAMP	DEFAULT_GENERATED
+updated_at	timestamp	NO		CURRENT_TIMESTAMP	DEFAULT_GENERATED
+

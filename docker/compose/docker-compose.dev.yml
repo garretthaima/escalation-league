@@ -2,17 +2,45 @@ services:
   db-dev:
     image: mysql:8
     container_name: escalation-league-db-dev
+    command: --mysql-native-password=ON
     environment:
-      MYSQL_ROOT_PASSWORD: ${DEV_MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${DEV_MYSQL_DATABASE}
-      MYSQL_USER: ${DEV_MYSQL_USER}
-      MYSQL_PASSWORD: ${DEV_MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
     ports:
-      - "3308:3306" # External MySQL access
+      - "3308:3306"
     volumes:
-      - db_dev_data:/var/lib/mysql
-    env_file:
-      - ../../.env.dev
+      - compose_db_dev_data:/var/lib/mysql
+      - ../../scripts/init-test-db.sql:/docker-entrypoint-initdb.d/init-test-db.sql:ro
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD}" ]
+      timeout: 20s
+      retries: 10
+      interval: 10s
+      start_period: 40s
+
+  card-db:
+    image: mysql:8
+    container_name: escalation-league-card-db-dev
+    command: --mysql-native-password=ON
+    environment:
+      MYSQL_ROOT_PASSWORD: ${CARD_DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${CARD_DB_NAME}
+      MYSQL_USER: ${CARD_DB_USER}
+      MYSQL_PASSWORD: ${CARD_DB_PASSWORD}
+    ports:
+      - "3309:3306"
+    volumes:
+      - compose_card_db_data:/var/lib/mysql
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${CARD_DB_ROOT_PASSWORD}" ]
+      timeout: 20s
+      retries: 10
+      interval: 10s
+      start_period: 40s
 
   backend-dev:
     build:
@@ -21,44 +49,84 @@ services:
     container_name: escalation-league-backend-dev
     environment:
       NODE_ENV: development
-      DEV_MYSQL_HOST: db-dev
-      DEV_PORT: 3306
-      DEV_MYSQL_USER: ${DEV_MYSQL_USER}
-      DEV_MYSQL_PASSWORD: ${DEV_MYSQL_PASSWORD}
-      DEV_MYSQL_DATABASE: ${DEV_MYSQL_DATABASE}
+      # Main Database
+      DB_HOST: db-dev
+      DB_PORT: 3306
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      # Test Database (same container, different database)
+      TEST_DB_HOST: db-dev
+      TEST_DB_PORT: 3306
+      TEST_DB_USER: ${TEST_DB_USER}
+      TEST_DB_PASSWORD: ${TEST_DB_PASSWORD}
+      TEST_DB_NAME: ${TEST_DB_NAME}
+      # Card Database
+      CARD_DB_HOST: card-db
+      CARD_DB_PORT: 3306
+      CARD_DB_USER: ${CARD_DB_USER}
+      CARD_DB_PASSWORD: ${CARD_DB_PASSWORD}
+      CARD_DB_NAME: ${CARD_DB_NAME}
+      # Auth
+      JWT_SECRET: ${JWT_SECRET}
+      EL_ADMIN_SECRET: ${EL_ADMIN_SECRET}
+      # URLs
+      FRONTEND_URL: ${FRONTEND_URL}
+      BACKEND_URL: ${BACKEND_URL}
+      # Redis
+      REDIS_HOST: redis-dev
+      REDIS_PORT: 6379
+      # External APIs
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      MOXFIELD_USER_AGENT: ${MOXFIELD_USER_AGENT}
+      SCRYFALL_USER_AGENT: ${SCRYFALL_USER_AGENT}
     depends_on:
-      - db-dev
-    env_file:
-      - ../../.env.dev
+      db-dev:
+        condition: service_healthy
+      card-db:
+        condition: service_healthy
+      redis-dev:
+        condition: service_started
     networks:
       - default
       - edge
+    restart: unless-stopped
+    # volumes:
+    #   - ../../escalation-league-backend:/app
+    #   - /app/node_modules
+    # command: npm run dev
 
   redis-dev:
     image: redis:7
     container_name: escalation-league-redis-dev
+    ports:
+      - "6380:6379"
     command: [ "redis-server", "--appendonly", "yes" ]
     volumes:
-      - redis_dev_data:/data
+      - compose_redis_dev_data:/data
+    restart: unless-stopped
 
   frontend-dev:
     build:
       context: ../../escalation-league-frontend
       dockerfile: Dockerfile
+      args:
+        REACT_APP_BACKEND_URL: https://dev-api.escalationleague.com/api
+        REACT_APP_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+        REACT_APP_SCRYFALL_USER_AGENT: EscalationLeague-Dev/1.0; garretthaima@gmail.com
     container_name: escalation-league-frontend-dev
-    environment:
-      NODE_ENV: development
-      API_URL: https://api.dev.escalationleague.com
-    env_file:
-      - ../../.env.dev
     networks:
       - default
       - edge
 
 volumes:
-  db_dev_data:
-  redis_dev_data:
-
+  compose_db_dev_data:
+    external: true
+  compose_card_db_data:
+    external: true
+  compose_redis_dev_data:
+    external: true
 
 networks:
   edge:
