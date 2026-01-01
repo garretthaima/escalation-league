@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { authLimiter } = require('../middlewares/rateLimitMiddleware');
 const {
     registerUser,
     loginUser,
@@ -8,9 +9,9 @@ const {
 } = require('../controllers/authController');
 
 // Authentication Endpoints
-router.post('/register', registerUser);
-router.post('/login', loginUser);
-router.post('/google-auth', googleAuth);
-router.post('/verify-google-token', verifyGoogleToken);
+router.post('/register', authLimiter, registerUser);
+router.post('/login', authLimiter, loginUser);
+router.post('/google-auth', authLimiter, googleAuth);
+router.post('/verify-google-token', authLimiter, verifyGoogleToken);
 
 module.exports = router;

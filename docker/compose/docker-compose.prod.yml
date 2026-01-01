@@ -106,7 +106,9 @@ services:
         REACT_APP_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
         REACT_APP_SCRYFALL_USER_AGENT: EscalationLeague-Prod/1.0; garretthaima@gmail.com
     container_name: escalation-league-frontend-prod
-    networks: sudo certbot certonly --nginx -d escalationleague.com -d www.escalationleague.com -d api.escalationleague.com -d dev.escalationleague.com -d api.dev.escalationleague.com    sudo certbot certonly --nginx -d escalationleague.com -d www.escalationleague.com -d api.escalationleague.com -d dev.escalationleague.com -d api.dev.escalationleague.com - default - edge
+    networks:
+      - default
+      - edge
     restart: unless-stopped
 
 volumes:

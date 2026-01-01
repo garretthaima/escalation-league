@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 const path = require('path');
 
 const app = express();
@@ -7,6 +8,11 @@ const app = express();
 // Middleware to parse JSON request bodies
 app.use(express.json());
 
+// Helmet security headers (before CORS)
+app.use(helmet({
+  contentSecurityPolicy: false, // We'll configure this later or via nginx
+  crossOriginEmbedderPolicy: false, // Allows Google OAuth
+}));
 
 // CORS configuration - must be before routes
 const allowedOrigins = [
@@ -45,6 +51,10 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
+
+// Rate limiting middleware (AFTER CORS)
+const { apiLimiter } = require('./middlewares/rateLimitMiddleware');
+app.use('/api', apiLimiter);
 
 // Fetch the frontend URL from the settings table
 (async () => {
