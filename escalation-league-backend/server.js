@@ -5,6 +5,9 @@ const path = require('path');
 
 const app = express();
 
+
+// Trust proxy headers from nginx
+app.set('trust proxy', 1); // Trust first proxy (nginx)
 // Middleware to parse JSON request bodies
 app.use(express.json());
 

@@ -30,3 +30,9 @@ export const updatePod = async (podId, updates) => {
     const response = await axiosInstance.put(`/pods/${podId}`, updates);
     return response.data;
 };
+
+// Override a pod to active status
+export const overridePod = async (podId) => {
+    const response = await axiosInstance.post(`/pods/${podId}/override`);
+    return response.data;
+};

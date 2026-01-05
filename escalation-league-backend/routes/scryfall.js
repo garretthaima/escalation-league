@@ -5,9 +5,9 @@ const authenticateToken = require('../middlewares/authentication');
 const router = express.Router();
 
 // Route for autocomplete
-router.get('/autocomplete', ScryfallController.autocomplete, authenticateToken);
+router.get('/autocomplete', authenticateToken, ScryfallController.autocomplete);
 
 // Route for getCardByName
-router.get('/cards/named', ScryfallController.getCardByName, authenticateToken);
+router.get('/cards/named', authenticateToken, ScryfallController.getCardByName);
 
 module.exports = router;

@@ -16,6 +16,7 @@ const {
 } = require('../controllers/leaguesController');
 const authenticateToken = require('../middlewares/authentication');
 const authorizePermission = require('../middlewares/authorizePermission');
+const authorizeLeagueAccess = require('../middlewares/authorizeLeagueAccess');
 
 // League Management Endpoints
 router.post(
@@ -86,6 +87,7 @@ router.get(
     '/:id',
     authenticateToken,
     authorizePermission(['league_view_details']), // Permission to view league details
+    authorizeLeagueAccess,
     getLeagueDetails
 );
 
@@ -93,6 +95,7 @@ router.get(
     '/:leagueId/stats',
     authenticateToken,
     authorizePermission(['league_view_details']), // Permission to view league stats and leaderboard
+    authorizeLeagueAccess,
     getLeagueStats
 );
 

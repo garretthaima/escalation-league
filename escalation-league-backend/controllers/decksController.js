@@ -1,7 +1,7 @@
 const redis = require('../utils/redisClient');
 const { fetchMoxfieldDeck, fetchArchidektDeck } = require('../services/deckFetchers');
 const { fetchDeckDataIfStale, getCachedPriceCheck, cachePriceCheckResults } = require('../services/deckService');
-const { getDeckFromDatabase } = require('../services/databaseService');
+const { getDeckFromDatabase, saveDeckToDatabase } = require('../services/databaseService');
 const { calculateDeckPrices } = require('../services/priceService');
 
 // Helper function: Validate the decklist URL

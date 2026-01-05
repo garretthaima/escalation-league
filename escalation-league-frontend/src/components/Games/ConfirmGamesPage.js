@@ -28,32 +28,14 @@ const ConfirmGamesTab = () => {
 
     const handleConfirm = async (podId, leagueId) => {
         try {
-            // Confirm the game
-            await logPodResult(podId, null); // Explicitly pass null for the result
-
-            // Log the payload for debugging
-            const userStatsPayload = {
-                userId,
-                wins: 0, // Adjust based on the result
-                losses: 0, // Adjust based on the result
-                draws: 1, // Example: Increment draws
-            };
-            console.log('Payload for updateUserStats:', userStatsPayload);
-
-            // Update user stats
-            await updateUserStats(userStatsPayload);
-
-            // Update league stats
-            await updateLeagueStats({
-                userId,
-                leagueId,
-                leagueWins: 0, // Adjust based on the result
-                leagueLosses: 0, // Adjust based on the result
-                leagueDraws: 1, // Example: Increment draws
-            });
+            // Confirm the game - backend will now handle stats updates automatically
+            // Don't send result - just confirm with existing result
+            await logPodResult(podId, {});
 
             alert('Game successfully confirmed!');
-            const pods = await getPods({ confirmation_status: 'pending' }); // Refresh pending pods
+
+            // Refresh the list of games waiting confirmation
+            const pods = await getPods({ confirmation_status: 'pending' });
             setGamesWaitingConfirmation(pods);
         } catch (err) {
             console.error('Error confirming game:', err.message);

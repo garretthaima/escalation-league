@@ -77,7 +77,7 @@ const joinPod = async (req, res) => {
 
 const logPodResult = async (req, res) => {
     const { podId } = req.params;
-    const { result } = req.body || {}; // Default to an empty object if req.body is undefined
+    const { result } = req.body || {};
     const playerId = req.user.id;
 
     try {
@@ -93,7 +93,7 @@ const logPodResult = async (req, res) => {
         // Update the player's confirmation status and optionally their result
         const updateData = { confirmed: 1, confirmation_time: db.fn.now() };
         if (result !== undefined) {
-            updateData.result = result; // Only update result if it's provided
+            updateData.result = result;
         }
 
         await db('game_players')
@@ -105,10 +105,42 @@ const logPodResult = async (req, res) => {
         const allConfirmed = participants.every((p) => p.confirmed === 1);
 
         if (allConfirmed) {
-            // Determine the pod result (e.g., 'win' or 'draw')
+            // Determine the pod result
             const podResult = participants.some((p) => p.result === 'draw') ? 'draw' : 'win';
 
-            // Update the pod's status to 'complete' and set the result
+            // Get the league ID for this pod
+            const pod = await db('game_pods').where({ id: podId }).select('league_id').first();
+
+            if (!pod || !pod.league_id) {
+                return res.status(404).json({ error: 'League not found for this pod.' });
+            }
+
+            // Update stats for all participants
+            for (const p of participants) {
+                const wins = p.result === 'win' ? 1 : 0;
+                const losses = p.result === 'loss' ? 1 : 0;
+                const draws = p.result === 'draw' ? 1 : 0;
+
+                // Update user stats
+                await db('users')
+                    .where({ id: p.player_id })
+                    .increment({
+                        wins: wins,
+                        losses: losses,
+                        draws: draws
+                    });
+
+                // Update league stats
+                await db('user_leagues')
+                    .where({ user_id: p.player_id, league_id: pod.league_id })
+                    .increment({
+                        league_wins: wins,
+                        league_losses: losses,
+                        league_draws: draws
+                    });
+            }
+
+            // Update the pod's status to 'complete'
             await db('game_pods')
                 .where({ id: podId })
                 .update({
@@ -116,24 +148,14 @@ const logPodResult = async (req, res) => {
                     result: podResult,
                 });
 
-            // Create a game entry for the completed pod
-            await db('games').insert({
-                pod_id: podId,
-                creator_id: participants[0].player_id, // Use the first player as the creator
-                result: podResult,
-                date: db.fn.now(),
-                win_condition: 'All players confirmed', // Example win condition
-                league_id: participants[0].league_id,
-            });
-
-            return res.status(200).json({ message: 'Game result logged successfully and pod marked as complete.' });
+            return res.status(200).json({ message: 'Game result logged successfully, stats updated, and pod marked as complete.' });
         } else {
             // Update the pod's confirmation status to 'pending'
             await db('game_pods')
                 .where({ id: podId })
                 .update({
                     confirmation_status: 'pending',
-                    result: null, // Ensure no result is set for pending pods
+                    result: null,
                 });
 
             return res.status(200).json({ message: 'Confirmation recorded. Waiting for other players.' });
@@ -201,9 +223,40 @@ const getPods = async (req, res) => {
 };
 
 
+
+// Override a 3-player pod to active status
+const overridePod = async (req, res) => {
+    const { podId } = req.params;
+
+    try {
+        // Check if the pod exists and is open
+        const pod = await db('game_pods').where({ id: podId, confirmation_status: 'open' }).first();
+        if (!pod) {
+            return res.status(404).json({ error: 'Pod not found or is not open.' });
+        }
+
+        // Check if the pod has at least 3 players
+        const participantCountResult = await db('game_players').where({ pod_id: podId }).count('id as count').first();
+        const participantCount = participantCountResult?.count || 0;
+
+        if (participantCount < 3) {
+            return res.status(400).json({ error: 'Pod must have at least 3 players to override.' });
+        }
+
+        // Update pod to active
+        await db('game_pods').where({ id: podId }).update({ confirmation_status: 'active' });
+
+        res.status(200).json({ message: 'Pod successfully overridden to active.' });
+    } catch (err) {
+        console.error('Error overriding pod:', err.message);
+        res.status(500).json({ error: 'Failed to override pod.' });
+    }
+};
+
 module.exports = {
     createPod,
     getPods,
     joinPod,
     logPodResult,
+    overridePod,
 };

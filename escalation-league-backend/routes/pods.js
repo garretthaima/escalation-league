@@ -5,6 +5,7 @@ const {
     joinPod,
     logPodResult,
     getPods, // New consolidated endpoint
+    overridePod,
 } = require('../controllers/podsController');
 const authenticateToken = require('../middlewares/authentication');
 const authorizePermission = require('../middlewares/authorizePermission');
@@ -36,6 +37,14 @@ router.post(
     authenticateToken,
     authorizePermission(['pod_update']), // Permission to log pod results
     logPodResult
+);
+
+
+router.post(
+    '/:podId/override',
+    authenticateToken,
+    authorizePermission(['pod_update']), // Permission to override pod
+    overridePod
 );
 
 module.exports = router;

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getPods, joinPod, createPod } from '../../api/podsApi'; // Use unified getPods
+import { getPods, joinPod, createPod, overridePod, logPodResult } from '../../api/podsApi'; // Use unified getPods
 import { isUserInLeague } from '../../api/userLeaguesApi';
 import { usePermissions } from '../context/PermissionsProvider';
 import { getUserProfile } from '../../api/usersApi';
@@ -53,8 +53,8 @@ const ActiveGamesTab = () => {
         try {
             await joinPod(podId);
             alert('Joined pod successfully!');
-            const openPodsData = await getPods({ status: 'open' }); // Refresh open pods
-            setOpenPods(openPodsData);
+            const openPodsData = await getPods({ confirmation_status: 'open' }); // Refresh open pods
+            setOpenPods(openPodsData || []);
         } catch (err) {
             console.error('Error joining pod:', err.response?.data?.error || err.message);
             alert(err.response?.data?.error || 'Failed to join pod.');
@@ -70,8 +70,12 @@ const ActiveGamesTab = () => {
             }
 
             const leagueId = response.league.league_id;
-            const newPod = await createPod({ leagueId });
-            setOpenPods((prev) => [...prev, newPod]);
+            await createPod({ leagueId });
+
+            // Refresh open pods to get full pod data with participants
+            const openPodsData = await getPods({ confirmation_status: 'open' });
+            setOpenPods(openPodsData || []);
+
             alert(`New pod created successfully in league: ${response.league.league_name}!`);
         } catch (err) {
             console.error('Error creating pod:', err.response?.data?.error || err.message);
@@ -81,28 +85,28 @@ const ActiveGamesTab = () => {
 
     const handleOverridePod = async (podId) => {
         try {
-            const response = await fetch(`/api/pods/${podId}/override`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${localStorage.getItem('token')}`,
-                },
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to override pod.');
-            }
-
+            await overridePod(podId);
             alert('Pod successfully overridden to active!');
             const [openPodsData, activePodsData] = await Promise.all([
-                getPods({ status: 'open' }), // Refresh open pods
-                getPods({ status: 'active' }), // Refresh active pods
+                getPods({ confirmation_status: 'open' }),
+                getPods({ confirmation_status: 'active' }),
             ]);
             setOpenPods(openPodsData || []);
             setActivePods(activePodsData || []);
         } catch (err) {
-            console.error('Error overriding pod:', err.message);
-            alert(err.message || 'Failed to override pod.');
+            console.error('Error overriding pod:', err.response?.data?.error || err.message);
+            alert(err.response?.data?.error || 'Failed to override pod.');
+        }
+    };
+    const handleDeclareWinner = async (podId) => {
+        try {
+            await logPodResult(podId, { result: 'win' });
+            alert('Winner declared! Waiting for other players to confirm.');
+            const activePodsData = await getPods({ confirmation_status: 'active' });
+            setActivePods(activePodsData || []);
+        } catch (err) {
+            console.error('Error declaring winner:', err.response?.data?.error || err.message);
+            alert(err.response?.data?.error || 'Failed to declare winner.');
         }
     };
 
@@ -155,7 +159,7 @@ const ActiveGamesTab = () => {
                                                 </tbody>
                                             </table>
                                         </div>
-                                        {canUpdatePods && pod.participants.length >= 3 && (
+                                        {canUpdatePods && pod.participants?.length >= 3 && (
                                             <button
                                                 className="btn btn-warning mt-3"
                                                 onClick={() => handleOverridePod(pod.id)}
@@ -220,6 +224,15 @@ const ActiveGamesTab = () => {
                                                 </tbody>
                                             </table>
                                         </div>
+                                        {/* Declare Winner Button */}
+                                        {canUpdatePods && pod.participants.some((p) => p.player_id === userId) && (
+                                            <button
+                                                className="btn btn-success mt-3"
+                                                onClick={() => handleDeclareWinner(pod.id)}
+                                            >
+                                                I Won!
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             </div>

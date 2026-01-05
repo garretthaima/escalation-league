@@ -1,15 +1,15 @@
-const { db } = require('./testDb');
+const db = require('./testDb');
 
 async function createTestPod(leagueId, creatorId, overrides = {}) {
     const [podId] = await db('game_pods').insert({
         league_id: leagueId,
         creator_id: creatorId,
         status: overrides.status || 'active',
-        confirmation_status: overrides.confirmationStatus || 'open',
+        confirmation_status: overrides.confirmation_status || 'open',
         result: overrides.result || null,
-        win_condition_id: overrides.winConditionId || null,
-        deleted_at: overrides.deletedAt || null,
-        created_at: overrides.createdAt || db.fn.now(),
+        win_condition_id: overrides.win_condition_id || null,
+        deleted_at: overrides.deleted_at || null,
+        created_at: overrides.created_at || db.fn.now(),
         ...overrides
     });
 

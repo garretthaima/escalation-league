@@ -15,7 +15,6 @@ const generateToken = async (user, options = {}) => {
         const { customClaims = {}, expiresIn } = options;
 
         // Fetch the user's preferred expiration time
-        console.log('User object passed to generateToken:', user);
         const userExpiration = await getUserSetting(user.id, 'token_expiration');
 
         // Fetch the default and maximum allowed expiration times from settings
@@ -29,7 +28,6 @@ const generateToken = async (user, options = {}) => {
         // Build the token payload
         const payload = {
             id: user.id,
-            email: user.email,
             role_id: user.role_id,
             role_name: user.role_name,
             ...customClaims, // Include any additional claims dynamically
@@ -37,7 +35,6 @@ const generateToken = async (user, options = {}) => {
 
         // Sign and return the token
         const secretKey = await getSetting('secret_key');
-        console.log('Secret key fetched:', secretKey);
         return jwt.sign(payload, secretKey, { expiresIn: validatedExpiration });
     } catch (error) {
         console.error('Error generating token:', error.message);

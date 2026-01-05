@@ -1,0 +1,25 @@
+services:
+  xtrabackup-prod:
+    image: percona/percona-xtrabackup:8.4
+    user: "0:0"
+    volumes:
+      - escalation-league_db_prod_data:/var/lib/mysql
+      - /var/backups/mysql/prod:/backup
+    env_file:
+      - ../../.env.prod
+    entrypoint: [ "tail", "-f", "/dev/null" ]
+
+  xtrabackup-dev:
+    image: percona/percona-xtrabackup:8.4
+    user: "0:0"
+    volumes:
+      - compose_db_dev_data:/var/lib/mysql
+      - /var/backups/mysql/dev:/backup
+    env_file:
+      - ../../.env.dev
+    entrypoint: [ "tail", "-f", "/dev/null" ]
+volumes:
+  escalation-league_db_prod_data:
+    external: true
+  compose_db_dev_data:
+    external: true

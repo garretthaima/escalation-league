@@ -23,7 +23,6 @@ const registerUser = async (req, res) => {
         });
 
         // Send a success response
-        console.log('Response sent:', { success: true, userId });
         res.status(201).json({ success: true, userId });
     } catch (err) {
         console.error('Error registering user:', err.message);
@@ -47,7 +46,6 @@ const loginUser = async (req, res) => {
     }
 
     try {
-        console.log('Email being queried:', email);
 
         const user = await db('users')
             .leftJoin('roles', 'users.role_id', 'roles.id') // Use LEFT JOIN to include users with NULL role_id
@@ -57,10 +55,9 @@ const loginUser = async (req, res) => {
             .andWhere('users.is_active', 1) // Exclude inactive users
             .first();
 
-        console.log('Query result:', user);
 
         if (!user) {
-            console.error('User not found for email:', email);
+            console.error('User not found for supplied credentials');
             return res.status(401).json({ error: 'Invalid email or password' });
         }
 
@@ -70,14 +67,12 @@ const loginUser = async (req, res) => {
         }
 
         const isMatch = await bcrypt.compare(password, user.password);
-        console.log('Password match:', isMatch);
 
         if (!isMatch) {
             return res.status(401).json({ error: 'Invalid email or password' });
         }
 
         const token = await generateToken(user);
-        console.log('Generated token:', token);
 
         res.status(200).json({ token });
     } catch (err) {
@@ -98,8 +93,6 @@ const googleAuth = async (req, res) => {
 
         // Fetch the Google Client ID dynamically
         const CLIENT_ID = await getSetting('google_client_id');
-        console.log('Google client ID:', CLIENT_ID);
-        console.log('Received Google token:', token);
 
         const client = new OAuth2Client(CLIENT_ID);
 

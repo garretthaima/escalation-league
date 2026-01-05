@@ -263,3 +263,49 @@ expect(res.body.is_deleted).toBe(0); // Not false
 - [ ] Add game pod tests
 - [ ] Add deck management tests
 - [ ] Add user profile tests
+---
+
+## Game Pod Workflow & Rules
+
+### Pod Player Requirements
+- **Minimum Players:** 3 unique users
+- **Maximum Players:** 4 unique users
+- **Creator Limitation:** Creator is automatically added as a player when creating the pod
+
+### Pod Status Flow
+```
+open → active → pending → complete
+```
+
+#### Open Status
+- Pod has 1-3 players
+- **With 3 players:** Requires manual override button in frontend to move to active
+- **With 4th player join:** Automatically moves to active
+- Players can join/leave freely
+
+#### Active Status
+- Game is in progress
+- No new players can join
+- Winner must declare their result
+
+#### Pending Status
+- Winner has declared their result
+- Other players must confirm the results
+- Each player confirms individually
+- Pod moves to complete when all players have confirmed
+
+#### Complete Status
+- All players have confirmed results
+- Game is finalized
+- Stats are updated in `users` and `user_leagues` tables
+
+### Frontend Override
+- Frontend has override button to force 3-player pods from open → active
+- This bypasses the "wait for 4th player" rule when needed
+
+### Backend Logic
+- Pod creation: Creates pod in 'open' status
+- Join pod: Adds player, auto-activates if 4 players
+- Log result: Winner declares, moves to 'pending'
+- Confirm result: Players confirm, moves to 'complete' when all done
+

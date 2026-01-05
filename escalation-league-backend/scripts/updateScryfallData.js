@@ -5,6 +5,7 @@ const { exec } = require('child_process');
 
 const BULK_DATA_URL = 'https://api.scryfall.com/bulk-data';
 const JSON_FILE_PATH = path.join(__dirname, 'default-cards.json'); // Temporary file path for the JSON
+const IMPORT_SCRIPT_PATH = path.join(__dirname, 'importOracleCards.js');
 
 const fetchBulkData = async () => {
     try {
@@ -46,7 +47,7 @@ const runImportScript = async () => {
     try {
         console.log('Running the import script...');
         await new Promise((resolve, reject) => {
-            exec(`node importOracleCards.js ${JSON_FILE_PATH}`, (error, stdout, stderr) => {
+            exec(`node ${IMPORT_SCRIPT_PATH} ${JSON_FILE_PATH}`, (error, stdout, stderr) => {
                 if (error) {
                     console.error('Error running import script:', stderr);
                     reject(error);

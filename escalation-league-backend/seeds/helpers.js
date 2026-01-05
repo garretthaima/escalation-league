@@ -12,3 +12,6 @@ module.exports = {
     getUserIds,
     getLeagueId,
 };
+
+// No-op seed to satisfy Knex's seed file validation when scanning this directory.
+module.exports.seed = async function(knex) { return; };

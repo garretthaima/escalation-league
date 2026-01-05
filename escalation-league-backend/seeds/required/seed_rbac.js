@@ -1,4 +1,8 @@
 exports.seed = async function (knex) {
+  // Reset RBAC tables for idempotent seeding in dev/test
+  await knex('role_permissions').del();
+  await knex('role_hierarchy').del();
+
   // Insert roles
   const roles = [
     { id: 1, name: 'super_admin', description: 'Full access to all features' },
@@ -8,7 +12,7 @@ exports.seed = async function (knex) {
     { id: 5, name: 'user', description: 'Regular user with limited access' },
     { id: 6, name: 'league_user', description: 'User with access to specific leagues' },
   ];
-  await knex('roles').insert(roles);
+  await knex('roles').insert(roles).onConflict('id').ignore();
 
   // Define role hierarchy
   const roleHierarchy = [
@@ -85,7 +89,7 @@ exports.seed = async function (knex) {
 
 
   ];
-  await knex('permissions').insert(permissions);
+  await knex('permissions').insert(permissions).onConflict('id').ignore();
 
   // Insert role_permissions
   const rolePermissions = [
@@ -102,10 +106,12 @@ exports.seed = async function (knex) {
     { role_id: 5, permission_id: 37 }, // role_request_submit
 
     // League User permissions
+
     { role_id: 6, permission_id: 35 }, // league_signup
     { role_id: 6, permission_id: 36 }, // league_leave
+    { role_id: 6, permission_id: 16 }, // league_view_details
 
-    // Admin permissions
+// Admin permissions
     { role_id: 4, permission_id: 38 }, // role_request_view
     { role_id: 4, permission_id: 39 }, // role_request_review
     { role_id: 1, permission_id: 40 }, // super_admin

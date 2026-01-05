@@ -20,27 +20,6 @@ services:
       interval: 10s
       start_period: 40s
 
-  card-db:
-    image: mysql:8
-    container_name: escalation-league-card-db
-    command: --mysql-native-password=ON
-    environment:
-      MYSQL_ROOT_PASSWORD: ${CARD_DB_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${CARD_DB_NAME}
-      MYSQL_USER: ${CARD_DB_USER}
-      MYSQL_PASSWORD: ${CARD_DB_PASSWORD}
-    ports:
-      - "3307:3306"
-    volumes:
-      - compose_card_db_data:/var/lib/mysql
-    restart: unless-stopped
-    healthcheck:
-      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${CARD_DB_ROOT_PASSWORD}" ]
-      timeout: 20s
-      retries: 10
-      interval: 10s
-      start_period: 40s
-
   backend-prod:
     build:
       context: ../../escalation-league-backend
@@ -56,7 +35,7 @@ services:
       DB_NAME: ${DB_NAME}
       # Card Database
       CARD_DB_HOST: card-db
-      CARD_DB_PORT: 3306
+      CARD_DB_PORT: ${CARD_DB_PORT}
       CARD_DB_USER: ${CARD_DB_USER}
       CARD_DB_PASSWORD: ${CARD_DB_PASSWORD}
       CARD_DB_NAME: ${CARD_DB_NAME}
@@ -77,8 +56,6 @@ services:
       SCRYFALL_USER_AGENT: ${SCRYFALL_USER_AGENT}
     depends_on:
       db-prod:
-        condition: service_healthy
-      card-db:
         condition: service_healthy
       redis-prod:
         condition: service_started
@@ -113,8 +90,6 @@ services:
 
 volumes:
   compose_db_prod_data:
-    external: true
-  compose_card_db_data:
     external: true
   compose_redis-data:
     external: true

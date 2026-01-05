@@ -53,10 +53,7 @@ const EditPodModal = ({ pod, onClose, onSave, onDelete }) => {
         if (!window.confirm('Are you sure you want to delete this pod?')) return;
 
         try {
-            // Reverse stats for all participants
-            await updateStats(participants, pod.league_id, true);
-
-            // Delete the pod
+            // Backend will handle reversing stats if pod was complete
             await deletePod(pod.id);
 
             // Refresh the pods list
@@ -73,21 +70,17 @@ const EditPodModal = ({ pod, onClose, onSave, onDelete }) => {
         const updates = {
             participants: participants.map((participant) => ({
                 player_id: participant.player_id,
-                result: isDraw ? 'draw' : participant.player_id === winnerId ? 'win' : 'loss',
+                result: isDraw ? 'draw' : participant.player_id == winnerId ? 'win' : 'loss', // Use == for loose comparison
                 confirmed: 1, // Mark all participants as confirmed
             })),
             result: isDraw ? 'draw' : 'win',
             confirmation_status: 'complete', // Mark the pod as complete
         };
 
+        console.log('Saving pod with updates:', { winnerId, isDraw, participants: updates.participants });
+
         try {
-            // Reverse previous stats
-            await updateStats(participants, pod.league_id, true);
-
-            // Apply new stats
-            await updateStats(updates.participants, pod.league_id);
-
-            // Update the pod with the new result
+            // Backend will handle reversing old stats and applying new stats
             await updatePod(pod.id, updates);
 
             // Refresh the pods list
@@ -153,9 +146,6 @@ const EditPodModal = ({ pod, onClose, onSave, onDelete }) => {
                                 className="btn btn-warning mb-3"
                                 onClick={async () => {
                                     try {
-                                        // Reverse previous stats
-                                        await updateStats(participants, pod.league_id, true);
-
                                         // Update participants' results and confirmed status
                                         const updatedParticipants = participants.map((participant) => ({
                                             player_id: participant.player_id,
@@ -163,10 +153,8 @@ const EditPodModal = ({ pod, onClose, onSave, onDelete }) => {
                                             confirmed: 1, // Ensure all participants are confirmed
                                         }));
 
-                                        // Apply new stats
-                                        await updateStats(updatedParticipants, pod.league_id);
-
                                         // Update the pod's confirmation_status to "complete"
+                                        // Backend will handle stats updates
                                         const updates = {
                                             participants: updatedParticipants,
                                             confirmation_status: 'complete', // Mark the pod as complete

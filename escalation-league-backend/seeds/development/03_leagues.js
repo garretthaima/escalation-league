@@ -1,10 +1,9 @@
 /**
- * @param { import("knex").Knex } knex
- * @returns { Promise<void> } 
+ * Seed development leagues
  */
 exports.seed = async function (knex) {
-  await knex('leagues').del();
-
+  console.log('�� Seeding leagues...');
+  
   await knex('leagues').insert({
     name: 'Test League',
     start_date: '2025-04-01',
@@ -13,9 +12,9 @@ exports.seed = async function (knex) {
     weekly_budget: 100.0,
     is_active: 1,
     league_code: 'TEST123',
-    description: 'A test league for development purposes.',
+    description: 'A test league for development',
     max_players: 10,
   });
-
-  console.log('Leagues seeded successfully!');
+  
+  console.log('✓ League seeded');
 };

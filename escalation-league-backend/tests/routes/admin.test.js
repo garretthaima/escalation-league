@@ -1,8 +1,6 @@
 const request = require('supertest');
 const { getAuthToken, getAuthTokenWithRole } = require('../helpers/authHelper');
 const { createTestUser } = require('../helpers/dbHelper');
-const { createTestLeague } = require('../helpers/leaguesHelper');
-const { assignRoleToUser } = require('../helpers/rbacHelper');
 
 jest.mock('../../models/db', () => require('../helpers/testDb'));
 jest.mock('../../utils/settingsUtils', () => ({
@@ -16,8 +14,8 @@ jest.mock('../../utils/settingsUtils', () => ({
 
 const app = require('../../server');
 
-describe.skip('Admin Routes', () => {
-    describe('GET /api/admin/users', () => {
+describe('Admin Routes', () => {
+    describe('GET /api/admin/user/all', () => {
         it('should return all users for super_admin', async () => {
             await createTestUser({ firstname: 'User1' });
             await createTestUser({ firstname: 'User2' });
@@ -26,7 +24,7 @@ describe.skip('Admin Routes', () => {
             const { token } = await getAuthTokenWithRole('super_admin');
 
             const res = await request(app)
-                .get('/api/admin/users')
+                .get('/api/admin/user/all')
                 .set('Authorization', `Bearer ${token}`);
 
             expect(res.status).toBe(200);
@@ -38,277 +36,285 @@ describe.skip('Admin Routes', () => {
             const { token } = await getAuthToken();
 
             const res = await request(app)
-                .get('/api/admin/users')
+                .get('/api/admin/user/all')
                 .set('Authorization', `Bearer ${token}`);
 
             expect(res.status).toBe(403);
         });
 
-        it('should support pagination', async () => {
+        // TODO: Test pagination support
+        // TODO: Test search/filter capabilities
+    });
+
+    describe('GET /api/admin/user/:id', () => {
+        it('should return user details', async () => {
+            const userId = await createTestUser({ firstname: 'TestUser' });
             const { token } = await getAuthTokenWithRole('super_admin');
 
             const res = await request(app)
-                .get('/api/admin/users')
-                .query({ page: 1, limit: 10 })
+                .get(`/api/admin/user/${userId}`)
                 .set('Authorization', `Bearer ${token}`);
 
             expect(res.status).toBe(200);
-            expect(res.body).toHaveProperty('users');
-            expect(res.body).toHaveProperty('total');
-            expect(res.body).toHaveProperty('page');
+            expect(res.body).toHaveProperty('id', userId);
+            expect(res.body).toHaveProperty('firstname', 'TestUser');
         });
 
-        // TODO: Test search by email
-        // TODO: Test filter by role
-        // TODO: Test filter by active/banned status
-        // TODO: Test sorting options
-    });
+        it('should reject non-admin access', async () => {
+            const userId = await createTestUser();
+            const { token } = await getAuthToken();
 
-    describe('PUT /api/admin/users/:id/role', () => {
-        it('should update user role', async () => {
-            const targetUser = await createTestUser();
+            const res = await request(app)
+                .get(`/api/admin/user/${userId}`)
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.status).toBe(403);
+        });
+
+        it('should return 404 for non-existent user', async () => {
             const { token } = await getAuthTokenWithRole('super_admin');
 
             const res = await request(app)
-                .put(`/api/admin/users/${targetUser}/role`)
-                .set('Authorization', `Bearer ${token}`)
-                .send({ role_id: 2 });
+                .get('/api/admin/user/99999')
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.status).toBe(404);
+        });
+    });
+
+    describe('PUT /api/admin/user/ban/:id', () => {
+        it('should ban a user', async () => {
+            const userId = await createTestUser();
+            const { token } = await getAuthTokenWithRole('super_admin');
+
+            const res = await request(app)
+                .put(`/api/admin/user/ban/${userId}`)
+                .set('Authorization', `Bearer ${token}`);
 
             expect(res.status).toBe(200);
             expect(res.body).toHaveProperty('message');
         });
 
         it('should reject non-admin access', async () => {
-            const targetUser = await createTestUser();
+            const userId = await createTestUser();
             const { token } = await getAuthToken();
 
             const res = await request(app)
-                .put(`/api/admin/users/${targetUser}/role`)
-                .set('Authorization', `Bearer ${token}`)
-                .send({ role_id: 2 });
+                .put(`/api/admin/user/ban/${userId}`)
+                .set('Authorization', `Bearer ${token}`);
 
             expect(res.status).toBe(403);
-        });
-
-        it('should reject invalid role_id', async () => {
-            const targetUser = await createTestUser();
-            const { token } = await getAuthTokenWithRole('super_admin');
-
-            const res = await request(app)
-                .put(`/api/admin/users/${targetUser}/role`)
-                .set('Authorization', `Bearer ${token}`)
-                .send({ role_id: 99999 });
-
-            expect(res.status).toBe(400);
-        });
-
-        // TODO: Test cannot demote last super_admin
-        // TODO: Test activity log created
-    });
-
-    describe('POST /api/admin/users/:id/ban', () => {
-        it('should ban user', async () => {
-            const targetUser = await createTestUser();
-            const { token } = await getAuthTokenWithRole('super_admin');
-
-            const res = await request(app)
-                .post(`/api/admin/users/${targetUser}/ban`)
-                .set('Authorization', `Bearer ${token}`)
-                .send({
-                    reason: 'Violating community guidelines',
-                    duration: 30 // days
-                });
-
-            expect(res.status).toBe(200);
-            expect(res.body).toHaveProperty('message');
-        });
-
-        it('should reject non-admin access', async () => {
-            const targetUser = await createTestUser();
-            const { token } = await getAuthToken();
-
-            const res = await request(app)
-                .post(`/api/admin/users/${targetUser}/ban`)
-                .set('Authorization', `Bearer ${token}`)
-                .send({ reason: 'Test' });
-
-            expect(res.status).toBe(403);
-        });
-
-        it('should not allow banning super_admin', async () => {
-            const targetUser = await createTestUser();
-            await assignRoleToUser(targetUser, 'super_admin');
-
-            const { token } = await getAuthTokenWithRole('super_admin');
-
-            const res = await request(app)
-                .post(`/api/admin/users/${targetUser}/ban`)
-                .set('Authorization', `Bearer ${token}`)
-                .send({ reason: 'Test' });
-
-            expect(res.status).toBe(400);
         });
 
         // TODO: Test banned user cannot login
-        // TODO: Test activity log created
     });
 
-    describe('POST /api/admin/users/:id/unban', () => {
-        it('should unban user', async () => {
-            const targetUser = await createTestUser({ is_banned: 1 });
+    describe('PUT /api/admin/user/unban/:id', () => {
+        it('should unban a user', async () => {
+            const userId = await createTestUser({ is_banned: 1 });
             const { token } = await getAuthTokenWithRole('super_admin');
 
             const res = await request(app)
-                .post(`/api/admin/users/${targetUser}/unban`)
+                .put(`/api/admin/user/unban/${userId}`)
                 .set('Authorization', `Bearer ${token}`);
 
             expect(res.status).toBe(200);
             expect(res.body).toHaveProperty('message');
         });
 
-        // TODO: Test user can login after unban
+        it('should reject non-admin access', async () => {
+            const userId = await createTestUser({ is_banned: 1 });
+            const { token } = await getAuthToken();
+
+            const res = await request(app)
+                .put(`/api/admin/user/unban/${userId}`)
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.status).toBe(403);
+        });
     });
 
-    describe('DELETE /api/admin/users/:id', () => {
-        it('should soft delete user', async () => {
-            const targetUser = await createTestUser();
+    describe('PUT /api/admin/user/deactivate/:id', () => {
+        it('should deactivate a user', async () => {
+            const userId = await createTestUser({ is_active: 1 });
             const { token } = await getAuthTokenWithRole('super_admin');
 
             const res = await request(app)
-                .delete(`/api/admin/users/${targetUser}`)
+                .put(`/api/admin/user/deactivate/${userId}`)
                 .set('Authorization', `Bearer ${token}`);
 
             expect(res.status).toBe(200);
             expect(res.body).toHaveProperty('message');
         });
 
-        it('should not allow deleting yourself', async () => {
-            const { token, userId } = await getAuthTokenWithRole('super_admin');
+        it('should reject non-admin access', async () => {
+            const userId = await createTestUser();
+            const { token } = await getAuthToken();
 
             const res = await request(app)
-                .delete(`/api/admin/users/${userId}`)
+                .put(`/api/admin/user/deactivate/${userId}`)
                 .set('Authorization', `Bearer ${token}`);
 
-            expect(res.status).toBe(400);
+            expect(res.status).toBe(403);
         });
 
-        it('should not allow deleting last super_admin', async () => {
-            const targetUser = await createTestUser();
-            await assignRoleToUser(targetUser, 'super_admin');
-
-            const { token } = await getAuthTokenWithRole('super_admin');
-
-            const res = await request(app)
-                .delete(`/api/admin/users/${targetUser}`)
-                .set('Authorization', `Bearer ${token}`);
-
-            expect(res.status).toBe(400);
-        });
-
-        // TODO: Test cascade behavior
-        // TODO: Test activity log created
+        // TODO: Test deactivated user cannot login
     });
 
-    describe('GET /api/admin/activity-logs', () => {
-        it('should return activity logs', async () => {
+    describe('PUT /api/admin/user/activate/:id', () => {
+        it('should activate a user', async () => {
+            const userId = await createTestUser({ is_active: 0 });
             const { token } = await getAuthTokenWithRole('super_admin');
 
             const res = await request(app)
-                .get('/api/admin/activity-logs')
+                .put(`/api/admin/user/activate/${userId}`)
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.status).toBe(200);
+            expect(res.body).toHaveProperty('message');
+        });
+
+        it('should reject non-admin access', async () => {
+            const userId = await createTestUser({ is_active: 0 });
+            const { token } = await getAuthToken();
+
+            const res = await request(app)
+                .put(`/api/admin/user/activate/${userId}`)
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.status).toBe(403);
+        });
+    });
+
+    describe('PUT /api/admin/user/reset-password/:id', () => {
+        it('should reset user password', async () => {
+            const userId = await createTestUser();
+            const { token } = await getAuthTokenWithRole('super_admin');
+
+            const res = await request(app)
+                .put(`/api/admin/user/reset-password/${userId}`)
+                .set('Authorization', `Bearer ${token}`)
+                .send({ newPassword: 'NewSecurePass123!' });
+
+            expect(res.status).toBe(200);
+            expect(res.body).toHaveProperty('message');
+        });
+
+        it('should reject non-admin access', async () => {
+            const userId = await createTestUser();
+            const { token } = await getAuthToken();
+
+            const res = await request(app)
+                .put(`/api/admin/user/reset-password/${userId}`)
+                .set('Authorization', `Bearer ${token}`)
+                .send({ newPassword: 'NewSecurePass123!' });
+
+            expect(res.status).toBe(403);
+        });
+
+        // TODO: Test password complexity requirements
+        // TODO: Test user can login with new password
+    });
+
+    describe('GET /api/admin/role-requests', () => {
+        it('should return pending role requests', async () => {
+            const { token } = await getAuthTokenWithRole('super_admin');
+
+            const res = await request(app)
+                .get('/api/admin/role-requests')
                 .set('Authorization', `Bearer ${token}`);
 
             expect(res.status).toBe(200);
             expect(Array.isArray(res.body)).toBe(true);
         });
 
-        it('should filter by user_id', async () => {
-            const targetUser = await createTestUser();
+        it('should reject non-admin access', async () => {
+            const { token } = await getAuthToken();
+
+            const res = await request(app)
+                .get('/api/admin/role-requests')
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.status).toBe(403);
+        });
+
+        // TODO: Test includes user details
+        // TODO: Test filtering by status
+    });
+
+    describe('POST /api/admin/role-requests/review', () => {
+        it('should approve role request', async () => {
             const { token } = await getAuthTokenWithRole('super_admin');
 
             const res = await request(app)
-                .get('/api/admin/activity-logs')
-                .query({ user_id: targetUser })
-                .set('Authorization', `Bearer ${token}`);
+                .post('/api/admin/role-requests/review')
+                .set('Authorization', `Bearer ${token}`)
+                .send({
+                    requestId: 1,
+                    action: 'approve',
+                    newRoleId: 2
+                });
 
-            expect(res.status).toBe(200);
-            expect(Array.isArray(res.body)).toBe(true);
+            // May be 200 or 404 depending on if request exists
+            expect([200, 404]).toContain(res.status);
         });
 
-        it('should filter by action type', async () => {
+        it('should reject role request', async () => {
             const { token } = await getAuthTokenWithRole('super_admin');
 
             const res = await request(app)
-                .get('/api/admin/activity-logs')
-                .query({ action: 'user_banned' })
+                .post('/api/admin/role-requests/review')
+                .set('Authorization', `Bearer ${token}`)
+                .send({
+                    requestId: 1,
+                    action: 'reject'
+                });
+
+            // May be 200 or 404 depending on if request exists
+            expect([200, 404]).toContain(res.status);
+        });
+
+        it('should reject non-admin access', async () => {
+            const { token } = await getAuthToken();
+
+            const res = await request(app)
+                .post('/api/admin/role-requests/review')
+                .set('Authorization', `Bearer ${token}`)
+                .send({
+                    requestId: 1,
+                    action: 'approve'
+                });
+
+            expect(res.status).toBe(403);
+        });
+
+        // TODO: Test validates action (approve/reject)
+        // TODO: Test user receives updated role
+    });
+
+    describe('GET /api/admin/reports/leagues', () => {
+        it('should return league report', async () => {
+            const { token } = await getAuthTokenWithRole('super_admin');
+
+            const res = await request(app)
+                .get('/api/admin/reports/leagues')
                 .set('Authorization', `Bearer ${token}`);
 
             expect(res.status).toBe(200);
+            expect(Array.isArray(res.body) || typeof res.body === 'object').toBe(true);
         });
 
+        it('should reject non-admin access', async () => {
+            const { token } = await getAuthToken();
+
+            const res = await request(app)
+                .get('/api/admin/reports/leagues')
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.status).toBe(403);
+        });
+
+        // TODO: Test report includes league stats
         // TODO: Test date range filtering
-        // TODO: Test pagination
-        // TODO: Test sorting by timestamp
-    });
-
-    describe('GET /api/admin/stats', () => {
-        it('should return system statistics', async () => {
-            const { token } = await getAuthTokenWithRole('super_admin');
-
-            const res = await request(app)
-                .get('/api/admin/stats')
-                .set('Authorization', `Bearer ${token}`);
-
-            expect(res.status).toBe(200);
-            expect(res.body).toHaveProperty('totalUsers');
-            expect(res.body).toHaveProperty('activeLeagues');
-            expect(res.body).toHaveProperty('totalGames');
-        });
-
-        it('should reject non-admin access', async () => {
-            const { token } = await getAuthToken();
-
-            const res = await request(app)
-                .get('/api/admin/stats')
-                .set('Authorization', `Bearer ${token}`);
-
-            expect(res.status).toBe(403);
-        });
-
-        // TODO: Test includes user growth metrics
-        // TODO: Test includes game activity metrics
-    });
-
-    describe('POST /api/admin/settings', () => {
-        it('should update system setting', async () => {
-            const { token } = await getAuthTokenWithRole('super_admin');
-
-            const res = await request(app)
-                .post('/api/admin/settings')
-                .set('Authorization', `Bearer ${token}`)
-                .send({
-                    key: 'maintenance_mode',
-                    value: 'true'
-                });
-
-            expect(res.status).toBe(200);
-            expect(res.body).toHaveProperty('message');
-        });
-
-        it('should reject non-admin access', async () => {
-            const { token } = await getAuthToken();
-
-            const res = await request(app)
-                .post('/api/admin/settings')
-                .set('Authorization', `Bearer ${token}`)
-                .send({
-                    key: 'test_setting',
-                    value: 'test'
-                });
-
-            expect(res.status).toBe(403);
-        });
-
-        // TODO: Test validates setting keys
-        // TODO: Test activity log created
     });
 });
