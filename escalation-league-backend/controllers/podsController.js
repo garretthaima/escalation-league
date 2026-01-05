@@ -11,7 +11,6 @@ const createPod = async (req, res) => {
         const [podId] = await db('game_pods').insert({
             league_id: leagueId,
             creator_id: creatorId,
-            status: 'active',
         });
 
         // Add the creator as a participant in the pod
@@ -168,17 +167,13 @@ const logPodResult = async (req, res) => {
 
 
 const getPods = async (req, res) => {
-    const { podId, status, confirmation_status, league_id } = req.query; // Optional filters
+    const { podId, confirmation_status, league_id } = req.query; // Optional filters
 
     try {
         const query = db('game_pods').where({ deleted_at: null });
 
         if (podId) {
             query.andWhere({ id: podId });
-        }
-
-        if (status) {
-            query.andWhere({ status });
         }
 
         if (confirmation_status) {

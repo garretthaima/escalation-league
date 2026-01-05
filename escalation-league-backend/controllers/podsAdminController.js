@@ -184,11 +184,11 @@ const deletePod = async (req, res) => {
         // Get current pod state and participants for stats reversal
         const currentPod = await db('game_pods').where({ id: podId }).first();
         const currentParticipants = await db('game_players').where({ pod_id: podId });
-        
+
         // If pod was complete, reverse stats before deleting
         if (currentPod && currentPod.confirmation_status === 'complete' && currentPod.league_id) {
             console.log('Reversing stats for pod deletion:', { podId, participants: currentParticipants.length });
-            
+
             for (const p of currentParticipants) {
                 const wins = p.result === 'win' ? -1 : 0;
                 const losses = p.result === 'loss' ? -1 : 0;
