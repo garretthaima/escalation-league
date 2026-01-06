@@ -1,31 +1,46 @@
 import React, { useEffect, useState } from 'react';
+import { getUserProfile } from '../../api/usersApi';
 
 const Dashboard = () => {
     const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
-        const token = localStorage.getItem('token');
+        const fetchProfile = async () => {
+            try {
+                const data = await getUserProfile();
+                setUser(data.user);
+            } catch (err) {
+                console.error('Error fetching user info:', err);
+                setError('Failed to load user information.');
+            } finally {
+                setLoading(false);
+            }
+        };
 
-        // Fetch user details from the backend using the token
-        fetch('http://localhost:3000/user-info', {
-            method: 'GET',
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
-        })
-            .then((res) => res.json())
-            .then((data) => setUser(data.user))
-            .catch((err) => console.error('Error fetching user info:', err));
+        fetchProfile();
     }, []);
 
+    if (loading) {
+        return <div className="text-center mt-4">Loading...</div>;
+    }
+
+    if (error) {
+        return <div className="alert alert-danger text-center mt-4">{error}</div>;
+    }
+
     if (!user) {
-        return <p>Loading...</p>;
+        return <div className="alert alert-warning text-center mt-4">No user data available.</div>;
     }
 
     return (
         <div className="container mt-4">
-            <h2>Welcome, {user.name}!</h2>
-            <p>You are logged in.</p>
+            <h2 className="mb-4">Welcome, {user.firstname} {user.lastname}!</h2>
+            <div className="alert alert-success">
+                <i className="fas fa-check-circle me-2"></i>
+                You are successfully logged in.
+            </div>
         </div>
     );
 };

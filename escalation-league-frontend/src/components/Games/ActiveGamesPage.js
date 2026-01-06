@@ -3,6 +3,7 @@ import { getPods, joinPod, createPod, overridePod, logPodResult } from '../../ap
 import { isUserInLeague } from '../../api/userLeaguesApi';
 import { usePermissions } from '../context/PermissionsProvider';
 import { getUserProfile } from '../../api/usersApi';
+import { useToast } from '../context/ToastContext';
 
 const ActiveGamesTab = () => {
     const [openPods, setOpenPods] = useState([]);
@@ -12,6 +13,7 @@ const ActiveGamesTab = () => {
     const [loading, setLoading] = useState(true);
 
     const { permissions } = usePermissions();
+    const { showToast } = useToast();
 
     // Check permissions
     const canReadPods = permissions.some((perm) => perm.name === 'pod_read');
@@ -36,8 +38,13 @@ const ActiveGamesTab = () => {
                     getPods({ confirmation_status: 'active' }), // Active pods
                 ]);
 
+                // Only filter active pods - keep open pods visible to everyone so they can join
+                const userActivePods = activePodsData.filter(pod =>
+                    pod.participants?.some(p => p.player_id === userProfile.user.id)
+                );
+
                 setOpenPods(openPodsData || []);
-                setActivePods(activePodsData || []);
+                setActivePods(userActivePods || []);
             } catch (err) {
                 console.error('Error fetching pods:', err);
                 setError('Failed to fetch pods.');
@@ -52,12 +59,12 @@ const ActiveGamesTab = () => {
     const handleJoinPod = async (podId) => {
         try {
             await joinPod(podId);
-            alert('Joined pod successfully!');
+            showToast('Joined pod successfully!', 'success');
             const openPodsData = await getPods({ confirmation_status: 'open' }); // Refresh open pods
             setOpenPods(openPodsData || []);
         } catch (err) {
             console.error('Error joining pod:', err.response?.data?.error || err.message);
-            alert(err.response?.data?.error || 'Failed to join pod.');
+            showToast(err.response?.data?.error || 'Failed to join pod.', 'error');
         }
     };
 
@@ -65,7 +72,7 @@ const ActiveGamesTab = () => {
         try {
             const response = await isUserInLeague();
             if (!response.inLeague || !response.league) {
-                alert('You are not part of any league.');
+                showToast('You are not part of any league.', 'warning');
                 return;
             }
 
@@ -76,37 +83,43 @@ const ActiveGamesTab = () => {
             const openPodsData = await getPods({ confirmation_status: 'open' });
             setOpenPods(openPodsData || []);
 
-            alert(`New pod created successfully in league: ${response.league.league_name}!`);
+            showToast(`New pod created successfully in league: ${response.league.league_name}!`, 'success');
         } catch (err) {
             console.error('Error creating pod:', err.response?.data?.error || err.message);
-            alert(err.response?.data?.error || 'Failed to create pod.');
+            showToast(err.response?.data?.error || 'Failed to create pod.', 'error');
         }
     };
 
     const handleOverridePod = async (podId) => {
         try {
             await overridePod(podId);
-            alert('Pod successfully overridden to active!');
+            showToast('Pod successfully overridden to active!', 'success');
             const [openPodsData, activePodsData] = await Promise.all([
                 getPods({ confirmation_status: 'open' }),
                 getPods({ confirmation_status: 'active' }),
             ]);
+            const userActivePods = activePodsData.filter(pod =>
+                pod.participants?.some(p => p.player_id === userId)
+            );
             setOpenPods(openPodsData || []);
-            setActivePods(activePodsData || []);
+            setActivePods(userActivePods || []);
         } catch (err) {
             console.error('Error overriding pod:', err.response?.data?.error || err.message);
-            alert(err.response?.data?.error || 'Failed to override pod.');
+            showToast(err.response?.data?.error || 'Failed to override pod.', 'error');
         }
     };
     const handleDeclareWinner = async (podId) => {
         try {
             await logPodResult(podId, { result: 'win' });
-            alert('Winner declared! Waiting for other players to confirm.');
+            showToast('Winner declared! Waiting for other players to confirm.', 'success');
             const activePodsData = await getPods({ confirmation_status: 'active' });
-            setActivePods(activePodsData || []);
+            const userActivePods = activePodsData.filter(pod =>
+                pod.participants?.some(p => p.player_id === userId)
+            );
+            setActivePods(userActivePods || []);
         } catch (err) {
             console.error('Error declaring winner:', err.response?.data?.error || err.message);
-            alert(err.response?.data?.error || 'Failed to declare winner.');
+            showToast(err.response?.data?.error || 'Failed to declare winner.', 'error');
         }
     };
 

@@ -1,13 +1,58 @@
+const redis = require('../utils/redisClient');
 const scryfallDb = require('../models/scryfallDb');
 
 const calculateDeckPrices = async (deckData, updatedCards = [], removedCards = []) => {
     const cacheKey = `price-check:${deckData.id}`;
-    const cachedPriceCheck = await redis.get(cacheKey);
-    const cachedResults = cachedPriceCheck ? JSON.parse(cachedPriceCheck) : { totalPrice: 0, cardPrices: [] };
+    let cachedPriceCheck = await redis.get(cacheKey);
+    let cachedResults = cachedPriceCheck ? JSON.parse(cachedPriceCheck) : { totalPrice: 0, cardPrices: [] };
+
+    // If cached results exist and no changes, return cached results immediately
+    // BUT only if the cache is valid (has card prices AND matches deck size)
+    if (cachedPriceCheck && updatedCards.length === 0 && removedCards.length === 0) {
+        // Get the actual number of cards in the deck
+        const deckCardCount = typeof deckData.cards === 'object' && !Array.isArray(deckData.cards)
+            ? Object.keys(deckData.cards).length
+            : (Array.isArray(deckData.cards) ? deckData.cards.length : 0);
+
+        const cachedCardCount = cachedResults.cardPrices ? cachedResults.cardPrices.length : 0;
+
+        if (cachedResults.cardPrices && cachedResults.cardPrices.length > 0 && cachedCardCount === deckCardCount) {
+            console.log(`Returning cached price check results for deck: ${deckData.id} (${cachedCardCount} cards)`);
+            return cachedResults;
+        } else {
+            console.log(`Cached price check is invalid. Cache: ${cachedCardCount} cards, Deck: ${deckCardCount} cards. Recalculating...`);
+            cachedPriceCheck = null; // Invalidate cache so we recalculate below
+            cachedResults = { totalPrice: 0, cardPrices: [] };
+        }
+    }
+
+    // If no cached results and no updatedCards provided, calculate prices for all cards in the deck
+    let cardsToPrice = updatedCards;
+    if (!cachedPriceCheck && updatedCards.length === 0 && deckData.cards) {
+        console.log('No cached price check found. Calculating prices for all cards in deck.');
+        console.log('deckData.cards type:', typeof deckData.cards);
+        console.log('deckData.cards length:', Array.isArray(deckData.cards) ? deckData.cards.length : 'not an array');
+
+        // Parse cards if it's a JSON string
+        if (typeof deckData.cards === 'string') {
+            cardsToPrice = JSON.parse(deckData.cards);
+            console.log('Parsed cards from JSON string. Count:', cardsToPrice.length);
+        } else if (typeof deckData.cards === 'object' && !Array.isArray(deckData.cards)) {
+            // Convert object of cards to array
+            cardsToPrice = Object.entries(deckData.cards).map(([name, card]) => ({
+                name: name,
+                quantity: card.quantity || 1,
+                ...card
+            }));
+            console.log('Converted cards object to array. Count:', cardsToPrice.length);
+        } else {
+            cardsToPrice = deckData.cards;
+        }
+    }
 
     // Update prices for the changed cards
     const updatedCardPrices = await Promise.all(
-        updatedCards.map(async (card) => {
+        cardsToPrice.map(async (card) => {
             const priceRows = await scryfallDb('cards')
                 .select(
                     'id',
@@ -95,6 +140,8 @@ const calculateDeckPrices = async (deckData, updatedCards = [], removedCards = [
 
     // Recalculate the total price
     const totalPrice = finalCardPrices.reduce((sum, card) => sum + (card.price || 0), 0);
+
+    console.log(`Price check complete for deck ${deckData.id}. Total: $${totalPrice.toFixed(2)}, Cards: ${finalCardPrices.length}`);
 
     // Cache the updated price check results
     const updatedResults = { totalPrice, cardPrices: finalCardPrices };

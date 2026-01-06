@@ -1,4 +1,69 @@
 /* ===========================
+   Escalation League Brand Colors
+   Clean Grayscale Palette
+=========================== */
+:root {
+  /* Grayscale Palette */
+  --gray-100: #f8f9fa;
+  --gray-200: #e9ecef;
+  --gray-300: #dee2e6;
+  --gray-400: #ced4da;
+  --gray-500: #adb5bd;
+  --gray-600: #6c757d;
+  --gray-700: #495057;
+  --gray-800: #343a40;
+  --gray-900: #212529;
+
+  /* UI Colors - Light Mode */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --bg-tertiary: #e9ecef;
+  --text-primary: #212529;
+  --text-secondary: #6c757d;
+  --text-muted: #adb5bd;
+  --border-color: #dee2e6;
+  --shadow: rgba(0, 0, 0, 0.1);
+  --accent: #495057;
+  --accent-hover: #343a40;
+}
+
+body.dark-mode {
+  /* UI Colors - Dark Mode */
+  --bg-primary: #181818;
+  --bg-secondary: #212529;
+  --bg-tertiary: #343a40;
+  --text-primary: #f8f9fa;
+  --text-secondary: #adb5bd;
+  --text-muted: #6c757d;
+  --border-color: #495057;
+  --shadow: rgba(0, 0, 0, 0.5);
+  --accent: #adb5bd;
+  --accent-hover: #ced4da;
+}
+
+/* Dark mode - Bootstrap Tabs */
+body.dark-mode .nav-tabs {
+  border-bottom-color: #495057;
+}
+
+body.dark-mode .nav-tabs .nav-link {
+  color: #adb5bd;
+  background-color: transparent;
+  border-color: transparent;
+}
+
+body.dark-mode .nav-tabs .nav-link:hover {
+  color: #f8f9fa;
+  border-color: #495057;
+}
+
+body.dark-mode .nav-tabs .nav-link.active {
+  color: #f8f9fa;
+  background-color: #343a40;
+  border-color: #495057 #495057 #343a40;
+}
+
+/* ===========================
    Global Styles
 =========================== */
 html,
@@ -222,112 +287,140 @@ body.dark-mode table tr:hover {
 =========================== */
 body.dark-mode {
   background-color: #121212;
-  color: white;
+  color: #e0e0e0;
+}
+
+/* Dark Mode for Cards */
+body.dark-mode .card {
+  background-color: #1e1e1e;
+  border-color: #444;
+  color: #e0e0e0;
+}
+
+body.dark-mode .card-header,
+body.dark-mode .card-footer {
+  background-color: #2a2a2a;
+  border-color: #444;
+  color: #e0e0e0;
 }
 
 /* Dark Mode for Modals */
 body.dark-mode .modal-content {
   background-color: #2a2a2a;
-  /* Dark background for modals */
-  color: white;
-  /* White text for better contrast */
+  color: #e0e0e0;
   border: 1px solid #444;
-  /* Subtle border for dark mode */
 }
 
 body.dark-mode .modal-header {
   background-color: #333;
-  /* Darker background for modal headers */
-  color: white;
-  /* White text for headers */
+  color: #e0e0e0;
   border-bottom: 1px solid #444;
-  /* Subtle border for dark mode */
 }
 
 body.dark-mode .modal-footer {
   background-color: #333;
-  /* Darker background for modal footers */
   border-top: 1px solid #444;
-  /* Subtle border for dark mode */
 }
 
-/* Dark Mode for Tables in Modals */
+/* Dark Mode for Tables */
 body.dark-mode .table {
   background-color: #222;
-  /* Dark background for the table */
-  color: white;
-  /* White text for better contrast */
+  color: #e0e0e0;
   border-color: #444;
-  /* Subtle border color for dark mode */
 }
 
 body.dark-mode .table th {
   background-color: #333;
-  /* Darker background for table headers */
-  color: white;
-  /* White text for headers */
+  color: #e0e0e0;
+  border-color: #444;
 }
 
 body.dark-mode .table td {
   background-color: #222;
-  /* Dark background for table cells */
-  color: white;
-  /* White text for cells */
+  color: #e0e0e0;
+  border-color: #444;
 }
 
-body.dark-mode .table tr:nth-child(even) {
+body.dark-mode .table-striped tbody tr:nth-of-type(odd) {
   background-color: #2a2a2a;
-  /* Slightly lighter background for even rows */
 }
 
-body.dark-mode .table tr:hover {
-  background-color: #444;
-  /* Highlight row on hover */
+body.dark-mode .table-hover tbody tr:hover {
+  background-color: #333;
 }
 
 /* Dark Mode for Buttons */
 body.dark-mode .btn {
-  background-color: #444;
-  /* Dark background for buttons */
-  color: white;
-  /* White text for buttons */
-  border: 1px solid #555;
-  /* Subtle border for dark mode */
+  border-color: #555;
 }
 
-body.dark-mode .btn:hover {
+body.dark-mode .btn-secondary {
+  background-color: #444;
+  color: #e0e0e0;
+}
+
+body.dark-mode .btn-secondary:hover {
   background-color: #555;
-  /* Slightly lighter background on hover */
 }
 
 /* Dark Mode for List Groups */
 body.dark-mode .list-group-item {
-  background-color: #333;
-  /* Dark background for list items */
-  color: white;
-  /* White text for better contrast */
+  background-color: #1e1e1e;
+  color: #e0e0e0;
   border-color: #444;
-  /* Subtle border for dark mode */
 }
 
 body.dark-mode .list-group-item:hover {
-  background-color: #444;
-  /* Slightly lighter background on hover */
+  background-color: #2a2a2a;
 }
 
-/* Dark Mode for Dropdowns */
+/* Dark Mode for Forms */
+body.dark-mode .form-control,
 body.dark-mode .form-select {
-  background-color: #333;
-  /* Dark background for dropdown */
-  color: white;
-  /* White text for better contrast */
+  background-color: #2a2a2a;
+  color: #e0e0e0;
   border-color: #444;
-  /* Subtle border for dark mode */
+}
+
+body.dark-mode .form-control:focus,
+body.dark-mode .form-select:focus {
+  background-color: #2a2a2a;
+  color: #e0e0e0;
+  border-color: #555;
+  box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .form-control::placeholder {
+  color: #b0b0b0;
+  opacity: 0.7;
 }
 
 body.dark-mode .form-select option {
-  background-color: #333;
-  /* Dark background for dropdown options */
-  color: white;
-  /* White text for options */
+  background-color: #2a2a2a;
+  color: #e0e0e0;
+}
+
+/* Dark Mode for Alerts */
+body.dark-mode .alert-info {
+  background-color: #1a3a52;
+  border-color: #0c5460;
+  color: #d1ecf1;
+}
+
+body.dark-mode .alert-warning {
+  background-color: #533f03;
+  border-color: #856404;
+  color: #fff3cd;
+}
+
+body.dark-mode .alert-danger {
+  background-color: #5c1717;
+  border-color: #721c24;
+  color: #f8d7da;
+}
+
+body.dark-mode .alert-success {
+  background-color: #1e4620;
+  border-color: #155724;
+  color: #d4edda;
 }

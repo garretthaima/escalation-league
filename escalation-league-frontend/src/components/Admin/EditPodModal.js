@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { updatePod, removeParticipant, deletePod } from '../../api/podsAdminApi';
-import { getPods } from '../../api/podsApi'; // Use getPods instead of getPodDetails
-import { updateUserStats } from '../../api/usersApi';
-import { updateLeagueStats } from '../../api/userLeaguesApi';
-import { updateStats } from '../../utils/statsHelper'; // Assuming you have a function to update stats
+import { getPods } from '../../api/podsApi';
+import { useToast } from '../context/ToastContext';
+import ConfirmModal from '../Shared/ConfirmModal';
 
 const EditPodModal = ({ pod, onClose, onSave, onDelete }) => {
     const [participants, setParticipants] = useState([]);
     const [winnerId, setWinnerId] = useState('');
     const [isDraw, setIsDraw] = useState(false);
     const [currentWinner, setCurrentWinner] = useState(null); // State for the current winner
+    const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [participantToRemove, setParticipantToRemove] = useState(null);
+    const { showToast } = useToast();
 
     useEffect(() => {
         const fetchPodDetails = async () => {
@@ -39,22 +42,33 @@ const EditPodModal = ({ pod, onClose, onSave, onDelete }) => {
     console.log('Current winner:', currentWinner);
 
     const handleRemoveParticipant = async (participantId) => {
-        if (!window.confirm('Are you sure you want to remove this participant?')) return;
+        setParticipantToRemove(participantId);
+        setShowRemoveConfirm(true);
+    };
 
+    const confirmRemoveParticipant = async () => {
         try {
-            await removeParticipant(pod.id, participantId);
-            setParticipants(participants.filter((p) => p.player_id !== participantId)); // Use player_id
+            await removeParticipant(pod.id, participantToRemove);
+            setParticipants(participants.filter((p) => p.player_id !== participantToRemove));
+            showToast('Participant removed successfully', 'success');
         } catch (err) {
             console.error('Error removing participant:', err.message);
+            showToast('Failed to remove participant', 'error');
+        } finally {
+            setShowRemoveConfirm(false);
+            setParticipantToRemove(null);
         }
     };
 
     const handleDeletePod = async () => {
-        if (!window.confirm('Are you sure you want to delete this pod?')) return;
+        setShowDeleteConfirm(true);
+    };
 
+    const confirmDeletePod = async () => {
         try {
             // Backend will handle reversing stats if pod was complete
             await deletePod(pod.id);
+            showToast('Pod deleted successfully', 'success');
 
             // Refresh the pods list
             onDelete();
@@ -63,6 +77,9 @@ const EditPodModal = ({ pod, onClose, onSave, onDelete }) => {
             onClose();
         } catch (err) {
             console.error('Error deleting pod:', err.message);
+            showToast('Failed to delete pod', 'error');
+        } finally {
+            setShowDeleteConfirm(false);
         }
     };
 
@@ -82,11 +99,13 @@ const EditPodModal = ({ pod, onClose, onSave, onDelete }) => {
         try {
             // Backend will handle reversing old stats and applying new stats
             await updatePod(pod.id, updates);
+            showToast('Pod updated successfully', 'success');
 
             // Refresh the pods list
             onSave();
         } catch (err) {
             console.error('Error updating pod:', err.message);
+            showToast('Failed to update pod', 'error');
         }
     };
 
@@ -212,6 +231,26 @@ const EditPodModal = ({ pod, onClose, onSave, onDelete }) => {
                     </div>
                 </div>
             </div>
+
+            <ConfirmModal
+                show={showRemoveConfirm}
+                title="Remove Participant"
+                message="Are you sure you want to remove this participant from the pod?"
+                onConfirm={confirmRemoveParticipant}
+                onCancel={() => setShowRemoveConfirm(false)}
+                confirmText="Remove"
+                type="danger"
+            />
+
+            <ConfirmModal
+                show={showDeleteConfirm}
+                title="Delete Pod"
+                message="Are you sure you want to delete this pod? This action cannot be undone."
+                onConfirm={confirmDeletePod}
+                onCancel={() => setShowDeleteConfirm(false)}
+                confirmText="Delete"
+                type="danger"
+            />
         </div>
     );
 };

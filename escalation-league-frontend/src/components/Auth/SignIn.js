@@ -4,6 +4,7 @@ import { loginUser, registerUser, googleAuth } from '../../api/authApi';
 import { getUserPermissions } from '../../api/usersApi';
 import { usePermissions } from '../context/PermissionsProvider';
 import GoogleSignInButton from './GoogleSignInButton';
+import { useToast } from '../context/ToastContext';
 
 const SignIn = () => {
     const [isRegistering, setIsRegistering] = useState(false);
@@ -11,6 +12,7 @@ const SignIn = () => {
     const [error, setError] = useState('');
     const navigate = useNavigate();
     const { setUser, setPermissions } = usePermissions();
+    const { showToast } = useToast();
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -21,7 +23,7 @@ const SignIn = () => {
         try {
             if (isRegistering) {
                 await registerUser(formData);
-                alert('Registration successful! Please sign in.');
+                showToast('Registration successful! Please sign in.', 'success');
                 setIsRegistering(false);
             } else {
                 const data = await loginUser({ email: formData.email, password: formData.password });

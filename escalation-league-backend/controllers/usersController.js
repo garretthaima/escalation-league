@@ -76,19 +76,6 @@ const updateUserProfile = async (req, res) => {
   const { firstname, lastname, email, picture, favorite_color, deck_archetype } = req.body;
 
   try {
-    // Validate the picture field
-    const stockImages = [
-      '/images/profile-pictures/avatar1.png',
-      '/images/profile-pictures/avatar2.png',
-      '/images/profile-pictures/avatar3.png',
-    ];
-
-    // Normalize the picture field to handle full URLs
-    const normalizedPicture = picture.replace(process.env.BACKEND_URL || 'http://localhost:3000', '');
-    if (!stockImages.includes(normalizedPicture)) {
-      return res.status(400).json({ error: 'Invalid profile picture selected.' });
-    }
-
     // Validate input
     if (!firstname && !lastname && !email && !picture && !favorite_color && !deck_archetype) {
       return res.status(400).json({ error: 'No valid fields to update.' });
@@ -99,9 +86,24 @@ const updateUserProfile = async (req, res) => {
     if (firstname) updates.firstname = firstname;
     if (lastname) updates.lastname = lastname;
     if (email) updates.email = email;
-    if (picture) updates.picture = normalizedPicture; // Save the normalized path
     if (favorite_color) updates.favorite_color = favorite_color;
     if (deck_archetype) updates.deck_archetype = deck_archetype;
+
+    // Only validate and normalize picture if it's being updated
+    if (picture) {
+      const stockImages = [
+        '/images/profile-pictures/avatar1.png',
+        '/images/profile-pictures/avatar2.png',
+        '/images/profile-pictures/avatar3.png',
+      ];
+
+      // Normalize the picture field to handle full URLs
+      const normalizedPicture = picture.replace(process.env.BACKEND_URL || 'http://localhost:3000', '');
+      if (!stockImages.includes(normalizedPicture)) {
+        return res.status(400).json({ error: 'Invalid profile picture selected.' });
+      }
+      updates.picture = normalizedPicture; // Save the normalized path
+    }
 
     // Update the user in the database
     await db('users').where({ id: userId }).update(updates);

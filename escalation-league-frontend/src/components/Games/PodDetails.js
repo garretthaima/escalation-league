@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getPodDetails, deletePod, overrideWinner } from '../../api/podsApi';
+import { useToast } from '../context/ToastContext';
 
 const PodDetails = ({ podId, isAdmin, onClose }) => {
     const [pod, setPod] = useState(null);
     const [error, setError] = useState(null);
+    const { showToast } = useToast();
 
     useEffect(() => {
         const fetchPodDetails = async () => {
@@ -23,11 +25,11 @@ const PodDetails = ({ podId, isAdmin, onClose }) => {
     const handleDelete = async () => {
         try {
             await deletePod(podId);
-            alert('Pod deleted successfully!');
+            showToast('Pod deleted successfully!', 'success');
             onClose(); // Close the modal or navigate back
         } catch (err) {
             console.error('Error deleting pod:', err);
-            setError('Failed to delete pod.');
+            showToast('Failed to delete pod.', 'error');
         }
     };
 

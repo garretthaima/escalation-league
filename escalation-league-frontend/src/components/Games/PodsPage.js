@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { createPod, getActivePods, joinPod, getPodDetails } from '../../api/podsApi';
+import { useToast } from '../context/ToastContext';
 
 const PodsPage = () => {
     const [pods, setPods] = useState([]);
     const [selectedPod, setSelectedPod] = useState(null);
     const [newPodLeagueId, setNewPodLeagueId] = useState('');
     const [error, setError] = useState(null);
+    const { showToast } = useToast();
 
     useEffect(() => {
         const fetchPods = async () => {
@@ -35,10 +37,10 @@ const PodsPage = () => {
     const handleJoinPod = async (podId) => {
         try {
             await joinPod(podId);
-            alert('Joined pod successfully!');
+            showToast('Joined pod successfully!', 'success');
         } catch (err) {
             console.error('Error joining pod:', err);
-            setError('Failed to join pod.');
+            showToast('Failed to join pod.', 'error');
         }
     };
 

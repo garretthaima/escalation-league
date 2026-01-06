@@ -1,0 +1,15 @@
+[Unit]
+Description=Update Scryfall card database nightly
+Wants=scryfall-update.timer
+
+[Service]
+Type=oneshot
+User=%USER%
+Environment="SCRYFALL_CONTAINER=escalation-league-backend-prod"
+Environment="SCRYFALL_LOG_DIR=/var/log/escalation-league"
+ExecStart=/bin/bash %INSTALL_PATH%/nightly-scryfall-update.sh
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

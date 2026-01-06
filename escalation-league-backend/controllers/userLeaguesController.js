@@ -128,7 +128,7 @@ const getLeagueParticipantDetails = async (req, res) => {
         // Fetch participant details from the database, including decklist_url from the decks table
         const participant = await db('user_leagues as ul')
             .join('users as u', 'ul.user_id', 'u.id')
-            .join('decks as d', 'ul.deck_id', 'd.id') // Join with the decks table
+            .leftJoin('decks as d', 'ul.deck_id', 'd.id') // LEFT JOIN to handle missing decks
             .select(
                 'u.id as user_id',
                 'u.firstname',

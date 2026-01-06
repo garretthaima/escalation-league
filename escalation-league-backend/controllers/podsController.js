@@ -170,18 +170,21 @@ const getPods = async (req, res) => {
     const { podId, confirmation_status, league_id } = req.query; // Optional filters
 
     try {
-        const query = db('game_pods').where({ deleted_at: null });
+        const query = db('game_pods as gp')
+            .leftJoin('leagues as l', 'gp.league_id', 'l.id')
+            .select('gp.*', 'l.name as league_name')
+            .where({ 'gp.deleted_at': null });
 
         if (podId) {
-            query.andWhere({ id: podId });
+            query.andWhere({ 'gp.id': podId });
         }
 
         if (confirmation_status) {
-            query.andWhere({ confirmation_status });
+            query.andWhere({ 'gp.confirmation_status': confirmation_status });
         }
 
         if (league_id) {
-            query.andWhere({ league_id });
+            query.andWhere({ 'gp.league_id': league_id });
         }
 
         const pods = await query;

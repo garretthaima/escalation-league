@@ -1,0 +1,15 @@
+[Unit]
+Description=Sync decks from Moxfield/Archidekt
+Wants=deck-sync.timer
+
+[Service]
+Type=oneshot
+User=%USER%
+Environment="DECK_SYNC_CONTAINER=escalation-league-backend-prod"
+Environment="DECK_SYNC_LOG_DIR=/var/log/escalation-league"
+ExecStart=/bin/bash %INSTALL_PATH%/periodic-deck-sync.sh
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

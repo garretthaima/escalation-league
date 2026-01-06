@@ -98,7 +98,7 @@ const Navbar = ({ handleLogout }) => {
                                                                 <i className={`fas ${child.icon}`}></i> {child.label}
                                                             </Link>
                                                         </li>
-                                                        {index === 1 && <hr className="dropdown-divider" />}
+                                                        {index === 1 && index < link.children.length - 1 && <hr className="dropdown-divider" />}
                                                     </React.Fragment>
                                                 ))}
                                         </ul>

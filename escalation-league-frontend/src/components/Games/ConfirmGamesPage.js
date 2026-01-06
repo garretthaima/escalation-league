@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { getPods, logPodResult } from '../../api/podsApi'; // Use unified getPods
-import { getUserProfile, updateUserStats } from '../../api/usersApi';
-import { updateLeagueStats } from '../../api/userLeaguesApi';
+import { getPods, logPodResult } from '../../api/podsApi';
+import { getUserProfile } from '../../api/usersApi';
+import { useToast } from '../context/ToastContext';
+import { getResultBadge, getConfirmationBadge } from '../../utils/badgeHelpers';
 
 const ConfirmGamesTab = () => {
     const [gamesWaitingConfirmation, setGamesWaitingConfirmation] = useState([]);
     const [userId, setUserId] = useState(null);
     const [error, setError] = useState(null);
+    const { showToast } = useToast();
 
     useEffect(() => {
         const fetchGamesWaitingConfirmation = async () => {
@@ -16,7 +18,11 @@ const ConfirmGamesTab = () => {
 
                 // Fetch pending pods using getPods with a filter
                 const pods = await getPods({ confirmation_status: 'pending' });
-                setGamesWaitingConfirmation(pods);
+                // Filter to only show pods where current user is a participant
+                const userPods = pods.filter(pod =>
+                    pod.participants?.some(p => p.player_id === userProfile.user.id)
+                );
+                setGamesWaitingConfirmation(userPods);
             } catch (err) {
                 console.error('Error fetching games waiting confirmation:', err);
                 setError('Failed to fetch games waiting confirmation.');
@@ -32,14 +38,18 @@ const ConfirmGamesTab = () => {
             // Don't send result - just confirm with existing result
             await logPodResult(podId, {});
 
-            alert('Game successfully confirmed!');
+            showToast('Game successfully confirmed!', 'success');
 
             // Refresh the list of games waiting confirmation
             const pods = await getPods({ confirmation_status: 'pending' });
-            setGamesWaitingConfirmation(pods);
+            // Filter to only show pods where current user is a participant
+            const userPods = pods.filter(pod =>
+                pod.participants?.some(p => p.player_id === userId)
+            );
+            setGamesWaitingConfirmation(userPods);
         } catch (err) {
             console.error('Error confirming game:', err.message);
-            setError('Failed to confirm game.');
+            showToast('Failed to confirm game.', 'error');
         }
     };
 
@@ -54,60 +64,75 @@ const ConfirmGamesTab = () => {
     };
 
     return (
-        <div>
+        <div className="container mt-4">
             {error && <div className="alert alert-danger">{error}</div>}
-            <div className="row">
-                {gamesWaitingConfirmation.map((pod) => (
-                    <div key={pod.id} className="col-md-6 mb-4">
-                        <div className="card">
-                            <div className="card-body">
-                                <h5 className="card-title">Pod #{pod.id}</h5>
-                                <div className="table-responsive">
-                                    <table className="table table-bordered">
-                                        <tbody>
-                                            {Array.from({ length: 2 }).map((_, rowIndex) => (
-                                                <tr key={rowIndex}>
-                                                    {Array.from({ length: 2 }).map((_, colIndex) => {
-                                                        const participantIndex = rowIndex * 2 + colIndex;
-                                                        const participant = pod.participants?.[participantIndex];
-                                                        return (
-                                                            <td
-                                                                key={colIndex}
-                                                                className={
-                                                                    participant
-                                                                        ? getParticipantClass(participant)
-                                                                        : ''
-                                                                }
-                                                            >
-                                                                {participant
-                                                                    ? `${participant.firstname} ${participant.lastname}`
-                                                                    : 'Empty'}
-                                                            </td>
-                                                        );
-                                                    })}
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
+
+            {gamesWaitingConfirmation.length === 0 ? (
+                <div className="alert alert-info text-center">
+                    <i className="fas fa-info-circle me-2"></i>
+                    No games waiting for confirmation.
+                </div>
+            ) : (
+                <div className="row">
+                    {gamesWaitingConfirmation.map((pod) => (
+                        <div key={pod.id} className="col-md-6 mb-4">
+                            <div className="card">
+                                <div className="card-header" style={{ backgroundColor: '#6c757d', color: 'white' }}>
+                                    <h5 className="mb-0">
+                                        <i className="fas fa-clock me-2"></i>
+                                        Pod #{pod.id} - Pending Confirmation
+                                    </h5>
                                 </div>
-                                {/* Show Confirm Button only for the logged-in user who hasn't confirmed */}
-                                {pod.participants.some(
-                                    (participant) =>
-                                        participant.player_id === userId &&
-                                        participant.confirmed === 0
-                                ) && (
-                                        <button
-                                            className="btn btn-primary mt-3"
-                                            onClick={() => handleConfirm(pod.id, pod.league_id)}
-                                        >
-                                            Confirm Game
-                                        </button>
-                                    )}
+                                <div className="card-body">
+                                    <div className="table-responsive">
+                                        <table className="table table-bordered mb-0">
+                                            <thead>
+                                                <tr>
+                                                    <th>Player</th>
+                                                    <th>Result</th>
+                                                    <th>Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {pod.participants?.map((participant) => (
+                                                    <tr key={participant.player_id} className={getParticipantClass(participant)}>
+                                                        <td>
+                                                            <strong>{participant.firstname} {participant.lastname}</strong>
+                                                            {participant.player_id === userId && (
+                                                                <span className="badge ms-2" style={{ backgroundColor: '#495057', color: 'white' }}>You</span>
+                                                            )}
+                                                        </td>
+                                                        <td>
+                                                            {participant.result ? getResultBadge(participant.result) : '-'}
+                                                        </td>
+                                                        <td>
+                                                            {getConfirmationBadge(participant.confirmed)}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    {/* Show Confirm Button only for the logged-in user who hasn't confirmed */}
+                                    {pod.participants.some(
+                                        (participant) =>
+                                            participant.player_id === userId &&
+                                            participant.confirmed === 0
+                                    ) && (
+                                            <button
+                                                className="btn btn-success mt-3 w-100"
+                                                onClick={() => handleConfirm(pod.id, pod.league_id)}
+                                            >
+                                                <i className="fas fa-check-circle me-2"></i>
+                                                Confirm Game Results
+                                            </button>
+                                        )}
+                                </div>
                             </div>
                         </div>
-                    </div>
-                ))}
-            </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 };

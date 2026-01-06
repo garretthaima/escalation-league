@@ -17,7 +17,11 @@ const PodAdminPage = () => {
             const groupedLeagues = pods.reduce((acc, pod) => {
                 const leagueId = pod.league_id;
                 if (!acc[leagueId]) {
-                    acc[leagueId] = { leagueId, pods: [] };
+                    acc[leagueId] = {
+                        leagueId,
+                        leagueName: pod.league_name || `League #${leagueId}`,
+                        pods: []
+                    };
                 }
                 acc[leagueId].pods.push(pod);
                 return acc;
@@ -52,7 +56,7 @@ const PodAdminPage = () => {
             <div className="mt-4">
                 {leagues.map((league) => (
                     <div key={league.leagueId} className="mb-3">
-                        <h3>League #{league.leagueId}</h3>
+                        <h3>{league.leagueName}</h3>
                         <button
                             className="btn btn-primary"
                             onClick={() => handleOpenLeagueModal(league)}

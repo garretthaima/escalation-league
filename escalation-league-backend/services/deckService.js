@@ -43,6 +43,11 @@ const fetchDeckDataIfStale = async (deck) => {
 
             // Update the cache with the fresh data
             await redis.set(cacheKeyDeck, JSON.stringify(platformDeckData), 'EX', 3600); // Cache for 1 hour
+
+            // Invalidate the price check cache since deck data changed
+            const priceCheckKey = `price-check:${deckId}`;
+            await redis.del(priceCheckKey);
+            console.log(`Invalidated price check cache for deck ${deckId}`);
         } else {
             console.log(`Deck ${deckId} is up-to-date. Using cached data.`);
         }

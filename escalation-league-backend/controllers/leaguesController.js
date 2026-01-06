@@ -55,7 +55,19 @@ const setActiveLeague = async (req, res) => {
 // Update league details
 const updateLeague = async (req, res) => {
     const { id } = req.params;
-    const { name, start_date, end_date, description, max_players, weekly_budget, current_week } = req.body;
+    const {
+        name,
+        start_date,
+        end_date,
+        description,
+        max_players,
+        weekly_budget,
+        current_week,
+        is_active,
+        points_per_win,
+        points_per_loss,
+        points_per_draw
+    } = req.body;
 
     if (!id) {
         return res.status(400).json({ error: 'League ID is required.' });
@@ -63,13 +75,21 @@ const updateLeague = async (req, res) => {
 
     try {
         const updates = {};
-        if (name) updates.name = name;
-        if (start_date) updates.start_date = start_date;
-        if (end_date) updates.end_date = end_date;
-        if (description) updates.description = description;
-        if (max_players) updates.max_players = max_players;
-        if (weekly_budget) updates.weekly_budget = weekly_budget;
-        if (current_week) updates.current_week = current_week;
+        if (name !== undefined) updates.name = name;
+        if (start_date !== undefined) updates.start_date = start_date;
+        if (end_date !== undefined) updates.end_date = end_date;
+        if (description !== undefined) updates.description = description;
+        if (max_players !== undefined) updates.max_players = max_players;
+        if (weekly_budget !== undefined) updates.weekly_budget = weekly_budget;
+        if (current_week !== undefined) updates.current_week = current_week;
+        if (is_active !== undefined) updates.is_active = is_active;
+        if (points_per_win !== undefined) updates.points_per_win = points_per_win;
+        if (points_per_loss !== undefined) updates.points_per_loss = points_per_loss;
+        if (points_per_draw !== undefined) updates.points_per_draw = points_per_draw;
+
+        if (Object.keys(updates).length === 0) {
+            return res.status(400).json({ error: 'No valid fields to update.' });
+        }
 
         const result = await db('leagues').update(updates).where({ id });
 

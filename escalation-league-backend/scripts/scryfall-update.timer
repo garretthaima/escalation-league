@@ -1,0 +1,12 @@
+[Unit]
+Description=Nightly Scryfall database update timer
+Requires=scryfall-update.service
+
+[Timer]
+# Run at 3:00 AM daily
+OnCalendar=daily
+OnCalendar=*-*-* 03:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

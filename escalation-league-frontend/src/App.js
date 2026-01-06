@@ -18,6 +18,7 @@ import NotAuthorized from './components/Auth/NotAuthorized';
 import PublicProfile from './components/Auth/Profile/PublicProfile';
 import { LeagueAdminPage, PodAdminPage } from './components/Admin';
 import { HomePage, Footer, Contact } from './components/Shared/';
+import { ToastProvider } from './components/context/ToastContext';
 
 const App = () => {
     const [user, setUser] = useState(null);
@@ -46,54 +47,56 @@ const App = () => {
     };
 
     return (
-        <div id="root">
-            <Navbar user={user} handleLogout={handleLogout} />
-            < div className="content">
-                <Routes>
-                    {/* Public Routes */}
-                    <Route path="/" element={<HomePage />} />
-                    <Route path="/signin" element={<SignIn />} />
-                    <Route path="/rules" element={<Rules />} />
-                    <Route path="/awards" element={<Awards />} />
-                    <Route path="/contact" element={<Contact />} />
-                    {/* <Route path="/privacy" element={<PrivacyPolicy />} /> Add Privacy Policy Route */}
+        <ToastProvider>
+            <div id="root">
+                <Navbar user={user} handleLogout={handleLogout} />
+                < div className="content">
+                    <Routes>
+                        {/* Public Routes */}
+                        <Route path="/" element={<HomePage />} />
+                        <Route path="/signin" element={<SignIn />} />
+                        <Route path="/rules" element={<Rules />} />
+                        <Route path="/awards" element={<Awards />} />
+                        <Route path="/contact" element={<Contact />} />
+                        {/* <Route path="/privacy" element={<PrivacyPolicy />} /> Add Privacy Policy Route */}
 
 
-                    {/* Leagues Section */}
-                    <Route path="/leagues" element={<LeaguesPage />}>
-                        <Route path="current" element={<CurrentLeague />} />
-                        <Route path="signup" element={<SignUp />} />
-                        <Route path="leaderboard" element={<LeagueLeaderboard />} />
-                        <Route path="price-check" element={<PriceCheckPage />} />
-                        <Route path="past" element={<PastLeagues />} />
-                    </Route>
+                        {/* Leagues Section */}
+                        <Route path="/leagues" element={<LeaguesPage />}>
+                            <Route path="current" element={<CurrentLeague />} />
+                            <Route path="signup" element={<SignUp />} />
+                            <Route path="leaderboard" element={<LeagueLeaderboard />} />
+                            <Route path="price-check" element={<PriceCheckPage />} />
+                            <Route path="past" element={<PastLeagues />} />
+                        </Route>
 
-                    {/* Games Section */}
-                    <Route path="/pods" element={<GamesPage />}>
-                        <Route path="active" element={<ActiveGamesPage />} />
-                        <Route path="complete" element={<CompletedGamesPage />} />
-                        <Route path="pending" element={<ConfirmGamesPage />} />
-                    </Route>
+                        {/* Games Section */}
+                        <Route path="/pods" element={<GamesPage />}>
+                            <Route path="active" element={<ActiveGamesPage />} />
+                            <Route path="complete" element={<CompletedGamesPage />} />
+                            <Route path="pending" element={<ConfirmGamesPage />} />
+                        </Route>
 
-                    {/* Profile Section */}
-                    <Route path="/profile" element={<Profile />} />
+                        {/* Profile Section */}
+                        <Route path="/profile" element={<Profile />} />
 
-                    {/* Profile Section */}
-                    <Route path="/profile/:userId" element={<PublicProfile />} />
+                        {/* Profile Section */}
+                        <Route path="/profile/:userId" element={<PublicProfile />} />
 
-                    {/* Admin Section */}
-                    <Route path="/admin/leagues" element={<LeagueAdminPage />} />
-                    <Route path="/admin/pods" element={<PodAdminPage />} />
-                    <Route path="/admin/leagues/create" element={<CreateLeaguePage />} />
+                        {/* Admin Section */}
+                        <Route path="/admin/leagues" element={<LeagueAdminPage />} />
+                        <Route path="/admin/pods" element={<PodAdminPage />} />
+                        <Route path="/admin/leagues/create" element={<CreateLeaguePage />} />
 
 
-                    {/* Not Authorized Page */}
-                    <Route path="/not-authorized" element={<NotAuthorized />} />
+                        {/* Not Authorized Page */}
+                        <Route path="/not-authorized" element={<NotAuthorized />} />
 
-                </Routes>
+                    </Routes>
+                </div>
+                <Footer />
             </div>
-            <Footer />
-        </div>
+        </ToastProvider>
     );
 };
 

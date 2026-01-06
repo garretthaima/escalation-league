@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createLeague } from '../../api/leaguesApi';
+import { useToast } from '../context/ToastContext';
 
 const CreateLeaguePage = () => {
     const navigate = useNavigate();
+    const { showToast } = useToast();
     const [newLeague, setNewLeague] = useState({
         name: '',
         start_date: '',
@@ -27,10 +29,10 @@ const CreateLeaguePage = () => {
                 ...newLeague,
                 end_date: endDate.toISOString().split('T')[0], // Format as YYYY-MM-DD
             });
-            alert('League created successfully!');
+            showToast('League created successfully!', 'success');
             navigate('/admin/leagues'); // Redirect back to the League Admin page
         } catch (err) {
-            alert('Failed to create league. Please try again.');
+            showToast('Failed to create league. Please try again.', 'error');
         }
     };
 

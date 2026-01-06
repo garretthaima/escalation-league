@@ -1,0 +1,191 @@
+/* ===========================
+   Escalation League - Brand Overrides
+   Clean Grayscale Theme
+=========================== */
+
+/* Primary Buttons - Dark Gray */
+.btn-primary {
+    background-color: #343a40 !important;
+    border-color: #343a40 !important;
+    color: white !important;
+}
+
+.btn-primary:hover {
+    background-color: #23272b !important;
+    border-color: #23272b !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn-primary:active,
+.btn-primary:focus {
+    background-color: #1d2124 !important;
+    border-color: #1d2124 !important;
+}
+
+/* Success Buttons - Medium Gray */
+.btn-success {
+    background-color: #6c757d !important;
+    border-color: #6c757d !important;
+    color: white !important;
+    font-weight: 600;
+}
+
+.btn-success:hover {
+    background-color: #5a6268 !important;
+    border-color: #5a6268 !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Danger Buttons - Dark Gray */
+.btn-danger {
+    background-color: #495057 !important;
+    border-color: #495057 !important;
+}
+
+.btn-danger:hover {
+    background-color: #343a40 !important;
+    border-color: #343a40 !important;
+}
+
+/* Secondary Buttons - Light Gray */
+.btn-secondary {
+    background-color: #6c757d !important;
+    border-color: #6c757d !important;
+    color: white !important;
+}
+
+.btn-secondary:hover {
+    background-color: #545b62 !important;
+    border-color: #545b62 !important;
+}
+
+/* Card Headers */
+.card-header.brand-header {
+    background: linear-gradient(135deg, #495057 0%, #343a40 100%);
+    color: white;
+    font-weight: 600;
+    border: none;
+}
+
+.card-header.dark-header {
+    background: linear-gradient(135deg, #343a40 0%, #212529 100%);
+    color: white;
+    font-weight: 600;
+    border: none;
+}
+
+.card-header.light-header {
+    background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+    color: #212529;
+    font-weight: 600;
+    border: none;
+}
+
+/* Links - Dark Gray */
+a {
+    color: #495057;
+    text-decoration: none;
+}
+
+a:hover {
+    color: #212529;
+    text-decoration: underline;
+}
+
+/* Links - Dark Mode Override */
+body.dark-mode a {
+    color: #e9ecef;
+}
+
+body.dark-mode a:hover {
+    color: #ffffff;
+    text-decoration: underline;
+}
+
+/* Brand Classes */
+.brand-accent {
+    color: #6c757d;
+}
+
+.brand-primary-text {
+    color: #343a40;
+}
+
+.brand-bg-dark {
+    background-color: #343a40;
+    color: white;
+}
+
+.brand-bg-medium {
+    background-color: #6c757d;
+    color: white;
+}
+
+.brand-bg-light {
+    background-color: #e9ecef;
+    color: #212529;
+}
+
+/* Alert Overrides */
+.alert-success {
+    background-color: #e9ecef;
+    border-color: #ced4da;
+    color: #495057;
+}
+
+.alert-danger {
+    background-color: #e9ecef;
+    border-color: #adb5bd;
+    color: #343a40;
+}
+
+body.dark-mode .alert-success {
+    background-color: #343a40;
+    border-color: #495057;
+    color: #e9ecef;
+}
+
+body.dark-mode .alert-danger {
+    background-color: #343a40;
+    border-color: #495057;
+    color: #e9ecef;
+}
+
+/* Table Row Hover */
+.table-hover tbody tr:hover {
+    background-color: #f8f9fa !important;
+}
+
+body.dark-mode .table-hover tbody tr:hover {
+    background-color: #343a40 !important;
+}
+
+/* Progress Bars */
+.progress-bar {
+    background-color: #6c757d;
+}
+
+/* Form Focus */
+.form-control:focus,
+.form-select:focus {
+    border-color: #6c757d;
+    box-shadow: 0 0 0 0.2rem rgba(108, 117, 125, 0.25);
+}
+
+/* Pagination */
+.page-link {
+    color: #495057;
+}
+
+.page-link:hover {
+    color: #212529;
+    background-color: #e9ecef;
+    border-color: #dee2e6;
+}
+
+.page-item.active .page-link {
+    background-color: #495057;
+    border-color: #495057;
+}

@@ -76,19 +76,25 @@ const priceCheckDeck = async (req, res) => {
 
     try {
         let deck;
+        let dbDeck;
 
-        // Attempt to fetch the deck from Redis
+        // Always fetch from database to get last_synced_at
+        dbDeck = await getDeckFromDatabase(deckId);
+        if (!dbDeck) {
+            return res.status(404).json({ error: 'Deck not found.' });
+        }
+
+        // Attempt to fetch the deck from Redis for card data
         const cachedDeck = await redis.get(cacheKey);
         if (cachedDeck) {
             console.log('Deck found in Redis cache:', deckId);
             deck = JSON.parse(cachedDeck);
+            // Merge database metadata with cached data
+            deck.last_synced_at = dbDeck.last_synced_at;
+            deck.platform = dbDeck.platform;
         } else {
-            console.log('Deck not found in Redis cache. Falling back to database...');
-            // Fetch the deck from the database
-            deck = await getDeckFromDatabase(deckId);
-            if (!deck) {
-                return res.status(404).json({ error: 'Deck not found.' });
-            }
+            console.log('Deck not found in Redis cache. Using database data...');
+            deck = dbDeck;
 
             // Re-cache the deck in Redis
             await redis.set(cacheKey, JSON.stringify(deck), 'EX', 3600); // Cache for 1 hour
@@ -98,6 +104,14 @@ const priceCheckDeck = async (req, res) => {
         // Ensure the deck data is up-to-date
         console.log(`Calling fetchDeckDataIfStale for deck ID: ${deck.id}`);
         const deckData = await fetchDeckDataIfStale(deck);
+
+        console.log('deckData received:', JSON.stringify({
+            id: deckData.id,
+            name: deckData.name,
+            hasCards: !!deckData.cards,
+            cardsType: typeof deckData.cards,
+            cardsLength: Array.isArray(deckData.cards) ? deckData.cards.length : 'N/A'
+        }));
 
         // Calculate prices for the deck
         const priceCheckResults = await calculateDeckPrices(deckData);

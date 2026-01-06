@@ -5,16 +5,22 @@
 /* ===========================
    2. Utility Classes
    =========================== */
+.nav-link {
+    color: rgba(255, 255, 255, 0.85) !important;
+}
+
 .nav-link.active {
     font-weight: bold;
-    color: #007bff !important;
+    color: #ffffff !important;
 }
 
 .nav-link:hover {
-    color: #0056b3 !important;
-    /* Darker blue on hover */
+    color: #ffffff !important;
     text-decoration: underline;
-    /* Add underline effect */
+}
+
+.navbar-brand {
+    color: #ffffff !important;
 }
 
 .dropdown-item {
@@ -23,9 +29,7 @@
 
 .dropdown-item:hover {
     background-color: #f8f9fa;
-    /* Light gray background */
-    color: #007bff;
-    /* Blue text */
+    color: #212529;
 }
 
 .dropdown-item i {
@@ -47,6 +51,8 @@
     position: sticky;
     top: 0;
     z-index: 1030;
+    background: linear-gradient(135deg, #343a40 0%, #495057 100%) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     /* Ensure it stays above other elements */
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     /* Subtle shadow */
@@ -96,9 +102,23 @@
     color: white;
 }
 
-.navbar.dark-mode .dropdown-menu {
-    background-color: #444;
-    border-color: #555;
+body.dark-mode .navbar .dropdown-menu {
+    background-color: #2d3436;
+    border-color: #495057;
+}
+
+body.dark-mode .navbar .dropdown-item {
+    color: #e9ecef;
+    background-color: #2d3436;
+}
+
+body.dark-mode .navbar .dropdown-item:hover {
+    background-color: #495057;
+    color: #ffffff;
+}
+
+body.dark-mode .navbar .dropdown-divider {
+    border-top-color: #495057;
 }
 
 .navbar.dark-mode .dropdown-item {
