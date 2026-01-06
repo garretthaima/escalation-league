@@ -24,7 +24,8 @@ endif
 .PHONY: help build-prod build-dev build-edge build-cards prod dev edge cards restart-prod restart-dev restart-edge restart-cards stop-all clean clean-all \
 		migrate-prod migrate-dev migrate-test seed-prod seed-dev seed-test \
 		setup-prod setup-dev db-prod db-dev db-test backup-prod restore-prod \
-		logs-prod logs-dev logs-edge logs-cards status check-compose redeploy-dev rebuild-prod rebuild-dev rebuild-edge rebuild-cards deploy-prod deploy-dev deploy-edge deploy-cards
+		logs-prod logs-dev logs-edge logs-cards status check-compose redeploy-dev rebuild-prod rebuild-dev rebuild-edge rebuild-cards deploy-prod deploy-dev deploy-edge deploy-cards \
+		docker-prune docker-clean docker-clean-images docker-clean-volumes docker-status
 
 help:
 	@echo "Available commands:"
@@ -76,6 +77,9 @@ help:
 	@echo "🧹 Cleanup (SAFE):"
 	@echo "  make stop-all      - Stop all containers (keeps data)"
 	@echo "  make clean         - Remove containers (keeps data)"
+	@echo "  make docker-status - Show Docker disk usage"
+	@echo "  make docker-clean  - Clean stopped containers and dangling images"
+	@echo "  make docker-prune  - Aggressive cleanup (removes unused images/volumes)"
 	@echo ""
 	@echo "⚠️  DANGEROUS:"
 	@echo "  make clean-all     - Delete ALL data (requires confirmation)"
@@ -184,6 +188,7 @@ deploy-prod: build-prod
 
 deploy-dev: build-dev
 	@echo "🚀 Deploying development..."
+	@make docker-preclean
 	@$(DOCKER_COMPOSE) --env-file $(DEV_ENV) -f $(DEV_COMPOSE) up -d --force-recreate
 	@echo "✅ Development deployed"
 
@@ -316,3 +321,54 @@ seed-dev: seed-required-dev seed-dev-data
 
 reseed-dev: seed-dev-data
 
+
+# ============================================================================
+# DOCKER CLEANUP COMMANDS
+# ============================================================================
+
+docker-status:
+	@echo "📊 Docker Disk Usage:"
+	@docker system df
+	@echo ""
+	@echo "📦 Images:"
+	@docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}"
+	@echo ""
+	@echo "🗄️  Volumes:"
+	@docker volume ls
+
+docker-clean:
+	@echo "🧹 Cleaning stopped containers and dangling images..."
+	@docker container prune -f
+	@docker image prune -f
+	@echo "✅ Cleanup complete"
+	@make docker-status
+
+docker-clean-images:
+	@echo "🧹 Removing unused images..."
+	@docker image prune -a -f
+	@echo "✅ Unused images removed"
+	@make docker-status
+
+docker-clean-volumes:
+	@echo "⚠️  WARNING: This will remove unused volumes!"
+	@echo "Press Ctrl+C to cancel, or wait 5 seconds to continue..."
+	@sleep 5
+	@docker volume prune -f
+	@echo "✅ Unused volumes removed"
+	@make docker-status
+
+docker-prune:
+	@echo "🧹 Aggressive Docker cleanup (removes all unused images, containers, volumes, networks)..."
+	@echo "⚠️  This will free up disk space but may require rebuilding images!"
+	@echo "Press Ctrl+C to cancel, or wait 5 seconds to continue..."
+	@sleep 5
+	@docker system prune -a --volumes -f
+	@echo "✅ Aggressive cleanup complete"
+	@make docker-status
+
+# Auto-cleanup before deploy (removes old images but keeps volumes)
+docker-preclean:
+	@echo "🧹 Pre-deployment cleanup..."
+	@docker container prune -f > /dev/null 2>&1 || true
+	@docker image prune -f > /dev/null 2>&1 || true
+	@echo "✅ Pre-cleanup complete"
