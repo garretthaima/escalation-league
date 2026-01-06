@@ -35,15 +35,6 @@ const LeagueLinks = ({ activeSection, setActiveSection, inLeague }) => {
                                 Leaderboard
                             </Link>
                         </li>
-                        <li>
-                            <Link
-                                className="dropdown-item"
-                                to="/leagues/past"
-                                onClick={() => setActiveSection('pastLeagues')}
-                            >
-                                Past Leagues
-                            </Link>
-                        </li>
                     </>
                 ) : (
                     <li>

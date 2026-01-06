@@ -8,8 +8,8 @@ if (environment === 'production') {
     require('dotenv').config({ path: '../.env.dev' });
     require('dotenv').config({ path: '.env.dev' });
 } else if (environment === 'test') {
-    require('dotenv').config({ path: '../.env.test' });
-    require('dotenv').config({ path: '.env.test' });
+    // require('dotenv').config({ path: '../.env.dev' });
+    require('dotenv').config({ path: '.env.dev' });
 }
 
 module.exports = {
@@ -27,7 +27,7 @@ module.exports = {
             tableName: 'knex_migrations',
         },
         seeds: {
-            directory: './seeds',
+            directory: './seeds/required',
         },
     },
 
@@ -45,7 +45,7 @@ module.exports = {
             tableName: 'knex_migrations',
         },
         seeds: {
-            directory: './seeds',
+            directory: ['./seeds/required', './seeds/development'],
         },
     },
 

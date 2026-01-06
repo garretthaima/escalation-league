@@ -13,10 +13,26 @@ const updatePod = async (req, res) => {
 
         // If pod was complete, reverse old stats before making changes
         if (currentPod.confirmation_status === 'complete' && currentPod.league_id) {
+            // Fetch league point settings
+            const league = await db('leagues')
+                .where({ id: currentPod.league_id })
+                .select('points_per_win', 'points_per_loss', 'points_per_draw')
+                .first();
+
             for (const p of currentParticipants) {
                 const wins = p.result === 'win' ? -1 : 0;
                 const losses = p.result === 'loss' ? -1 : 0;
                 const draws = p.result === 'draw' ? -1 : 0;
+
+                // Calculate points to reverse
+                let points = 0;
+                if (p.result === 'win') {
+                    points = -(league.points_per_win || 4);
+                } else if (p.result === 'loss') {
+                    points = -(league.points_per_loss || 1);
+                } else if (p.result === 'draw') {
+                    points = -(league.points_per_draw || 1);
+                }
 
                 // Reverse user stats
                 await db('users')
@@ -33,7 +49,8 @@ const updatePod = async (req, res) => {
                     .increment({
                         league_wins: wins,
                         league_losses: losses,
-                        league_draws: draws
+                        league_draws: draws,
+                        total_points: points
                     });
             }
         }
@@ -78,10 +95,26 @@ const updatePod = async (req, res) => {
             const pod = await db('game_pods').where({ id: podId }).first();
 
             if (pod && pod.league_id) {
+                // Fetch league point settings
+                const league = await db('leagues')
+                    .where({ id: pod.league_id })
+                    .select('points_per_win', 'points_per_loss', 'points_per_draw')
+                    .first();
+
                 for (const p of newParticipants) {
                     const wins = p.result === 'win' ? 1 : 0;
                     const losses = p.result === 'loss' ? 1 : 0;
                     const draws = p.result === 'draw' ? 1 : 0;
+
+                    // Calculate points based on league settings
+                    let points = 0;
+                    if (p.result === 'win') {
+                        points = league.points_per_win || 4;
+                    } else if (p.result === 'loss') {
+                        points = league.points_per_loss || 1;
+                    } else if (p.result === 'draw') {
+                        points = league.points_per_draw || 1;
+                    }
 
                     // Update user stats
                     await db('users')
@@ -98,7 +131,8 @@ const updatePod = async (req, res) => {
                         .increment({
                             league_wins: wins,
                             league_losses: losses,
-                            league_draws: draws
+                            league_draws: draws,
+                            total_points: points
                         });
                 }
             }

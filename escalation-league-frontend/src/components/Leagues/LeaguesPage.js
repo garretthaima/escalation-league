@@ -71,11 +71,6 @@ const LeaguesPage = () => {
                                 </Link>
                             </li>
                             <li className="nav-item">
-                                <Link to="/leagues/past" className="nav-link">
-                                    Past Leagues
-                                </Link>
-                            </li>
-                            <li className="nav-item">
                                 <Link to="/leagues/price-check" className="nav-link">
                                     Price Check
                                 </Link>

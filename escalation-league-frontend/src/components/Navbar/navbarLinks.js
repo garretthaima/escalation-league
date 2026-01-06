@@ -3,7 +3,6 @@ const getLeagueLinks = (inLeague) => {
         return [
             { label: 'Current League', path: '/leagues/current', order: 1, icon: 'fa-trophy' },
             { label: 'Leaderboard', path: '/leagues/leaderboard', order: 2, icon: 'fa-chart-line' },
-            { label: 'Past Leagues', path: '/leagues/past', order: 3, icon: 'fa-history' },
         ];
     } else {
         return [

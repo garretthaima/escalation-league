@@ -105,4 +105,26 @@ try {
     console.error('Error loading scryfallRoutes:', err.message);
 }
 
+/**
+ * Mounts award-related routes at `/awards`.
+ * @module routes/awards
+ */
+try {
+    const awardsRoutes = require('./awards');
+    router.use('/awards', awardsRoutes); // Awards-related routes
+} catch (err) {
+    console.error('Error loading awardsRoutes:', err.message);
+}
+
+/**
+ * Mounts budget-related routes at `/budgets`.
+ * @module routes/budgets
+ */
+try {
+    const budgetsRoutes = require('./budgets');
+    router.use('/budgets', budgetsRoutes); // Budget-related routes
+} catch (err) {
+    console.error('Error loading budgetsRoutes:', err.message);
+}
+
 module.exports = router;

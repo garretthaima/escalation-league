@@ -11,7 +11,7 @@ const LeagueLeaderboard = () => {
     const [stats, setStats] = useState(null);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [sortConfig, setSortConfig] = useState({ key: 'win_rate', direction: 'desc' });
+    const [sortConfig, setSortConfig] = useState({ key: 'total_points', direction: 'desc' });
 
     useEffect(() => {
         const fetchUserLeague = async () => {
@@ -97,33 +97,55 @@ const LeagueLeaderboard = () => {
             <h1 className="text-center mb-4">League Leaderboard</h1>
             {stats && (
                 <div className="text-center mb-3">
-                    <p className="lead">Total Players: {stats.total_players}</p>
+                    <p className="lead">
+                        Total Players: {stats.total_players}
+                        {stats.playoff_spots && (
+                            <span className="ms-3">
+                                <i className="fas fa-trophy text-warning"></i>
+                                {' '}Playoff Spots: {stats.playoff_spots}
+                            </span>
+                        )}
+                    </p>
                 </div>
             )}
             <table className="table table-striped table-hover">
                 <thead className="thead-dark">
                     <tr>
+                        <th style={{ width: '50px' }}>Rank</th>
                         <th onClick={() => sortLeaderboard('name')} style={{ cursor: 'pointer' }}>Player</th>
+                        <th onClick={() => sortLeaderboard('total_points')} style={{ cursor: 'pointer' }}>Points</th>
                         <th onClick={() => sortLeaderboard('wins')} style={{ cursor: 'pointer' }}>Wins</th>
                         <th onClick={() => sortLeaderboard('losses')} style={{ cursor: 'pointer' }}>Losses</th>
                         <th onClick={() => sortLeaderboard('draws')} style={{ cursor: 'pointer' }}>Draws</th>
                         <th onClick={() => sortLeaderboard('total_games')} style={{ cursor: 'pointer' }}>Total Games</th>
                         <th onClick={() => sortLeaderboard('win_rate')} style={{ cursor: 'pointer' }}>Win Rate</th>
+                        <th style={{ width: '80px' }}>Status</th>
                     </tr>
                 </thead>
                 <tbody>
                     {leaderboard.map((player) => (
                         <tr key={player.player_id}>
+                            <td className="fw-bold">{player.rank}</td>
                             <td>
                                 <Link to={`/leagues/${leagueId}/profile/${player.player_id}`} className="text-decoration-none">
                                     {player.firstname} {player.lastname}
                                 </Link>
                             </td>
+                            <td><span className="badge bg-primary">{player.total_points || 0}</span></td>
                             <td>{player.wins}</td>
                             <td>{player.losses}</td>
                             <td>{player.draws}</td>
                             <td>{player.total_games}</td>
                             <td>{player.win_rate ? `${player.win_rate}%` : '0%'}</td>
+                            <td>
+                                {player.qualified ? (
+                                    <span className="badge bg-success">
+                                        <i className="fas fa-check-circle"></i> Qualified
+                                    </span>
+                                ) : (
+                                    <span className="badge bg-secondary">-</span>
+                                )}
+                            </td>
                         </tr>
                     ))}
                 </tbody>

@@ -164,6 +164,7 @@ const getLeagueStats = async (req, res) => {
                 'ul.league_wins as wins',
                 'ul.league_losses as losses',
                 'ul.league_draws as draws',
+                'ul.total_points as total_points',
                 db.raw('ul.league_wins + ul.league_losses + ul.league_draws AS total_games'),
                 db.raw(`
                     ROUND(
@@ -173,16 +174,33 @@ const getLeagueStats = async (req, res) => {
             )
             .where('ul.league_id', leagueId)
             .orderBy([
+                { column: 'total_points', order: 'desc' },
                 { column: 'win_rate', order: 'desc' },
                 { column: 'wins', order: 'desc' },
                 { column: 'total_games', order: 'desc' }
             ]);
+
+        // Calculate playoff qualification (top 75%, rounded up to even number)
+        const totalPlayers = leaderboard.length;
+        let playoffSpots = Math.ceil(totalPlayers * 0.75);
+        // Round up to even number
+        if (playoffSpots % 2 !== 0) {
+            playoffSpots++;
+        }
+
+        // Mark qualified players
+        leaderboard.forEach((player, index) => {
+            player.qualified = index < playoffSpots;
+            player.rank = index + 1;
+        });
 
         // Fetch league stats
         const stats = await db('user_leagues')
             .where({ league_id: leagueId })
             .count('id as total_players')
             .first();
+
+        stats.playoff_spots = playoffSpots;
 
         res.status(200).json({ leaderboard, stats });
     } catch (err) {

@@ -107,18 +107,34 @@ const logPodResult = async (req, res) => {
             // Determine the pod result
             const podResult = participants.some((p) => p.result === 'draw') ? 'draw' : 'win';
 
-            // Get the league ID for this pod
+            // Get the league ID and point settings for this pod
             const pod = await db('game_pods').where({ id: podId }).select('league_id').first();
 
             if (!pod || !pod.league_id) {
                 return res.status(404).json({ error: 'League not found for this pod.' });
             }
 
+            // Fetch league point settings
+            const league = await db('leagues')
+                .where({ id: pod.league_id })
+                .select('points_per_win', 'points_per_loss', 'points_per_draw')
+                .first();
+
             // Update stats for all participants
             for (const p of participants) {
                 const wins = p.result === 'win' ? 1 : 0;
                 const losses = p.result === 'loss' ? 1 : 0;
                 const draws = p.result === 'draw' ? 1 : 0;
+
+                // Calculate points based on league settings
+                let points = 0;
+                if (p.result === 'win') {
+                    points = league.points_per_win || 4;
+                } else if (p.result === 'loss') {
+                    points = league.points_per_loss || 1;
+                } else if (p.result === 'draw') {
+                    points = league.points_per_draw || 1;
+                }
 
                 // Update user stats
                 await db('users')
@@ -135,7 +151,8 @@ const logPodResult = async (req, res) => {
                     .increment({
                         league_wins: wins,
                         league_losses: losses,
-                        league_draws: draws
+                        league_draws: draws,
+                        total_points: points
                     });
             }
 

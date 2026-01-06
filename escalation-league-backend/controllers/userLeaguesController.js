@@ -48,7 +48,7 @@ const getUserLeagueStats = async (req, res) => {
 
         const stats = await db('user_leagues as ul')
             .leftJoin('decks as d', 'ul.deck_id', 'd.id')
-            .select('ul.league_wins', 'ul.league_losses', 'ul.current_commander', 'ul.commander_partner', 'ul.deck_id', 'd.decklist_url', 'ul.joined_at')
+            .select('ul.league_wins', 'ul.league_losses', 'ul.total_points', 'ul.current_commander', 'ul.commander_partner', 'ul.deck_id', 'd.decklist_url', 'ul.joined_at')
             .where({ 'ul.user_id': userId, 'ul.league_id': league_id })
             .first();
 
@@ -79,6 +79,7 @@ const getUserLeagueStats = async (req, res) => {
         res.status(200).json({
             league_wins: stats.league_wins,
             league_losses: stats.league_losses,
+            total_points: stats.total_points,
             current_commander: commanderName,
             commander_partner: partnerName,
             deck_id: stats.deck_id,
@@ -148,6 +149,7 @@ const getLeagueParticipants = async (req, res) => {
                 'u.lastname',
                 'ul.league_wins',
                 'ul.league_losses',
+                'ul.total_points',
                 'ul.is_active',
                 'ul.disqualified',
                 'ul.joined_at'

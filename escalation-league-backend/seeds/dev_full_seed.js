@@ -24,7 +24,7 @@ exports.seed = async function (knex) {
 
   const hashedPassword = await bcrypt.hash('password123', 10);
 
-  // Insert your OAuth account + dummy users
+  // Insert your OAuth account + 11 dummy users (12 total)
   await knex('users').insert([
     {
       email: 'garretthaima@gmail.com',
@@ -40,21 +40,29 @@ exports.seed = async function (knex) {
     { email: 'eve@example.com', firstname: 'Eve', lastname: 'White', role_id: roleMap['league_user'], password: hashedPassword },
     { email: 'frank@example.com', firstname: 'Frank', lastname: 'Green', role_id: roleMap['league_user'], password: hashedPassword },
     { email: 'grace@example.com', firstname: 'Grace', lastname: 'Blue', role_id: roleMap['league_user'], password: hashedPassword },
+    { email: 'henry@example.com', firstname: 'Henry', lastname: 'Red', role_id: roleMap['league_user'], password: hashedPassword },
+    { email: 'iris@example.com', firstname: 'Iris', lastname: 'Yellow', role_id: roleMap['league_user'], password: hashedPassword },
+    { email: 'jack@example.com', firstname: 'Jack', lastname: 'Orange', role_id: roleMap['league_user'], password: hashedPassword },
+    { email: 'kate@example.com', firstname: 'Kate', lastname: 'Purple', role_id: roleMap['league_user'], password: hashedPassword },
   ]);
 
-  console.log('✓ Users seeded (8 total including garretthaima@gmail.com)');
-  console.log('🏆 Seeding league...');
+  console.log('✓ Users seeded (12 total including garretthaima@gmail.com)');
+
+  console.log('�🏆 Seeding league...');
 
   const leagueId = await knex('leagues').insert({
     name: 'Test League',
     start_date: '2025-04-01',
     end_date: '2025-06-01',
-    current_week: 1,
+    current_week: 8,
     weekly_budget: 100.0,
     is_active: 1,
     league_code: 'TEST123',
     description: 'A test league for development',
-    max_players: 10,
+    max_players: 15,
+    points_per_win: 4,
+    points_per_loss: 1,
+    points_per_draw: 1,
   }).then(ids => ids[0]);
 
   console.log('✓ League seeded');
@@ -67,6 +75,7 @@ exports.seed = async function (knex) {
     league_wins: 0,
     league_losses: 0,
     league_draws: 0,
+    total_points: 0,
   }));
 
   await knex('user_leagues').insert(enrollments);
@@ -85,81 +94,149 @@ exports.seed = async function (knex) {
   const eveId = userMap['eve@example.com'];
   const frankId = userMap['frank@example.com'];
   const graceId = userMap['grace@example.com'];
+  const henryId = userMap['henry@example.com'];
+  const irisId = userMap['iris@example.com'];
+  const jackId = userMap['jack@example.com'];
+  const kateId = userMap['kate@example.com'];
 
-  // Create pods
-  const podIds = await knex('game_pods').insert([
-    { league_id: leagueId, creator_id: garrettId, confirmation_status: 'open' },
-    { league_id: leagueId, creator_id: aliceId, confirmation_status: 'open' },
-    { league_id: leagueId, creator_id: garrettId, confirmation_status: 'active' },
-    { league_id: leagueId, creator_id: bobId, confirmation_status: 'active' },
-    { league_id: leagueId, creator_id: graceId, confirmation_status: 'pending' },
-    { league_id: leagueId, creator_id: davidId, confirmation_status: 'pending' },
-    { league_id: leagueId, creator_id: eveId, confirmation_status: 'complete' },
-  ]).then(() => knex('game_pods').select('id').orderBy('id'));
+  const allPlayerIds = [garrettId, aliceId, bobId, charlieId, davidId, eveId, frankId, graceId, henryId, irisId, jackId, kateId];
 
-  const [pod1, pod2, pod3, pod4, pod5, pod6, pod7] = podIds.map(p => p.id);
+  // Fetch league point settings
+  const leagueSettings = await knex('leagues')
+    .where({ id: leagueId })
+    .select('points_per_win', 'points_per_loss', 'points_per_draw')
+    .first();
 
-  // Insert game players
+  const winPoints = leagueSettings.points_per_win || 4;
+  const lossPoints = leagueSettings.points_per_loss || 1;
+  const drawPoints = leagueSettings.points_per_draw || 1;
+
+  console.log('🎲 Generating ~140 completed games (35-50 games per player)...');
+
+  // Helper to shuffle array
+  const shuffle = (arr) => arr.sort(() => Math.random() - 0.5);
+
+  // Helper to get random int
+  const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+
+  // Generate ~140 completed pods
+  const completedPods = [];
+  const completedPlayers = [];
+
+  for (let i = 0; i < 140; i++) {
+    const podSize = Math.random() > 0.5 ? 3 : 4;
+    const players = shuffle([...allPlayerIds]).slice(0, podSize);
+    const winnerIndex = randInt(0, podSize - 1);
+
+    completedPods.push({
+      league_id: leagueId,
+      creator_id: players[0],
+      confirmation_status: 'complete',
+      result: 'win'
+    });
+
+    // Store player data for this pod
+    players.forEach((playerId, idx) => {
+      completedPlayers.push({
+        pod_index: i,
+        player_id: playerId,
+        result: idx === winnerIndex ? 'win' : 'loss',
+        confirmed: 1,
+        turn_order: idx + 1
+      });
+    });
+  }
+
+  // Insert completed pods
+  const completedPodIds = await knex('game_pods').insert(completedPods).then(() =>
+    knex('game_pods').select('id').where({ league_id: leagueId, confirmation_status: 'complete' }).orderBy('id')
+  );
+
+  // Map pod_index to actual pod_id
+  completedPlayers.forEach((player, idx) => {
+    player.pod_id = completedPodIds[player.pod_index].id;
+    delete player.pod_index;
+  });
+
+  // Insert all completed players
+  await knex('game_players').insert(completedPlayers);
+
+  // Calculate stats for each player
+  console.log('📊 Calculating player stats...');
+  const playerStats = {};
+  allPlayerIds.forEach(id => {
+    playerStats[id] = { wins: 0, losses: 0, draws: 0, points: 0 };
+  });
+
+  completedPlayers.forEach(player => {
+    if (player.result === 'win') {
+      playerStats[player.player_id].wins++;
+      playerStats[player.player_id].points += winPoints;
+    } else if (player.result === 'loss') {
+      playerStats[player.player_id].losses++;
+      playerStats[player.player_id].points += lossPoints;
+    } else if (player.result === 'draw') {
+      playerStats[player.player_id].draws++;
+      playerStats[player.player_id].points += drawPoints;
+    }
+  });
+
+  // Update user stats
+  for (const [playerId, stats] of Object.entries(playerStats)) {
+    await knex('users').where({ id: playerId }).update({
+      wins: stats.wins,
+      losses: stats.losses,
+      draws: stats.draws
+    });
+
+    await knex('user_leagues').where({ user_id: playerId, league_id: leagueId }).update({
+      league_wins: stats.wins,
+      league_losses: stats.losses,
+      league_draws: stats.draws,
+      total_points: stats.points
+    });
+  }
+
+  // Create a few test pods for your account
+  const testPods = await knex('game_pods').insert([
+    { league_id: leagueId, creator_id: garrettId, confirmation_status: 'open' },      // Pod for override test
+    { league_id: leagueId, creator_id: garrettId, confirmation_status: 'active' },    // Pod for "I won" test
+    { league_id: leagueId, creator_id: aliceId, confirmation_status: 'pending' },     // Pod for confirm test
+  ]).then(() => knex('game_pods').select('id').where({ league_id: leagueId }).whereIn('confirmation_status', ['open', 'active', 'pending']).orderBy('id'));
+
+  const [openPod, activePod, pendingPod] = testPods.map(p => p.id);
+
+  // Insert test game players
   await knex('game_players').insert([
-    // Pod 1: OPEN - 3 players - YOUR POD - TEST OVERRIDE
-    { pod_id: pod1, player_id: garrettId, result: null, confirmed: 0, turn_order: 1 },
-    { pod_id: pod1, player_id: aliceId, result: null, confirmed: 0, turn_order: 2 },
-    { pod_id: pod1, player_id: bobId, result: null, confirmed: 0, turn_order: 3 },
+    // OPEN pod - 3 players - TEST OVERRIDE
+    { pod_id: openPod, player_id: garrettId, result: null, confirmed: 0, turn_order: 1 },
+    { pod_id: openPod, player_id: aliceId, result: null, confirmed: 0, turn_order: 2 },
+    { pod_id: openPod, player_id: bobId, result: null, confirmed: 0, turn_order: 3 },
 
-    // Pod 2: OPEN - 2 players
-    { pod_id: pod2, player_id: aliceId, result: null, confirmed: 0, turn_order: 1 },
-    { pod_id: pod2, player_id: charlieId, result: null, confirmed: 0, turn_order: 2 },
+    // ACTIVE pod - 3 players - TEST "I WON!"
+    { pod_id: activePod, player_id: garrettId, result: null, confirmed: 0, turn_order: 1 },
+    { pod_id: activePod, player_id: davidId, result: null, confirmed: 0, turn_order: 2 },
+    { pod_id: activePod, player_id: eveId, result: null, confirmed: 0, turn_order: 3 },
 
-    // Pod 3: ACTIVE - 3 players - YOUR POD - TEST "I WON!"
-    { pod_id: pod3, player_id: garrettId, result: null, confirmed: 0, turn_order: 1 },
-    { pod_id: pod3, player_id: davidId, result: null, confirmed: 0, turn_order: 2 },
-    { pod_id: pod3, player_id: eveId, result: null, confirmed: 0, turn_order: 3 },
-
-    // Pod 4: ACTIVE - 4 players
-    { pod_id: pod4, player_id: bobId, result: null, confirmed: 0, turn_order: 1 },
-    { pod_id: pod4, player_id: frankId, result: null, confirmed: 0, turn_order: 2 },
-    { pod_id: pod4, player_id: graceId, result: null, confirmed: 0, turn_order: 3 },
-    { pod_id: pod4, player_id: charlieId, result: null, confirmed: 0, turn_order: 4 },
-
-    // Pod 5: PENDING - 3 players - Grace won, YOU NEED TO CONFIRM - TEST CONFIRM
-    { pod_id: pod5, player_id: graceId, result: 'win', confirmed: 1, turn_order: 1 },
-    { pod_id: pod5, player_id: aliceId, result: 'loss', confirmed: 1, turn_order: 2 },
-    { pod_id: pod5, player_id: garrettId, result: 'loss', confirmed: 0, turn_order: 3 },
-
-    // Pod 6: PENDING - 4 players - Alice won, Eve hasn't confirmed
-    { pod_id: pod6, player_id: aliceId, result: 'win', confirmed: 1, turn_order: 1 },
-    { pod_id: pod6, player_id: davidId, result: 'loss', confirmed: 1, turn_order: 2 },
-    { pod_id: pod6, player_id: bobId, result: 'loss', confirmed: 1, turn_order: 3 },
-    { pod_id: pod6, player_id: eveId, result: 'loss', confirmed: 0, turn_order: 4 },
-
-    // Pod 7: COMPLETE - 3 players - Frank won
-    { pod_id: pod7, player_id: frankId, result: 'win', confirmed: 1, turn_order: 1 },
-    { pod_id: pod7, player_id: charlieId, result: 'loss', confirmed: 1, turn_order: 2 },
-    { pod_id: pod7, player_id: bobId, result: 'loss', confirmed: 1, turn_order: 3 },
+    // PENDING pod - 4 players - Alice won, YOU NEED TO CONFIRM
+    { pod_id: pendingPod, player_id: aliceId, result: 'win', confirmed: 1, turn_order: 1 },
+    { pod_id: pendingPod, player_id: garrettId, result: 'loss', confirmed: 0, turn_order: 2 },
+    { pod_id: pendingPod, player_id: charlieId, result: 'loss', confirmed: 1, turn_order: 3 },
+    { pod_id: pendingPod, player_id: davidId, result: 'loss', confirmed: 1, turn_order: 4 },
   ]);
-
-  // Update stats for completed games (Pod 7)
-  await knex('users').where({ id: frankId }).increment('wins', 1);
-  await knex('users').where({ id: charlieId }).increment('losses', 1);
-  await knex('users').where({ id: bobId }).increment('losses', 1);
-
-  await knex('user_leagues').where({ user_id: frankId, league_id: leagueId }).increment('league_wins', 1);
-  await knex('user_leagues').where({ user_id: charlieId, league_id: leagueId }).increment('league_losses', 1);
-  await knex('user_leagues').where({ user_id: bobId, league_id: leagueId }).increment('league_losses', 1);
-
-  // Update stats for Pod 5 (pending - Grace and Alice already confirmed)
-  await knex('users').where({ id: graceId }).increment('wins', 1);
-  await knex('users').where({ id: aliceId }).increment('losses', 1);
-
-  await knex('user_leagues').where({ user_id: graceId, league_id: leagueId }).increment('league_wins', 1);
-  await knex('user_leagues').where({ user_id: aliceId, league_id: leagueId }).increment('league_losses', 1);
 
   console.log('✓ Pods and games seeded');
   console.log('');
+  console.log('📈 SEASON STATS:');
+  console.log(`  Total Games: ${completedPods.length + 3}`);
+  console.log(`  Completed: ${completedPods.length}`);
+  console.log(`  In Progress: 3 (for testing)`);
+  console.log(`  Games per player: ~${Math.round(completedPlayers.length / 12)} on average`);
+  console.log('');
   console.log('🎮 YOUR TEST SCENARIOS:');
-  console.log('  Pod 1 (OPEN): You + Alice + Bob → TEST OVERRIDE BUTTON');
-  console.log('  Pod 3 (ACTIVE): You + David + Eve → TEST "I WON!" BUTTON');
-  console.log('  Pod 5 (PENDING): Grace won, you lost → TEST CONFIRM BUTTON');
+  console.log('  OPEN pod: You + Alice + Bob → TEST OVERRIDE BUTTON');
+  console.log('  ACTIVE pod: You + David + Eve → TEST "I WON!" BUTTON');
+  console.log('  PENDING pod: Alice won, you lost → TEST CONFIRM BUTTON');
   console.log('');
   console.log('✅ All development data seeded successfully!');
 };
