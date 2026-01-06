@@ -52,9 +52,9 @@ const CardSearch = ({ budgetId, remainingBudget, onCardAdded }) => {
             setError(null);
 
             // Get cheapest price
-            const price = selectedCard.prices?.usd || 
-                         selectedCard.prices?.usd_foil || 
-                         0;
+            const price = selectedCard.prices?.usd ||
+                selectedCard.prices?.usd_foil ||
+                0;
 
             if (parseFloat(price) > remainingBudget) {
                 setError(`Insufficient budget. This card costs $${parseFloat(price).toFixed(2)} but you only have $${remainingBudget.toFixed(2)} remaining.`);
@@ -73,11 +73,11 @@ const CardSearch = ({ budgetId, remainingBudget, onCardAdded }) => {
 
             await addCardToBudget(budgetId, cardData);
             onCardAdded();
-            
+
             // Reset form
             setSelectedCard(null);
             setSearchQuery('');
-            
+
         } catch (err) {
             console.error('Error adding card:', err);
             setError(err.response?.data?.error || 'Failed to add card to budget.');
@@ -93,13 +93,13 @@ const CardSearch = ({ budgetId, remainingBudget, onCardAdded }) => {
                     <i className="fas fa-search me-2"></i>
                     Search & Add Cards
                 </h5>
-                
+
                 {error && (
                     <div className="alert alert-danger alert-dismissible fade show" role="alert">
                         {error}
-                        <button 
-                            type="button" 
-                            className="btn-close" 
+                        <button
+                            type="button"
+                            className="btn-close"
                             onClick={() => setError(null)}
                             aria-label="Close"
                         ></button>
@@ -121,9 +121,9 @@ const CardSearch = ({ budgetId, remainingBudget, onCardAdded }) => {
                     {autocompleteResults.length > 0 && (
                         <ul className="list-group position-absolute w-100" style={{ zIndex: 1000, maxHeight: '300px', overflowY: 'auto' }}>
                             {autocompleteResults.map((cardName, index) => (
-                                <li 
+                                <li
                                     key={index}
-                                    className="list-group-item list-group-item-action" 
+                                    className="list-group-item list-group-item-action"
                                     style={{ cursor: 'pointer' }}
                                     onClick={() => handleSelectCard(cardName)}
                                 >
@@ -139,9 +139,9 @@ const CardSearch = ({ budgetId, remainingBudget, onCardAdded }) => {
                         <div className="row g-0">
                             {selectedCard.image_uris?.normal && (
                                 <div className="col-md-4">
-                                    <img 
-                                        src={selectedCard.image_uris.normal} 
-                                        className="img-fluid rounded-start" 
+                                    <img
+                                        src={selectedCard.image_uris.normal}
+                                        className="img-fluid rounded-start"
                                         alt={selectedCard.name}
                                         style={{ maxHeight: '400px', objectFit: 'contain' }}
                                     />
@@ -151,7 +151,7 @@ const CardSearch = ({ budgetId, remainingBudget, onCardAdded }) => {
                                 <div className="card-body">
                                     <h5 className="card-title">{selectedCard.name}</h5>
                                     <p className="card-text text-muted">{selectedCard.set_name}</p>
-                                    
+
                                     <div className="mb-3">
                                         <strong>Price: </strong>
                                         <span className="badge bg-success fs-6">

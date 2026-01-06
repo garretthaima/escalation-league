@@ -23,7 +23,7 @@ const BudgetCardList = ({ budgetId, cards, remainingBudget, onCardUpdated, onCar
     const handleSaveEdit = async (card) => {
         try {
             setUpdating(true);
-            
+
             const updates = {};
             if (editQuantity !== card.quantity) {
                 updates.quantity = parseInt(editQuantity);
@@ -121,8 +121,8 @@ const BudgetCardList = ({ budgetId, cards, remainingBudget, onCardUpdated, onCar
                                         <td>
                                             <div className="d-flex align-items-center">
                                                 {card.image_uri && (
-                                                    <img 
-                                                        src={card.image_uri} 
+                                                    <img
+                                                        src={card.image_uri}
                                                         alt={card.card_name}
                                                         className="me-2"
                                                         style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px' }}

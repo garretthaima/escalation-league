@@ -113,8 +113,8 @@ const BudgetDashboard = () => {
                     {error}
                 </div>
                 {error.includes('join a league') && (
-                    <button 
-                        className="btn btn-primary" 
+                    <button
+                        className="btn btn-primary"
                         onClick={() => navigate('/leagues/signup')}
                     >
                         Join a League
@@ -174,12 +174,12 @@ const BudgetDashboard = () => {
                                 </div>
                             </div>
                             <div className="progress mt-3" style={{ height: '25px' }}>
-                                <div 
+                                <div
                                     className={`progress-bar ${budgetPercentage > 90 ? 'bg-danger' : budgetPercentage > 70 ? 'bg-warning' : 'bg-success'}`}
-                                    role="progressbar" 
+                                    role="progressbar"
                                     style={{ width: `${budgetPercentage}%` }}
-                                    aria-valuenow={budgetPercentage} 
-                                    aria-valuemin="0" 
+                                    aria-valuenow={budgetPercentage}
+                                    aria-valuemin="0"
                                     aria-valuemax="100"
                                 >
                                     {budgetPercentage.toFixed(1)}%
@@ -195,7 +195,7 @@ const BudgetDashboard = () => {
                             <div className="display-4 text-primary">
                                 {budget.total_cards || 0}
                             </div>
-                            <button 
+                            <button
                                 className="btn btn-sm btn-outline-primary mt-3"
                                 onClick={handleRefreshPrices}
                                 disabled={refreshing || cards.length === 0}
@@ -220,7 +220,7 @@ const BudgetDashboard = () => {
             {/* Card Search */}
             <div className="row mb-4">
                 <div className="col-12">
-                    <CardSearch 
+                    <CardSearch
                         budgetId={budget.id}
                         remainingBudget={remainingBudget}
                         onCardAdded={handleCardAdded}
@@ -232,7 +232,7 @@ const BudgetDashboard = () => {
             {/* Budget Cards List */}
             <div className="row mb-4">
                 <div className="col-12">
-                    <BudgetCardList 
+                    <BudgetCardList
                         budgetId={budget.id}
                         cards={cards}
                         remainingBudget={remainingBudget}
@@ -245,7 +245,7 @@ const BudgetDashboard = () => {
             {/* Weekly Summary */}
             <div className="row mb-4">
                 <div className="col-12">
-                    <WeeklySummary 
+                    <WeeklySummary
                         summary={summary}
                         currentWeek={activeLeague?.current_week || 1}
                     />
