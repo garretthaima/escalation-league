@@ -9,14 +9,12 @@ const router = express.Router();
 router.post(
     '/validate',
     authenticateToken, // Ensure the user is authenticated
-    authorizePermission(['deck_validate']), // Ensure the user has the 'validate_decks' permission
     validateAndCacheDeck
 );
 
 router.post(
     '/price-check',
     authenticateToken, // Ensure the user is authenticated
-    authorizePermission(['deck_validate']), // Ensure the user has the 'validate_decks' permission
     priceCheckDeck
 );
 

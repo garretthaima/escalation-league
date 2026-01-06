@@ -19,6 +19,7 @@ import PublicProfile from './components/Auth/Profile/PublicProfile';
 import { LeagueAdminPage, PodAdminPage } from './components/Admin';
 import { HomePage, Footer, Contact } from './components/Shared/';
 import { ToastProvider } from './components/context/ToastContext';
+import { BudgetDashboard } from './components/Budget';
 
 const App = () => {
     const [user, setUser] = useState(null);
@@ -67,6 +68,7 @@ const App = () => {
                             <Route path="signup" element={<SignUp />} />
                             <Route path="leaderboard" element={<LeagueLeaderboard />} />
                             <Route path="price-check" element={<PriceCheckPage />} />
+                            <Route path="budget" element={<BudgetDashboard />} />
                             <Route path="past" element={<PastLeagues />} />
                         </Route>
 

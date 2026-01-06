@@ -14,6 +14,19 @@ const ScryfallApi = {
         }
     },
 
+    async autocompleteWithPrices(query) {
+        if (!query) return [];
+        try {
+            const response = await axiosInstance.get('/scryfall/autocomplete-with-prices', {
+                params: { q: query },
+            });
+            return response.data; // Array of { name, price }
+        } catch (error) {
+            console.error('Error fetching autocomplete with prices from backend proxy:', error);
+            throw new Error('Failed to fetch autocomplete suggestions.');
+        }
+    },
+
     async getCardByName(name) {
         try {
             const response = await axiosInstance.get('/scryfall/cards/named', {
@@ -33,6 +46,18 @@ const ScryfallApi = {
         } catch (error) {
             console.error('Error fetching card by ID from backend proxy:', error);
             throw new Error('Failed to fetch card by ID.');
+        }
+    },
+
+    async getCheapestPrinting(name) {
+        try {
+            const response = await axiosInstance.get('/scryfall/cards/cheapest', {
+                params: { name },
+            });
+            return response.data; // Cheapest printing with price
+        } catch (error) {
+            console.error('Error fetching cheapest printing:', error);
+            throw new Error('Failed to fetch cheapest printing.');
         }
     },
 };

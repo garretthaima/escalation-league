@@ -48,11 +48,18 @@ const runImportScript = async () => {
         console.log('Running the import script...');
         await new Promise((resolve, reject) => {
             exec(`node ${IMPORT_SCRIPT_PATH} ${JSON_FILE_PATH}`, (error, stdout, stderr) => {
+                console.log('=== Import Script Output ===');
+                if (stdout) {
+                    console.log('STDOUT:', stdout);
+                }
+                if (stderr) {
+                    console.error('STDERR:', stderr);
+                }
                 if (error) {
-                    console.error('Error running import script:', stderr);
+                    console.error('Error running import script:', error.message);
                     reject(error);
                 } else {
-                    console.log(stdout);
+                    console.log('=== Import Script Completed ===');
                     resolve();
                 }
             });

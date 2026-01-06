@@ -98,13 +98,24 @@ const updateUserLeagueData = async (req, res) => {
     const { league_id } = req.params;
     const { current_commander, commander_partner, deck_id } = req.body;
 
+    console.log('updateUserLeagueData called:', {
+        userId,
+        league_id,
+        body: req.body,
+        deck_id
+    });
+
     try {
         const updates = {};
         if (current_commander !== undefined) updates.current_commander = current_commander;
         if (commander_partner !== undefined) updates.commander_partner = commander_partner;
         if (deck_id !== undefined) updates.deck_id = deck_id;
 
+        console.log('Updates to apply:', updates);
+
         const result = await db('user_leagues').where({ user_id: userId, league_id }).update(updates);
+
+        console.log('Update result (rows affected):', result);
 
         if (result === 0) {
             return res.status(404).json({ error: 'No league data found to update.' });

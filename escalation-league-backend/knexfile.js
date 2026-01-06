@@ -7,6 +7,9 @@ if (environment === 'production') {
 } else if (environment === 'development') {
     require('dotenv').config({ path: '../.env.dev' });
     require('dotenv').config({ path: '.env.dev' });
+} else if (environment === 'scryfall') {
+    // require('dotenv').config({ path: '../.env.prod' });
+    require('dotenv').config({ path: '.env.prod' });
 } else if (environment === 'test') {
     // require('dotenv').config({ path: '../.env.dev' });
     require('dotenv').config({ path: '.env.dev' });
@@ -53,7 +56,7 @@ module.exports = {
         client: 'mysql2',
         connection: {
             host: process.env.CARD_DB_HOST || 'card-db',
-            port: parseInt(process.env.CARD_DB_PORT || '3309'),
+            port: parseInt(process.env.CARD_DB_PORT || '3307'),
             user: process.env.CARD_DB_USER || 'card_user',
             password: process.env.CARD_DB_PASSWORD,
             database: process.env.CARD_DB_NAME || 'scryfall_card_db',
