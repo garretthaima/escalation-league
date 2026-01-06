@@ -1,6 +1,6 @@
 const db = require('../../models/db');
 const { createTestLeague } = require('./leaguesHelper');
-const { getAuthToken } = require('./authHelper');
+const { getAuthToken, getAuthTokenWithRole } = require('./authHelper');
 
 /**
  * Create a test budget for a user in a league
@@ -79,9 +79,7 @@ const getBudgetWithCards = async (budgetId) => {
  * @returns {Promise<object>} { userId, token, leagueId, budgetId }
  */
 const createBudgetTestSetup = async () => {
-    const { userId, token } = await getAuthToken({
-        role_id: 5 // league_user role
-    });
+    const { userId, token } = await getAuthTokenWithRole('league_user');
 
     const leagueId = await createTestLeague({
         name: 'Test Budget League',
