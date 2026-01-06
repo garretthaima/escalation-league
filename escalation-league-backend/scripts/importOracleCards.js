@@ -2,13 +2,22 @@ const fs = require('fs');
 const knex = require('knex')(require('../knexfile.js').scryfall);
 
 const importOracleCards = async (filePath) => {
+    console.log('=== Starting Oracle Cards Import ===');
+    console.log('File path:', filePath);
+
     try {
         if (!filePath) {
             throw new Error('File path is required.');
         }
 
+        console.log('Reading file...');
         // Read and parse the Oracle Cards JSON file
         const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+        console.log(`Loaded ${data.length} cards from JSON file`);
+
+        console.log('Testing database connection...');
+        await knex.raw('SELECT 1');
+        console.log('Database connection successful');
 
         // Track Commander-legal card IDs
         const commanderLegalIds = new Set();
@@ -16,11 +25,14 @@ const importOracleCards = async (filePath) => {
         // Counters for tracking operations
         let insertedCount = 0;
         let updatedCount = 0;
+        let skippedCount = 0;
 
+        console.log('Processing cards...');
         // Iterate over each card
         for (const card of data) {
             // Skip cards that are not legal in Commander
             if (card.legalities.commander !== 'legal') {
+                skippedCount++;
                 continue;
             }
 
@@ -116,12 +128,19 @@ const importOracleCards = async (filePath) => {
         }
 
         // Log the results
+        console.log('=== Import Complete ===');
+        console.log(`Total cards processed: ${data.length}`);
+        console.log(`Commander-legal cards: ${commanderLegalIds.size}`);
+        console.log(`Skipped (not Commander-legal): ${skippedCount}`);
         console.log(`Inserted ${insertedCount} new cards.`);
         console.log(`Updated ${updatedCount} existing cards.`);
         console.log(`Removed ${removedCount} cards that are no longer Commander-legal.`);
         console.log('Oracle Cards imported successfully!');
     } catch (error) {
-        console.error('Error importing Oracle Cards:', error);
+        console.error('=== ERROR DURING IMPORT ===');
+        console.error('Error importing Oracle Cards:', error.message);
+        console.error('Stack trace:', error.stack);
+        throw error;
     } finally {
         knex.destroy();
     }

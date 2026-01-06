@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { updateBudgetCard, removeCardFromBudget } from '../../api/budgetApi';
 
-const BudgetCardList = ({ budgetId, cards, remainingBudget, onCardUpdated, onCardRemoved }) => {
+const BudgetCardList = ({ budgetId, cards, remainingBudget, onCardUpdated, onCardRemoved, removesLocked = false }) => {
     const [editingCard, setEditingCard] = useState(null);
     const [editQuantity, setEditQuantity] = useState(1);
     const [editNotes, setEditNotes] = useState('');
     const [updating, setUpdating] = useState(false);
     const [removing, setRemoving] = useState({});
+    const [error, setError] = useState(null);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [cardToDelete, setCardToDelete] = useState(null);
 
     const handleStartEdit = (card) => {
         setEditingCard(card.id);
@@ -41,7 +44,7 @@ const BudgetCardList = ({ budgetId, cards, remainingBudget, onCardUpdated, onCar
             if (updates.quantity && updates.quantity > card.quantity) {
                 const costDifference = (updates.quantity - card.quantity) * parseFloat(card.price_at_addition);
                 if (costDifference > remainingBudget) {
-                    alert(`Cannot increase quantity. Additional cost of $${costDifference.toFixed(2)} exceeds remaining budget of $${remainingBudget.toFixed(2)}.`);
+                    setError(`Cannot increase quantity. Additional cost of $${costDifference.toFixed(2)} exceeds remaining budget of $${remainingBudget.toFixed(2)}.`);
                     return;
                 }
             }
@@ -51,26 +54,31 @@ const BudgetCardList = ({ budgetId, cards, remainingBudget, onCardUpdated, onCar
             handleCancelEdit();
         } catch (err) {
             console.error('Error updating card:', err);
-            alert(err.response?.data?.error || 'Failed to update card.');
+            setError(err.response?.data?.error || 'Failed to update card.');
         } finally {
             setUpdating(false);
         }
     };
 
-    const handleRemoveCard = async (cardId) => {
-        if (!window.confirm('Are you sure you want to remove this card from your budget?')) {
-            return;
-        }
+    const handleRemoveCard = (card) => {
+        setCardToDelete(card);
+        setShowDeleteModal(true);
+    };
+
+    const confirmRemoveCard = async () => {
+        if (!cardToDelete) return;
 
         try {
-            setRemoving({ ...removing, [cardId]: true });
-            await removeCardFromBudget(budgetId, cardId);
+            setRemoving({ ...removing, [cardToDelete.id]: true });
+            await removeCardFromBudget(budgetId, cardToDelete.id);
+            setShowDeleteModal(false);
+            setCardToDelete(null);
             onCardRemoved();
         } catch (err) {
             console.error('Error removing card:', err);
-            alert(err.response?.data?.error || 'Failed to remove card.');
+            setError(err.response?.data?.error || 'Failed to remove card.');
         } finally {
-            setRemoving({ ...removing, [cardId]: false });
+            setRemoving({ ...removing, [cardToDelete.id]: false });
         }
     };
 
@@ -94,6 +102,26 @@ const BudgetCardList = ({ budgetId, cards, remainingBudget, onCardUpdated, onCar
                     <i className="fas fa-list me-2"></i>
                     Your Cards ({cards.length})
                 </h5>
+
+                {error && (
+                    <div className="alert alert-danger alert-dismissible fade show" role="alert">
+                        {error}
+                        <button
+                            type="button"
+                            className="btn-close"
+                            onClick={() => setError(null)}
+                            aria-label="Close"
+                        ></button>
+                    </div>
+                )}
+
+                {removesLocked && (
+                    <div className="alert alert-warning">
+                        <i className="fas fa-lock me-2"></i>
+                        <strong>Removes Locked:</strong> Card removals are disabled after Thursday 6pm EST each week.
+                    </div>
+                )}
+
                 <p className="text-muted small mb-3">
                     Total Value: ${totalCost.toFixed(2)}
                 </p>
@@ -190,9 +218,10 @@ const BudgetCardList = ({ budgetId, cards, remainingBudget, onCardUpdated, onCar
                                                     </button>
                                                     <button
                                                         className="btn btn-outline-danger"
-                                                        onClick={() => handleRemoveCard(card.id)}
-                                                        disabled={removing[card.id]}
-                                                        title="Remove"
+                                                        onClick={() => handleRemoveCard(card)}
+                                                        disabled={removing[card.id] || removesLocked}
+                                                        title={removesLocked ? "Card removes locked after Thursday 6pm EST" : "Remove"}
+                                                        style={removesLocked ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
                                                     >
                                                         {removing[card.id] ? (
                                                             <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
@@ -223,6 +252,61 @@ const BudgetCardList = ({ budgetId, cards, remainingBudget, onCardUpdated, onCar
                     </div>
                 )}
             </div>
+
+            {/* Delete Confirmation Modal */}
+            {showDeleteModal && (
+                <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                    <div className="modal-dialog modal-dialog-centered">
+                        <div className="modal-content">
+                            <div className="modal-header">
+                                <h5 className="modal-title">
+                                    <i className="fas fa-exclamation-triangle text-warning me-2"></i>
+                                    Confirm Removal
+                                </h5>
+                                <button
+                                    type="button"
+                                    className="btn-close"
+                                    onClick={() => setShowDeleteModal(false)}
+                                    aria-label="Close"
+                                ></button>
+                            </div>
+                            <div className="modal-body">
+                                <p>Are you sure you want to remove <strong>{cardToDelete?.card_name}</strong> from your budget?</p>
+                                <p className="text-muted small mb-0">
+                                    This will refund ${(parseFloat(cardToDelete?.price_at_addition || 0) * (cardToDelete?.quantity || 1)).toFixed(2)} to your budget.
+                                </p>
+                            </div>
+                            <div className="modal-footer">
+                                <button
+                                    type="button"
+                                    className="btn btn-secondary"
+                                    onClick={() => setShowDeleteModal(false)}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    className="btn btn-danger"
+                                    onClick={confirmRemoveCard}
+                                    disabled={removing[cardToDelete?.id]}
+                                >
+                                    {removing[cardToDelete?.id] ? (
+                                        <>
+                                            <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                            Removing...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <i className="fas fa-trash me-2"></i>
+                                            Remove Card
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

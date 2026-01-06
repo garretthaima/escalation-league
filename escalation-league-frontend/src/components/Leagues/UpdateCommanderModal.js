@@ -108,7 +108,7 @@ const UpdateCommanderModal = ({ show, onHide, leagueId, currentCommander, curren
             if (decklistUrl && decklistUrl !== currentDeckUrl) {
                 try {
                     const response = await validateAndCacheDeck({ decklistUrl });
-                    updates.deck_id = parseInt(response.deck.id, 10);
+                    updates.deck_id = response.deck.id; // Keep as string, don't parseInt
                 } catch (error) {
                     setDeckValidationError('Invalid decklist URL. Please provide a valid decklist.');
                     setIsSubmitting(false);
@@ -129,6 +129,7 @@ const UpdateCommanderModal = ({ show, onHide, leagueId, currentCommander, curren
                 return;
             }
 
+            console.log('Frontend sending updates:', updates);
             await updateUserLeagueData(leagueId, updates);
 
             showToast('League data updated successfully!', 'success');

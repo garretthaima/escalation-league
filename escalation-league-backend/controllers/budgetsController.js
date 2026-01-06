@@ -1,5 +1,6 @@
 const db = require('../models/db');
 const scryfallDb = require('../models/scryfallDb');
+const { calculateCurrentWeek, areAddsLocked } = require('../utils/leagueUtils');
 
 const BudgetsController = {
     /**
@@ -72,7 +73,8 @@ const BudgetsController = {
             }
 
             // Calculate available budget (weekly budget * current week)
-            const budget_available = league.weekly_budget * league.current_week;
+            const currentWeek = calculateCurrentWeek(league.start_date, league.end_date);
+            const budget_available = league.weekly_budget * currentWeek;
 
             // Create budget
             const [budgetId] = await db('user_budgets').insert({
@@ -184,6 +186,14 @@ const BudgetsController = {
                 return res.status(404).json({ error: 'League not found.' });
             }
 
+            // Check if adds are locked (after Thursday 6pm, except final week)
+            if (areAddsLocked(league.start_date, league.end_date)) {
+                return res.status(403).json({
+                    error: 'Card adds are locked after Thursday 6pm each week. You can add cards again when the next week starts.',
+                    locked: true
+                });
+            }
+
             // Calculate total cost
             const totalCost = price_at_addition * quantity;
 
@@ -197,6 +207,9 @@ const BudgetsController = {
                 });
             }
 
+            // Get current week
+            const currentWeek = calculateCurrentWeek(league.start_date, league.end_date);
+
             // Add card to budget
             const [cardId] = await db('budget_cards').insert({
                 user_budget_id: budgetId,
@@ -207,7 +220,7 @@ const BudgetsController = {
                 set_name,
                 image_uri,
                 card_faces: card_faces ? JSON.stringify(card_faces) : null,
-                week_added: league.current_week,
+                week_added: currentWeek,
                 notes
             });
 
@@ -311,6 +324,23 @@ const BudgetsController = {
                 return res.status(404).json({ error: 'Budget not found or unauthorized.' });
             }
 
+            // Get league to check if removes are locked
+            const league = await db('leagues')
+                .where({ id: budget.league_id })
+                .first();
+
+            if (!league) {
+                return res.status(404).json({ error: 'League not found.' });
+            }
+
+            // Check if removes are locked (after Thursday 6pm EST)
+            if (areAddsLocked(league.start_date, league.end_date)) {
+                return res.status(403).json({
+                    error: 'Card removes are locked after Thursday 6pm EST each week.',
+                    locked: true
+                });
+            }
+
             // Get card to calculate cost to refund
             const card = await db('budget_cards')
                 .where({ id: cardId, user_budget_id: budgetId })
@@ -339,7 +369,7 @@ const BudgetsController = {
     },
 
     /**
-     * Refresh prices for all cards in budget
+     * Refresh prices for all cards in budget (current week only)
      * POST /api/budgets/:budgetId/refresh-prices
      */
     async refreshCardPrices(req, res) {
@@ -356,13 +386,24 @@ const BudgetsController = {
                 return res.status(404).json({ error: 'Budget not found or unauthorized.' });
             }
 
-            // Get all cards in budget
+            // Get league for current week calculation
+            const league = await db('leagues')
+                .where({ id: budget.league_id })
+                .first();
+
+            if (!league) {
+                return res.status(404).json({ error: 'League not found.' });
+            }
+
+            const currentWeek = calculateCurrentWeek(league.start_date, league.end_date);
+
+            // Get only current week's cards
             const cards = await db('budget_cards')
-                .where({ user_budget_id: budgetId })
+                .where({ user_budget_id: budgetId, week_added: currentWeek })
                 .select('*');
 
             if (cards.length === 0) {
-                return res.status(200).json({ message: 'No cards to refresh.', updates: [] });
+                return res.status(200).json({ message: 'No cards from current week to refresh.', updates: [] });
             }
 
             // Get unique card names
@@ -470,10 +511,11 @@ const BudgetsController = {
                 .orderBy('week_added', 'asc');
 
             // Build weekly summary
+            const currentWeek = calculateCurrentWeek(league.start_date, league.end_date);
             const weeklySummary = [];
-            let cumulativeBudget = league.weekly_budget;
+            let cumulativeBudget = parseFloat(league.weekly_budget);
 
-            for (let week = 1; week <= league.current_week; week++) {
+            for (let week = 1; week <= currentWeek; week++) {
                 const weekData = cardsByWeek.find(w => w.week_added === week);
                 const spent = weekData ? parseFloat(weekData.total_spent) : 0;
                 const cardCount = weekData ? weekData.card_count : 0;
@@ -485,24 +527,25 @@ const BudgetsController = {
 
                 weeklySummary.push({
                     week: week,
-                    budget_available: cumulativeBudget,
-                    budget_used: spent,
-                    budget_remaining: cumulativeBudget - spent,
+                    budget_available: parseFloat(cumulativeBudget.toFixed(2)),
+                    budget_used: parseFloat(spent.toFixed(2)),
+                    budget_remaining: parseFloat((cumulativeBudget - spent).toFixed(2)),
                     card_count: cardCount,
                     cards: weekCards
                 });
 
                 // Update cumulative budget
-                cumulativeBudget = (cumulativeBudget - spent) + league.weekly_budget;
+                cumulativeBudget = (cumulativeBudget - spent) + parseFloat(league.weekly_budget);
             }
 
             res.status(200).json({
                 league_id: league.id,
                 league_name: league.name,
-                current_week: league.current_week,
+                current_week: currentWeek,
                 weekly_budget: parseFloat(league.weekly_budget),
                 total_budget_available: parseFloat(budget.budget_available),
                 total_budget_used: parseFloat(budget.budget_used),
+                adds_locked: areAddsLocked(league.start_date, league.end_date),
                 weekly_summary: weeklySummary
             });
         } catch (error) {

@@ -3,9 +3,9 @@ Description=Nightly Scryfall database update timer
 Requires=scryfall-update.service
 
 [Timer]
-# Run at 3:00 AM daily
+# Run at 6:00 AM UTC (1:00 AM EST) - after Scryfall's daily update
 OnCalendar=daily
-OnCalendar=*-*-* 03:00:00
+OnCalendar=*-*-* 06:00:00
 Persistent=true
 
 [Install]

@@ -70,7 +70,6 @@ router.get(
 router.put(
     '/:league_id',
     authenticateToken,
-    authorizePermission(['league_update']), // Permission to update user's league data
     updateUserLeagueData
 );
 

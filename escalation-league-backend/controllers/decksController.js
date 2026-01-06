@@ -6,7 +6,7 @@ const { calculateDeckPrices } = require('../services/priceService');
 
 // Helper function: Validate the decklist URL
 const validateDecklistUrl = (decklistUrl) => {
-    const moxfieldRegex = /^https:\/\/www\.moxfield\.com\/decks\/[a-zA-Z0-9-]+$/;
+    const moxfieldRegex = /^https:\/\/(www\.)?moxfield\.com\/decks\/[a-zA-Z0-9_-]+$/;
     const archidektRegex = /^https:\/\/archidekt\.com\/decks\/[0-9]+(\/[a-zA-Z0-9_-]+)?$/;
 
     if (moxfieldRegex.test(decklistUrl)) return 'Moxfield';
@@ -16,6 +16,7 @@ const validateDecklistUrl = (decklistUrl) => {
 
 // Main function: Validate and cache deck data
 const validateAndCacheDeck = async (req, res) => {
+    console.log('validateAndCacheDeck received body:', req.body);
     const { decklistUrl } = req.body;
 
     if (!decklistUrl) {
@@ -32,6 +33,7 @@ const validateAndCacheDeck = async (req, res) => {
             ? decklistUrl.split('/').pop()
             : decklistUrl.match(/^https:\/\/archidekt\.com\/decks\/([0-9]+)/)[1];
 
+        console.log('Deck ID extracted:', deckId, 'Platform:', platform);
         const cacheKey = `deck:${deckId}`;
 
         // Check if the deck is already cached

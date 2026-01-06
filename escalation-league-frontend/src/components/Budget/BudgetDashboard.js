@@ -12,6 +12,7 @@ const BudgetDashboard = () => {
     const [budget, setBudget] = useState(null);
     const [cards, setCards] = useState([]);
     const [summary, setSummary] = useState([]);
+    const [addsLocked, setAddsLocked] = useState(false);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [refreshing, setRefreshing] = useState(false);
@@ -56,6 +57,7 @@ const BudgetDashboard = () => {
             ]);
             setCards(cardsData);
             setSummary(summaryData.weekly_summary || []);
+            setAddsLocked(summaryData.adds_locked || false);
 
         } catch (err) {
             console.error('Error fetching budget data:', err);
@@ -83,11 +85,12 @@ const BudgetDashboard = () => {
     const handleRefreshPrices = async () => {
         try {
             setRefreshing(true);
+            setError(null);
             await refreshCardPrices(budget.id);
             await fetchBudgetData();
         } catch (err) {
             console.error('Error refreshing prices:', err);
-            alert('Failed to refresh prices: ' + (err.response?.data?.error || 'Unknown error'));
+            setError('Failed to refresh prices: ' + (err.response?.data?.error || 'Unknown error'));
         } finally {
             setRefreshing(false);
         }
@@ -141,10 +144,13 @@ const BudgetDashboard = () => {
         <div className="container mt-4 budget-dashboard">
             <div className="row mb-4">
                 <div className="col-12">
-                    <h2 className="mb-3">
-                        <i className="fas fa-wallet me-2"></i>
-                        Budget Dashboard
-                    </h2>
+                    <div className="d-flex align-items-center mb-3">
+                        <h2 className="mb-0">
+                            <i className="fas fa-wallet me-2"></i>
+                            Budget Dashboard
+                        </h2>
+                        <span className="badge bg-warning text-dark ms-3" style={{ fontSize: '0.9rem' }}>BETA</span>
+                    </div>
                     {activeLeague && (
                         <p className="text-muted">
                             {activeLeague.name} - Week {activeLeague.current_week}
@@ -199,6 +205,7 @@ const BudgetDashboard = () => {
                                 className="btn btn-sm btn-outline-primary mt-3"
                                 onClick={handleRefreshPrices}
                                 disabled={refreshing || cards.length === 0}
+                                title="Refresh prices for current week's cards only"
                             >
                                 {refreshing ? (
                                     <>
@@ -225,6 +232,7 @@ const BudgetDashboard = () => {
                         remainingBudget={remainingBudget}
                         onCardAdded={handleCardAdded}
                         currentWeek={activeLeague?.current_week || 1}
+                        addsLocked={addsLocked}
                     />
                 </div>
             </div>
@@ -238,6 +246,7 @@ const BudgetDashboard = () => {
                         remainingBudget={remainingBudget}
                         onCardUpdated={handleCardUpdated}
                         onCardRemoved={handleCardRemoved}
+                        removesLocked={addsLocked}
                     />
                 </div>
             </div>

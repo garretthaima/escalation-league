@@ -1,15 +1,22 @@
 const db = require('./testDb');
 
 async function createTestLeague(overrides = {}) {
+    // Use current date as default so calculated week is realistic
+    const today = new Date();
+    const startDate = new Date(today);
+    startDate.setDate(today.getDate() - 7); // Start 1 week ago (week 2)
+    const endDate = new Date(today);
+    endDate.setMonth(today.getMonth() + 6); // End in 6 months
+
     const [leagueId] = await db('leagues').insert({
         name: 'Test League',
-        start_date: '2025-01-01',
-        end_date: '2025-12-31',
+        start_date: startDate.toISOString().split('T')[0],
+        end_date: endDate.toISOString().split('T')[0],
         description: 'A test league',
         max_players: 20,
         weekly_budget: 100,
         is_active: false,
-        current_week: 1,
+        current_week: 1, // This column is now ignored, week is calculated
         ...overrides
     });
 
