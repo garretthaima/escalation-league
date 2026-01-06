@@ -24,7 +24,6 @@ const LeaguesPage = () => {
                 if (inLeague) {
                     setActiveLeague(league);
                 }
-                console.log('League data:', { inLeague, league });
             } catch (err) {
                 if (err.response && err.response.status === 404) {
                     console.warn('User is not part of any league.');

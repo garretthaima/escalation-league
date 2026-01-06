@@ -81,7 +81,7 @@ const App = () => {
                         <Route path="/profile" element={<Profile />} />
 
                         {/* Profile Section */}
-                        <Route path="/profile/:userId" element={<PublicProfile />} />
+                        <Route path="/leagues/:leagueId/profile/:userId" element={<PublicProfile />} />
 
                         {/* Admin Section */}
                         <Route path="/admin/leagues" element={<LeagueAdminPage />} />

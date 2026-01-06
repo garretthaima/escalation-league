@@ -67,7 +67,6 @@ const LocalRegister = () => {
                 return res.json();
             })
             .then((data) => {
-                console.log('Response from backend:', data);
                 if (data.message === 'User registered successfully') {
                     navigate('/login'); // Redirect to login page after successful registration
                 } else {

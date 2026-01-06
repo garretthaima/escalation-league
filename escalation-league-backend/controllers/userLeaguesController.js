@@ -44,16 +44,47 @@ const getUserLeagueStats = async (req, res) => {
     const { league_id } = req.params;
 
     try {
-        const stats = await db('user_leagues')
-            .select('league_wins', 'league_losses', 'current_commander', 'decklist_url', 'joined_at')
-            .where({ user_id: userId, league_id })
+        const scryfallDb = require('../models/scryfallDb');
+
+        const stats = await db('user_leagues as ul')
+            .leftJoin('decks as d', 'ul.deck_id', 'd.id')
+            .select('ul.league_wins', 'ul.league_losses', 'ul.current_commander', 'ul.commander_partner', 'ul.deck_id', 'd.decklist_url', 'ul.joined_at')
+            .where({ 'ul.user_id': userId, 'ul.league_id': league_id })
             .first();
 
         if (!stats) {
             return res.status(404).json({ error: 'No stats found for this league.' });
         }
 
-        res.status(200).json(stats);
+        // Fetch commander names from Scryfall DB if IDs exist
+        let commanderName = null;
+        let partnerName = null;
+
+        if (stats.current_commander) {
+            const commanderData = await scryfallDb('cards')
+                .select('name')
+                .where('id', stats.current_commander)
+                .first();
+            commanderName = commanderData ? commanderData.name : null;
+        }
+
+        if (stats.commander_partner) {
+            const partnerData = await scryfallDb('cards')
+                .select('name')
+                .where('id', stats.commander_partner)
+                .first();
+            partnerName = partnerData ? partnerData.name : null;
+        }
+
+        res.status(200).json({
+            league_wins: stats.league_wins,
+            league_losses: stats.league_losses,
+            current_commander: commanderName,
+            commander_partner: partnerName,
+            deck_id: stats.deck_id,
+            decklist_url: stats.decklist_url,
+            joined_at: stats.joined_at,
+        });
     } catch (err) {
         console.error('Error fetching user league stats:', err.message);
         res.status(500).json({ error: 'Failed to fetch user league stats.' });
@@ -64,12 +95,13 @@ const getUserLeagueStats = async (req, res) => {
 const updateUserLeagueData = async (req, res) => {
     const userId = req.user.id;
     const { league_id } = req.params;
-    const { current_commander, decklist_url } = req.body;
+    const { current_commander, commander_partner, deck_id } = req.body;
 
     try {
         const updates = {};
-        if (current_commander) updates.current_commander = current_commander;
-        if (decklist_url) updates.decklist_url = decklist_url;
+        if (current_commander !== undefined) updates.current_commander = current_commander;
+        if (commander_partner !== undefined) updates.commander_partner = commander_partner;
+        if (deck_id !== undefined) updates.deck_id = deck_id;
 
         const result = await db('user_leagues').where({ user_id: userId, league_id }).update(updates);
 
@@ -110,7 +142,16 @@ const getLeagueParticipants = async (req, res) => {
     try {
         const participants = await db('user_leagues as ul')
             .join('users as u', 'ul.user_id', 'u.id')
-            .select('u.id', 'u.firstname', 'u.lastname', 'u.email', 'ul.joined_at')
+            .select(
+                'u.id as user_id',
+                'u.firstname',
+                'u.lastname',
+                'ul.league_wins',
+                'ul.league_losses',
+                'ul.is_active',
+                'ul.disqualified',
+                'ul.joined_at'
+            )
             .where('ul.league_id', league_id);
 
         res.status(200).json(participants);
@@ -125,6 +166,8 @@ const getLeagueParticipantDetails = async (req, res) => {
     const { league_id, user_id } = req.params;
 
     try {
+        const scryfallDb = require('../models/scryfallDb');
+
         // Fetch participant details from the database, including decklist_url from the decks table
         const participant = await db('user_leagues as ul')
             .join('users as u', 'ul.user_id', 'u.id')
@@ -133,7 +176,6 @@ const getLeagueParticipantDetails = async (req, res) => {
                 'u.id as user_id',
                 'u.firstname',
                 'u.lastname',
-                'u.email',
                 'ul.current_commander',
                 'ul.commander_partner',
                 'ul.league_wins',
@@ -149,16 +191,49 @@ const getLeagueParticipantDetails = async (req, res) => {
             return res.status(404).json({ error: 'Participant not found in this league.' });
         }
 
+        // Fetch commander details from Scryfall DB
+        let commanderData = null;
+        let partnerData = null;
+
+        if (participant.current_commander) {
+            commanderData = await scryfallDb('cards')
+                .select('id', 'name', 'image_uris')
+                .where('id', participant.current_commander)
+                .first();
+        }
+
+        if (participant.commander_partner) {
+            partnerData = await scryfallDb('cards')
+                .select('id', 'name', 'image_uris')
+                .where('id', participant.commander_partner)
+                .first();
+        }
+
+        // Helper function to safely extract image URI
+        const getImageUri = (cardData) => {
+            if (!cardData || !cardData.image_uris) return null;
+            try {
+                const imageUris = typeof cardData.image_uris === 'string'
+                    ? JSON.parse(cardData.image_uris)
+                    : cardData.image_uris;
+                return imageUris.normal || imageUris.large || null;
+            } catch (error) {
+                console.error('Error parsing image URIs:', error);
+                return null;
+            }
+        };
+
         res.status(200).json({
             user_id: participant.user_id,
             firstname: participant.firstname,
             lastname: participant.lastname,
-            email: participant.email,
-            commander: participant.current_commander,
-            commanderPartner: participant.commander_partner,
+            commander: commanderData ? commanderData.name : null,
+            commander_image: getImageUri(commanderData),
+            commanderPartner: partnerData ? partnerData.name : null,
+            partner_image: getImageUri(partnerData),
             league_wins: participant.league_wins,
             league_losses: participant.league_losses,
-            decklist_url: participant.decklist_url || null, // Use the decklist_url from the decks table
+            decklist_url: participant.decklist_url || null,
             deck_id: participant.deck_id,
             joined_at: participant.joined_at,
         });
@@ -294,6 +369,35 @@ const isUserInLeague = async (req, res) => {
     }
 };
 
+// Admin: Update participant status (activate/deactivate, disqualify)
+const updateParticipantStatus = async (req, res) => {
+    const { league_id, user_id } = req.params;
+    const { is_active, disqualified } = req.body;
+
+    try {
+        const updates = {};
+        if (is_active !== undefined) updates.is_active = is_active;
+        if (disqualified !== undefined) updates.disqualified = disqualified;
+
+        if (Object.keys(updates).length === 0) {
+            return res.status(400).json({ error: 'No updates provided.' });
+        }
+
+        const result = await db('user_leagues')
+            .where({ user_id, league_id })
+            .update(updates);
+
+        if (result === 0) {
+            return res.status(404).json({ error: 'Participant not found in this league.' });
+        }
+
+        res.status(200).json({ message: 'Participant status updated successfully.' });
+    } catch (err) {
+        console.error('Error updating participant status:', err.message);
+        res.status(500).json({ error: 'Failed to update participant status.' });
+    }
+};
+
 module.exports = {
     signUpForLeague,
     getUserLeagueStats,
@@ -304,5 +408,6 @@ module.exports = {
     requestSignupForLeague,
     getUserPendingSignupRequests,
     isUserInLeague,
-    getLeagueParticipantDetails
+    getLeagueParticipantDetails,
+    updateParticipantStatus
 };

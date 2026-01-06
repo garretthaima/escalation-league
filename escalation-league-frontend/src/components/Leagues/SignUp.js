@@ -14,7 +14,9 @@ const SignUp = () => {
     const [loading, setLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [commander, setCommander] = useState('');
+    const [commanderScryfallId, setCommanderScryfallId] = useState('');
     const [commanderPartner, setCommanderPartner] = useState('');
+    const [partnerScryfallId, setPartnerScryfallId] = useState('');
     const [commanderSuggestions, setCommanderSuggestions] = useState([]);
     const [partnerSuggestions, setPartnerSuggestions] = useState([]);
     const [hasPartnerAbility, setHasPartnerAbility] = useState(false);
@@ -72,9 +74,7 @@ const SignUp = () => {
 
     const handleDeckValidation = async () => {
         try {
-            console.log('Validating deck with URL:', decklistUrl); // Log the decklist URL
             const response = await validateAndCacheDeck({ decklistUrl }); // Call the backend
-            console.log('Deck validation response:', response); // Log the response
             setDeckValidationError(''); // Clear any previous errors
             return response.deck.id; // Return the deck_id from the backend response
         } catch (error) {
@@ -98,18 +98,12 @@ const SignUp = () => {
         }
 
         try {
-            console.log('Request body:', {
-                league_id: selectedLeague,
-                deck_id: deckId,
-                current_commander: commander,
-                commander_partner: hasPartnerAbility ? commanderPartner : null,
-            });
             // Send the signup request to the backend
             const response = await requestSignupForLeague({
                 league_id: parseInt(selectedLeague, 10),
                 deck_id: parseInt(deckId, 10),
-                current_commander: commander,
-                commander_partner: hasPartnerAbility ? commanderPartner : null,
+                current_commander: commanderScryfallId,
+                commander_partner: hasPartnerAbility ? partnerScryfallId : null,
             });
 
             setMessage(response.message || 'Successfully signed up for the league!');
@@ -177,18 +171,30 @@ const SignUp = () => {
         setCommanderSuggestions([]);
 
         try {
-            const response = await ScryfallApi.getCardByName(name);
-            const oracleText = response.data.oracle_text || '';
+            const card = await ScryfallApi.getCardByName(name);
+            const oracleText = card.oracle_text || '';
             setHasPartnerAbility(oracleText.toLowerCase().includes('partner'));
+            // Store the Scryfall ID
+            setCommanderScryfallId(card.id || '');
         } catch (error) {
             console.error('Error fetching commander details:', error);
             setHasPartnerAbility(false);
+            setCommanderScryfallId('');
         }
     };
 
     const handlePartnerSelection = async (name) => {
         setCommanderPartner(name);
         setPartnerSuggestions([]);
+
+        try {
+            const card = await ScryfallApi.getCardByName(name);
+            // Store the Scryfall ID
+            setPartnerScryfallId(card.id || '');
+        } catch (error) {
+            console.error('Error fetching partner details:', error);
+            setPartnerScryfallId('');
+        }
     };
 
     useEffect(() => {

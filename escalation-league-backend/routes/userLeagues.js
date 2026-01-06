@@ -11,6 +11,7 @@ const {
     requestSignupForLeague,
     getUserPendingSignupRequests,
     isUserInLeague,
+    updateParticipantStatus,
 } = require('../controllers/userLeaguesController');
 const authenticateToken = require('../middlewares/authentication');
 const authorizePermission = require('../middlewares/authorizePermission');
@@ -94,6 +95,14 @@ router.get(
     authenticateToken,
     authorizePermission(['league_read']), // Restrict access to league admins
     getLeagueParticipantDetails
+);
+
+// Admin: Update participant status (activate/deactivate, disqualify)
+router.put(
+    '/:league_id/participants/:user_id',
+    authenticateToken,
+    authorizePermission(['league_manage_players']), // Permission to manage league participants
+    updateParticipantStatus
 );
 
 

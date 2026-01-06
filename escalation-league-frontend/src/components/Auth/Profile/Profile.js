@@ -35,7 +35,6 @@ const Profile = () => {
 
     const handlePictureUpdate = async (newPicture) => {
         try {
-            console.log('Updating profile picture with:', { picture: newPicture });
             await updateUserProfile({ picture: newPicture });
             setUser((prevUser) => ({ ...prevUser, picture: newPicture }));
         } catch (err) {

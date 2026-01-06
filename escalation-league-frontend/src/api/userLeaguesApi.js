@@ -64,3 +64,9 @@ export const requestSignupForLeague = async (data) => {
     const response = await axiosInstance.post('/user-leagues/signup-request', { data });
     return response.data;
 };
+
+// Admin: Update participant status (activate/deactivate, disqualify)
+export const updateParticipantStatus = async (leagueId, userId, updates) => {
+    const response = await axiosInstance.put(`/user-leagues/${leagueId}/participants/${userId}`, updates);
+    return response.data;
+};

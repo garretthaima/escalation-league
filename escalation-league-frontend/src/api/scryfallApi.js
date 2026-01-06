@@ -1,12 +1,10 @@
-import axios from 'axios';
-
-const BACKEND_BASE_URL = process.env.REACT_APP_BACKEND_URL;
+import axiosInstance from './axiosConfig';
 
 const ScryfallApi = {
     async autocomplete(query) {
         if (!query) return [];
         try {
-            const response = await axios.get(`${BACKEND_BASE_URL}/scryfall/autocomplete`, {
+            const response = await axiosInstance.get('/scryfall/autocomplete', {
                 params: { q: query },
             });
             return response.data; // Array of card names
@@ -18,13 +16,23 @@ const ScryfallApi = {
 
     async getCardByName(name) {
         try {
-            const response = await axios.get(`${BACKEND_BASE_URL}/scryfall/cards/named`, {
+            const response = await axiosInstance.get('/scryfall/cards/named', {
                 params: { exact: name },
             });
             return response.data; // Full card details
         } catch (error) {
             console.error('Error fetching card details from backend proxy:', error);
             throw new Error('Failed to fetch card details.');
+        }
+    },
+
+    async getCardById(id) {
+        try {
+            const response = await axiosInstance.get(`/scryfall/cards/${id}`);
+            return response.data; // Full card details including image_uris
+        } catch (error) {
+            console.error('Error fetching card by ID from backend proxy:', error);
+            throw new Error('Failed to fetch card by ID.');
         }
     },
 };

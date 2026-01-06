@@ -30,8 +30,6 @@ export const googleAuth = async (token) => {
 
 // Check authorization for specific permissions
 export const checkAuthorization = async (requiredPermissions) => {
-    console.log('Payload for /authorize:', { requiredPermissions }); // Debugging log
-
     const response = await axiosInstance.post('/auth/authorize', { requiredPermissions });
     return response.data.authorized; // Returns true if authorized
 };

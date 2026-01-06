@@ -7,6 +7,7 @@ import {
     approveSignupRequest,
     rejectSignupRequest,
 } from '../../api/leaguesApi';
+import { getLeagueParticipants, updateParticipantStatus } from '../../api/userLeaguesApi';
 import { useToast } from '../context/ToastContext';
 import EditLeagueModal from './EditLeagueModal';
 
@@ -14,6 +15,8 @@ const LeagueAdminPage = () => {
     const navigate = useNavigate();
     const [leagues, setLeagues] = useState([]);
     const [signupRequests, setSignupRequests] = useState([]);
+    const [participants, setParticipants] = useState([]);
+    const [selectedLeagueId, setSelectedLeagueId] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [showEditModal, setShowEditModal] = useState(false);
@@ -93,6 +96,41 @@ const LeagueAdminPage = () => {
         fetchData(); // Refresh league list
     };
 
+    // Fetch participants for selected league
+    const handleViewParticipants = async (leagueId) => {
+        try {
+            setSelectedLeagueId(leagueId);
+            const participantsData = await getLeagueParticipants(leagueId);
+            setParticipants(participantsData);
+        } catch (err) {
+            showToast('Failed to fetch participants. Please try again.', 'error');
+        }
+    };
+
+    // Handle toggling participant active status
+    const handleToggleParticipantStatus = async (leagueId, userId, currentStatus) => {
+        try {
+            await updateParticipantStatus(leagueId, userId, { is_active: currentStatus ? 0 : 1 });
+            showToast(`Participant ${currentStatus ? 'deactivated' : 'activated'} successfully!`, 'success');
+            // Refresh participants list
+            handleViewParticipants(leagueId);
+        } catch (err) {
+            showToast('Failed to update participant status. Please try again.', 'error');
+        }
+    };
+
+    // Handle toggling participant disqualified status
+    const handleToggleDisqualified = async (leagueId, userId, currentStatus) => {
+        try {
+            await updateParticipantStatus(leagueId, userId, { disqualified: currentStatus ? 0 : 1 });
+            showToast(`Participant ${currentStatus ? 'reinstated' : 'disqualified'} successfully!`, 'success');
+            // Refresh participants list
+            handleViewParticipants(leagueId);
+        } catch (err) {
+            showToast('Failed to update participant status. Please try again.', 'error');
+        }
+    };
+
     if (loading) return <div className="text-center mt-4">Loading...</div>;
     if (error) return <div className="alert alert-danger mt-4">{error}</div>;
 
@@ -145,6 +183,13 @@ const LeagueAdminPage = () => {
                                         >
                                             <i className="fas fa-edit me-1"></i>
                                             Edit
+                                        </button>
+                                        <button
+                                            className="btn btn-info btn-sm me-2"
+                                            onClick={() => handleViewParticipants(league.id)}
+                                        >
+                                            <i className="fas fa-users me-1"></i>
+                                            Manage Players
                                         </button>
                                         {!league.is_active && (
                                             <button
@@ -204,6 +249,79 @@ const LeagueAdminPage = () => {
                     <p className="text-muted">No pending signup requests.</p>
                 )}
             </div>
+
+            {selectedLeagueId && participants.length > 0 && (
+                <div className="mb-5">
+                    <h3 className="mb-3">
+                        League Participants
+                        <button
+                            className="btn btn-sm btn-secondary ms-3"
+                            onClick={() => {
+                                setSelectedLeagueId(null);
+                                setParticipants([]);
+                            }}
+                        >
+                            <i className="fas fa-times me-1"></i>
+                            Close
+                        </button>
+                    </h3>
+                    <div className="table-responsive">
+                        <table className="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>User ID</th>
+                                    <th>Name</th>
+                                    <th>Wins</th>
+                                    <th>Losses</th>
+                                    <th>Status</th>
+                                    <th>Disqualified</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {participants.map((participant) => (
+                                    <tr key={participant.user_id}>
+                                        <td>{participant.user_id}</td>
+                                        <td>{participant.firstname} {participant.lastname}</td>
+                                        <td>{participant.league_wins || 0}</td>
+                                        <td>{participant.league_losses || 0}</td>
+                                        <td>
+                                            {participant.is_active ? (
+                                                <span className="badge bg-success">Active</span>
+                                            ) : (
+                                                <span className="badge bg-secondary">Inactive</span>
+                                            )}
+                                        </td>
+                                        <td>
+                                            {participant.disqualified ? (
+                                                <span className="badge bg-danger">Yes</span>
+                                            ) : (
+                                                <span className="badge bg-light text-dark">No</span>
+                                            )}
+                                        </td>
+                                        <td>
+                                            <button
+                                                className={`btn btn-sm me-2 ${participant.is_active ? 'btn-warning' : 'btn-success'}`}
+                                                onClick={() => handleToggleParticipantStatus(selectedLeagueId, participant.user_id, participant.is_active)}
+                                            >
+                                                <i className={`fas ${participant.is_active ? 'fa-pause' : 'fa-play'} me-1`}></i>
+                                                {participant.is_active ? 'Deactivate' : 'Activate'}
+                                            </button>
+                                            <button
+                                                className={`btn btn-sm ${participant.disqualified ? 'btn-info' : 'btn-danger'}`}
+                                                onClick={() => handleToggleDisqualified(selectedLeagueId, participant.user_id, participant.disqualified)}
+                                            >
+                                                <i className={`fas ${participant.disqualified ? 'fa-undo' : 'fa-ban'} me-1`}></i>
+                                                {participant.disqualified ? 'Reinstate' : 'Disqualify'}
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
 
             <EditLeagueModal
                 show={showEditModal}

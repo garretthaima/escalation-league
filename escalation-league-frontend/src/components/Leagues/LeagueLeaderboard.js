@@ -16,9 +16,7 @@ const LeagueLeaderboard = () => {
     useEffect(() => {
         const fetchUserLeague = async () => {
             try {
-                console.log('Fetching user league...');
                 const { inLeague, league } = await isUserInLeague();
-                console.log('User league response:', { inLeague, league });
                 if (!inLeague) {
                     setError('You are not part of any league.');
                     return;
@@ -117,7 +115,7 @@ const LeagueLeaderboard = () => {
                     {leaderboard.map((player) => (
                         <tr key={player.player_id}>
                             <td>
-                                <Link to={`/profile/${player.player_id}`} className="text-decoration-none">
+                                <Link to={`/leagues/${leagueId}/profile/${player.player_id}`} className="text-decoration-none">
                                     {player.firstname} {player.lastname}
                                 </Link>
                             </td>

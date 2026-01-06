@@ -94,7 +94,6 @@ const EditPodModal = ({ pod, onClose, onSave, onDelete }) => {
             confirmation_status: 'complete', // Mark the pod as complete
         };
 
-        console.log('Saving pod with updates:', { winnerId, isDraw, participants: updates.participants });
 
         try {
             // Backend will handle reversing old stats and applying new stats
