@@ -95,7 +95,7 @@ const PriceCheckPage = () => {
 
     return (
         <div className="container mt-4">
-            <h2>Deck Price Check</h2>
+            <h2>Deck Price Check <span className="badge bg-warning text-dark ms-2">BETA</span></h2>
             <button className="btn btn-primary mb-4" onClick={handlePriceCheck} disabled={loading || !deckId}>
                 {loading ? 'Checking...' : 'Check Deck Price'}
             </button>

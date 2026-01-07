@@ -215,7 +215,8 @@ const LeagueAdminPage = () => {
                             <thead>
                                 <tr>
                                     <th>ID</th>
-                                    <th>User</th>
+                                    <th>Name</th>
+                                    <th>Email</th>
                                     <th>League</th>
                                     <th>Actions</th>
                                 </tr>
@@ -224,7 +225,8 @@ const LeagueAdminPage = () => {
                                 {signupRequests.map((request) => (
                                     <tr key={request.id}>
                                         <td>{request.id}</td>
-                                        <td>{request.user_name}</td>
+                                        <td>{request.firstname} {request.lastname}</td>
+                                        <td>{request.email}</td>
                                         <td>{request.league_name}</td>
                                         <td>
                                             <button

@@ -9,7 +9,7 @@ export const PermissionsProvider = ({ children }) => {
     const [permissions, setPermissions] = useState([]);
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [darkMode, setDarkMode] = useState(false); // Add dark mode state
+    const [darkMode, setDarkMode] = useState(true); // Default to dark mode
     const [activeLeague, setActiveLeague] = useState(null); // Add activeLeague state
     const navigate = useNavigate();
 

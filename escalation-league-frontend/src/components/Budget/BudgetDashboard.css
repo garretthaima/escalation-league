@@ -23,6 +23,10 @@
     margin-bottom: 0.25rem;
 }
 
+body.dark-mode .stat-label {
+    color: #adb5bd;
+}
+
 .stat-value {
     font-size: 1.5rem;
     font-weight: bold;

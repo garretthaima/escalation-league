@@ -148,12 +148,10 @@ const googleAuth = async (req, res) => {
                 role_name: leagueUserRole.name, // Include role_name
             };
         } else {
-            // Update only if the data has changed
+            // Only update picture if it is null (user hasn't uploaded a custom picture)
+            // Do NOT update firstname/lastname - respect user's manual changes
             const updates = {};
-            if (user.firstname !== given_name) updates.firstname = given_name;
-            if (user.lastname !== family_name) updates.lastname = family_name;
 
-            // Only update the picture if it is null (user hasn't uploaded a custom picture)
             if (!user.picture) {
                 updates.picture = picture;
             }

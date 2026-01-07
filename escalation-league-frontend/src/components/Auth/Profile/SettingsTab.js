@@ -83,7 +83,6 @@ const SettingsTab = ({ user, handlePictureUpdate }) => {
                 {user.google_id && <small className="text-muted">Email cannot be changed for Google accounts</small>}
             </div>
 
-            {/* Temporarily disabled profile picture selection
             <div className="mb-3">
                 <label>Select Profile Picture:</label>
                 <div className="d-flex">
@@ -104,7 +103,6 @@ const SettingsTab = ({ user, handlePictureUpdate }) => {
                     Save Picture
                 </button>
             </div>
-            */}
         </div>
     );
 };

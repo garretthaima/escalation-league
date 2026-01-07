@@ -97,6 +97,24 @@
     color: #333;
 }
 
+/* Dark Mode for Toast */
+body.dark-mode .custom-toast {
+    background: #2a2a2a;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+body.dark-mode .toast-message {
+    color: #e0e0e0;
+}
+
+body.dark-mode .toast-close {
+    color: #adb5bd;
+}
+
+body.dark-mode .toast-close:hover {
+    color: #f8f9fa;
+}
+
 /* Mobile responsiveness */
 @media (max-width: 768px) {
     .custom-toast {

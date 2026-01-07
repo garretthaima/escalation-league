@@ -5,16 +5,22 @@
 /* ===========================
    2. Utility Classes
    =========================== */
-.nav-link {
-    color: rgba(255, 255, 255, 0.85) !important;
+.navbar .nav-item {
+    margin: 0;
+    padding: 0;
 }
 
-.nav-link.active {
+.navbar .nav-link {
+    color: rgba(255, 255, 255, 0.85) !important;
+    padding: 0.5rem 1rem;
+}
+
+.navbar .nav-link.active {
     font-weight: bold;
     color: #ffffff !important;
 }
 
-.nav-link:hover {
+.navbar .nav-link:hover {
     color: #ffffff !important;
     text-decoration: underline;
 }
@@ -51,14 +57,51 @@
     position: sticky;
     top: 0;
     z-index: 1030;
-    background: linear-gradient(135deg, #343a40 0%, #495057 100%) !important;
+    background: linear-gradient(135deg, #2d1b4e 0%, #4a2f70 100%) !important;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    /* Ensure it stays above other elements */
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    /* Subtle shadow */
-    background-color: rgba(0, 0, 0, 0.5);
-    /* Semi-transparent black */
     color: white;
+}
+
+/* Responsive logo sizing */
+.navbar-brand img {
+    height: 32px;
+    margin-right: 10px;
+}
+
+@media (max-width: 576px) {
+    .navbar-brand img {
+        height: 28px;
+        margin-right: 8px;
+    }
+
+    .navbar-brand {
+        font-size: 1.1rem;
+    }
+}
+
+/* Mobile collapsed menu improvements */
+@media (max-width: 991px) {
+    .navbar-collapse {
+        background-color: rgba(45, 27, 78, 0.98);
+        padding: 1rem;
+        margin-top: 0.5rem;
+        border-radius: 0.5rem;
+    }
+
+    .navbar-nav {
+        margin-bottom: 1rem;
+    }
+
+    .navbar .d-flex {
+        flex-direction: column;
+        width: 100%;
+        gap: 0.5rem !important;
+    }
+
+    .navbar .d-flex button,
+    .navbar .d-flex .dropdown {
+        width: 100%;
+    }
 }
 
 .container-fluid {
@@ -98,27 +141,27 @@
    5. State/Modifier Styles
    =========================== */
 .navbar.dark-mode {
-    background-color: #333;
+    background-color: #0a1628;
     color: white;
 }
 
 body.dark-mode .navbar .dropdown-menu {
-    background-color: #2d3436;
-    border-color: #495057;
+    background-color: #1a2332;
+    border-color: #4a2f70;
 }
 
 body.dark-mode .navbar .dropdown-item {
     color: #e9ecef;
-    background-color: #2d3436;
+    background-color: #1a2332;
 }
 
 body.dark-mode .navbar .dropdown-item:hover {
-    background-color: #495057;
+    background-color: #4a2f70;
     color: #ffffff;
 }
 
 body.dark-mode .navbar .dropdown-divider {
-    border-top-color: #495057;
+    border-top-color: #4a2f70;
 }
 
 .navbar.dark-mode .dropdown-item {
@@ -126,8 +169,8 @@ body.dark-mode .navbar .dropdown-divider {
 }
 
 .navbar.dark-mode .dropdown-item:hover {
-    background-color: #555;
-    color: #ddd;
+    background-color: #2d1b4e;
+    color: #f0d98f;
 }
 
 /* ===========================

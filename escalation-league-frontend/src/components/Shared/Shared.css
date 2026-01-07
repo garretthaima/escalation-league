@@ -79,6 +79,19 @@ body.dark-mode .quick-links .homepage-card:hover {
     color: #333;
 }
 
+body.dark-mode .contact-page {
+    background: #2a2a2a;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
+}
+
+body.dark-mode .contact-page h1 {
+    color: #e0e0e0;
+}
+
+body.dark-mode .contact-page p {
+    color: #e0e0e0;
+}
+
 .contact-form .form-label {
     font-weight: bold;
 }
@@ -110,4 +123,63 @@ body.dark-mode .quick-links .homepage-card:hover {
 .privacy-policy ul {
     list-style: disc;
     margin-left: 20px;
+}
+
+body.dark-mode .privacy-policy {
+    background: #2a2a2a;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
+}
+
+body.dark-mode .privacy-policy h1,
+body.dark-mode .privacy-policy h2 {
+    color: #e0e0e0;
+}
+
+body.dark-mode .privacy-policy p,
+body.dark-mode .privacy-policy li {
+    color: #e0e0e0;
+}
+
+/* Footer Styling */
+.footer {
+    background: linear-gradient(135deg, #2d1b4e 0%, #1f1335 100%);
+    color: white;
+    padding: 2rem 0;
+    margin-top: 3rem;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.footer .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.footer p {
+    margin: 0;
+    color: #e0e0e0;
+}
+
+.footer ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    gap: 1.5rem;
+}
+
+.footer ul li {
+    display: inline;
+}
+
+.footer a {
+    color: #d4af37;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.footer a:hover {
+    color: #b8941f;
+    text-decoration: underline;
 }

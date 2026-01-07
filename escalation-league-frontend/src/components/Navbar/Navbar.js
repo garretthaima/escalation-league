@@ -33,7 +33,6 @@ const Navbar = ({ handleLogout }) => {
         if (link.section === 'pods') return user && permissions.some((perm) => perm.name === 'pod_read');
         if (link.section === 'admin') {
             const hasAdminAccess = user && permissions.some((perm) => perm.name === 'admin_page_access');
-            console.log('Admin section check:', { hasAdminAccess, user: !!user, permissionsCount: permissions.length, permissions: permissions.map(p => p.name) });
             return hasAdminAccess;
         }
         return false;
@@ -43,9 +42,12 @@ const Navbar = ({ handleLogout }) => {
     const sortedLinks = filteredLinks.sort((a, b) => a.order - b.order);
 
     return (
-        <nav className={`navbar navbar-expand-lg ${darkMode ? 'navbar-dark bg-dark' : 'navbar-light bg-light'}`}>
+        <nav className={`navbar navbar-expand-lg navbar-dark`} style={{ backgroundColor: '#2d1b4e' }}>
             <div className="container-fluid">
-                <a className="navbar-brand" href="/">Escalation League</a>
+                <a className="navbar-brand d-flex align-items-center" href="/">
+                    <img src="/logo.png" alt="Escalation League Logo" style={{ height: '32px', marginRight: '10px' }} />
+                    Escalation League
+                </a>
                 <button
                     className="navbar-toggler"
                     type="button"
@@ -112,14 +114,16 @@ const Navbar = ({ handleLogout }) => {
                             return null;
                         })}
                     </ul>
-                    <button
-                        className={`btn ${darkMode ? 'btn-outline-light' : 'btn-outline-dark'} ms-auto`}
-                        onClick={toggleDarkMode} // Use toggleDarkMode from PermissionsProvider
-                        title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-                    >
-                        <i className={`fas ${darkMode ? 'fa-sun' : 'fa-moon'}`}></i>
-                    </button>
-                    <ProfileSection user={user} handleLogout={handleLogout} darkMode={darkMode} />
+                    <div className="d-flex align-items-center gap-2">
+                        <button
+                            className={`btn ${darkMode ? 'btn-outline-light' : 'btn-outline-dark'}`}
+                            onClick={toggleDarkMode}
+                            title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                        >
+                            <i className={`fas ${darkMode ? 'fa-sun' : 'fa-moon'}`}></i>
+                        </button>
+                        <ProfileSection user={user} handleLogout={handleLogout} darkMode={darkMode} />
+                    </div>
                 </div>
             </div>
         </nav>

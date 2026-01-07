@@ -1,52 +1,52 @@
 /* ===========================
    Escalation League - Brand Overrides
-   Clean Grayscale Theme
+   Purple Primary, Black Secondary, Dark Gold Accent
 =========================== */
 
-/* Primary Buttons - Dark Gray */
+/* Primary Buttons - Deep Purple */
 .btn-primary {
-    background-color: #343a40 !important;
-    border-color: #343a40 !important;
+    background-color: #2d1b4e !important;
+    border-color: #2d1b4e !important;
     color: white !important;
 }
 
 .btn-primary:hover {
-    background-color: #23272b !important;
-    border-color: #23272b !important;
+    background-color: #4a2f70 !important;
+    border-color: #4a2f70 !important;
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 12px rgba(45, 27, 78, 0.3);
 }
 
 .btn-primary:active,
 .btn-primary:focus {
-    background-color: #1d2124 !important;
-    border-color: #1d2124 !important;
+    background-color: #1f1335 !important;
+    border-color: #1f1335 !important;
 }
 
-/* Success Buttons - Medium Gray */
+/* Success/Secondary Buttons - Dark Gold */
 .btn-success {
-    background-color: #6c757d !important;
-    border-color: #6c757d !important;
-    color: white !important;
+    background-color: #b8941f !important;
+    border-color: #b8941f !important;
+    color: #ffffff !important;
     font-weight: 600;
 }
 
 .btn-success:hover {
-    background-color: #5a6268 !important;
-    border-color: #5a6268 !important;
+    background-color: #d4af37 !important;
+    border-color: #d4af37 !important;
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 12px rgba(184, 148, 31, 0.3);
 }
 
-/* Danger Buttons - Dark Gray */
+/* Danger Buttons - Keep standard red for destructive actions */
 .btn-danger {
-    background-color: #495057 !important;
-    border-color: #495057 !important;
+    background-color: #dc3545 !important;
+    border-color: #dc3545 !important;
 }
 
 .btn-danger:hover {
-    background-color: #343a40 !important;
-    border-color: #343a40 !important;
+    background-color: #c82333 !important;
+    border-color: #c82333 !important;
 }
 
 /* Secondary Buttons - Light Gray */

@@ -69,7 +69,6 @@ const LeaguesPage = () => {
                             </li>
                             <li className="nav-item">
                                 <Link to="/leagues/budget" className="nav-link">
-                                    <i className="fas fa-wallet me-1"></i>
                                     Budget
                                 </Link>
                             </li>

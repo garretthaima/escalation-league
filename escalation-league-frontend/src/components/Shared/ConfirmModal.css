@@ -38,6 +38,35 @@
     color: #333;
 }
 
+/* Dark Mode for ConfirmModal */
+body.dark-mode .confirm-modal {
+    background: #2a2a2a;
+}
+
+body.dark-mode .confirm-modal-header {
+    border-bottom-color: #495057;
+}
+
+body.dark-mode .confirm-modal-header h5 {
+    color: #e0e0e0;
+}
+
+body.dark-mode .confirm-modal-close {
+    color: #adb5bd;
+}
+
+body.dark-mode .confirm-modal-close:hover {
+    color: #f8f9fa;
+}
+
+body.dark-mode .confirm-modal-body {
+    color: #e0e0e0;
+}
+
+body.dark-mode .confirm-modal-footer {
+    border-top-color: #495057;
+}
+
 .confirm-modal-close {
     background: none;
     border: none;

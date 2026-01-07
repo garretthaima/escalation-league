@@ -1,7 +1,13 @@
 const jwt = require('jsonwebtoken');
+require('dotenv').config();
 
-// Replace this with your actual secret key from your `.env` file
-const ACCESS_TOKEN_SECRET = '9c9d42916c6eeef1a1db36e54dd128b3eb9c86114ed26b57a3163394ccedb6f1';
+// Use secret key from environment variable
+const ACCESS_TOKEN_SECRET = process.env.JWT_SECRET || process.env.SECRET_KEY;
+
+if (!ACCESS_TOKEN_SECRET) {
+    console.error('ERROR: JWT_SECRET or SECRET_KEY not found in environment variables');
+    process.exit(1);
+}
 
 // Hardcoded admin user payload
 const payload = {

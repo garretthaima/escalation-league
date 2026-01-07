@@ -1,8 +1,18 @@
 /* ===========================
    Escalation League Brand Colors
-   Clean Grayscale Palette
+   Logo-Based Palette: Purple Primary, Black Secondary, Dark Gold Accent
 =========================== */
 :root {
+  /* Brand Colors from Logo */
+  --brand-purple: #2d1b4e;
+  --brand-purple-light: #4a2f70;
+  --brand-purple-dark: #1f1335;
+  --brand-black: #0a0a0a;
+  --brand-navy: #0a1628;
+  --brand-gold: #b8941f;
+  --brand-gold-light: #d4af37;
+  --brand-gold-dark: #9a7919;
+
   /* Grayscale Palette */
   --gray-100: #f8f9fa;
   --gray-200: #e9ecef;
@@ -18,27 +28,49 @@
   --bg-primary: #ffffff;
   --bg-secondary: #f8f9fa;
   --bg-tertiary: #e9ecef;
-  --text-primary: #212529;
+  --text-primary: #0a0a0a;
   --text-secondary: #6c757d;
   --text-muted: #adb5bd;
   --border-color: #dee2e6;
-  --shadow: rgba(0, 0, 0, 0.1);
-  --accent: #495057;
-  --accent-hover: #343a40;
+  --shadow: rgba(10, 10, 10, 0.1);
+  --accent: #b8941f;
+  --accent-hover: #d4af37;
+  --brand-primary: #2d1b4e;
+  --brand-secondary: #0a0a0a;
 }
 
 body.dark-mode {
   /* UI Colors - Dark Mode */
-  --bg-primary: #181818;
-  --bg-secondary: #212529;
-  --bg-tertiary: #343a40;
+  --bg-primary: #0a0a0a;
+  --bg-secondary: #0a1628;
+  --bg-tertiary: #1f1335;
   --text-primary: #f8f9fa;
   --text-secondary: #adb5bd;
   --text-muted: #6c757d;
-  --border-color: #495057;
+  --border-color: #4a2f70;
   --shadow: rgba(0, 0, 0, 0.5);
-  --accent: #adb5bd;
-  --accent-hover: #ced4da;
+  --accent: #d4af37;
+  --accent-hover: #b8941f;
+  --brand-primary: #4a2f70;
+  --brand-secondary: #0a0a0a;
+}
+
+/* Light mode - Bootstrap Tabs */
+.nav-tabs .nav-link {
+  color: #495057;
+  background-color: transparent;
+  border-color: transparent;
+}
+
+.nav-tabs .nav-link:hover {
+  color: #212529;
+  border-color: #dee2e6;
+}
+
+.nav-tabs .nav-link.active {
+  color: #212529;
+  background-color: #ffffff;
+  border-color: #dee2e6 #dee2e6 #ffffff;
 }
 
 /* Dark mode - Bootstrap Tabs */
@@ -423,4 +455,24 @@ body.dark-mode .alert-success {
   background-color: #1e4620;
   border-color: #155724;
   color: #d4edda;
+}
+
+/* Dark Mode for Badges */
+body.dark-mode .badge.bg-light {
+  background-color: #495057 !important;
+  color: #f8f9fa !important;
+}
+
+body.dark-mode .badge.bg-secondary {
+  background-color: #6c757d !important;
+  color: #f8f9fa !important;
+}
+
+/* Dark Mode for Text Utilities */
+body.dark-mode .text-muted {
+  color: #adb5bd !important;
+}
+
+body.dark-mode .text-secondary {
+  color: #adb5bd !important;
 }

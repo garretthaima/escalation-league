@@ -278,7 +278,7 @@ const ActiveGamesTab = () => {
                     <div className="modal-content">
                         <div className="modal-header">
                             <h5 className="modal-title">Declare Victory</h5>
-                            <button type="button" className="btn-close" onClick={() => setShowWinModal(false)}></button>
+                            <button type="button" className="btn-close" onClick={() => setShowWinModal(false)} aria-label="Close"></button>
                         </div>
                         <div className="modal-body">
                             <p>Are you sure you won this game? This will notify other players to confirm the result.</p>

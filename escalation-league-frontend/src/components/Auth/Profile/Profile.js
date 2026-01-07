@@ -46,15 +46,16 @@ const Profile = () => {
     const getProfilePictureSrc = (picture) => {
         if (!picture) {
             // Return a default profile picture if `picture` is null or undefined
-            return `${process.env.REACT_APP_BACKEND_URL}/images/profile-pictures/default.png`;
+            return '/images/profile-pictures/avatar1.png';
         }
 
-        // If the picture is a relative path, prepend the backend URL
-        if (picture.startsWith('/')) {
-            return `${process.env.REACT_APP_BACKEND_URL}${picture}`;
+        // If the picture starts with http, it's a Google OAuth picture
+        if (picture.startsWith('http')) {
+            return picture;
         }
 
-        return picture; // If it's already a full URL, return it as is
+        // Otherwise it's a local avatar path
+        return picture;
     };
 
     if (error) {

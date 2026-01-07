@@ -79,12 +79,12 @@ const PublicProfile = () => {
                         <div className="col-md-4">
                             {leagueDetails.commander_image && (
                                 <div className="mb-3">
-                                    <img src={leagueDetails.commander_image} alt={leagueDetails.commander} className="img-fluid rounded" style={{ maxWidth: '100%' }} />
+                                    <img src={leagueDetails.commander_image} alt={leagueDetails.commander} className="img-fluid rounded" style={{ maxWidth: '200px' }} />
                                 </div>
                             )}
                             {leagueDetails.partner_image && (
                                 <div>
-                                    <img src={leagueDetails.partner_image} alt={leagueDetails.commanderPartner} className="img-fluid rounded" style={{ maxWidth: '100%' }} />
+                                    <img src={leagueDetails.partner_image} alt={leagueDetails.commanderPartner} className="img-fluid rounded" style={{ maxWidth: '200px' }} />
                                 </div>
                             )}
                         </div>

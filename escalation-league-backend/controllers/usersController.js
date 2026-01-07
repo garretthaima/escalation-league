@@ -106,11 +106,13 @@ const updateUserProfile = async (req, res) => {
         '/images/profile-pictures/avatar1.png',
         '/images/profile-pictures/avatar2.png',
         '/images/profile-pictures/avatar3.png',
+        '/images/profile-pictures/avatar4.png',
+        '/images/profile-pictures/avatar5.png',
       ];
 
       // Normalize the picture field to handle full URLs
       const normalizedPicture = picture.replace(process.env.BACKEND_URL || 'http://localhost:3000', '');
-      if (!stockImages.includes(normalizedPicture)) {
+      if (!stockImages.includes(normalizedPicture) && !normalizedPicture.startsWith('http')) {
         return res.status(400).json({ error: 'Invalid profile picture selected.' });
       }
       updates.picture = normalizedPicture; // Save the normalized path

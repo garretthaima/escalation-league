@@ -99,7 +99,7 @@ const ConfirmGamesTab = () => {
                                                         <td>
                                                             <strong>{participant.firstname} {participant.lastname}</strong>
                                                             {participant.player_id === userId && (
-                                                                <span className="badge ms-2" style={{ backgroundColor: '#495057', color: 'white' }}>You</span>
+                                                                <span className="badge ms-2" style={{ backgroundColor: '#2d1b4e', color: 'white' }}>You</span>
                                                             )}
                                                         </td>
                                                         <td>

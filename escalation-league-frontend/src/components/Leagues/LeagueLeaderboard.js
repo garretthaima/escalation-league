@@ -12,6 +12,17 @@ const LeagueLeaderboard = () => {
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(true);
     const [sortConfig, setSortConfig] = useState({ key: 'total_points', direction: 'desc' });
+    const [expandedRows, setExpandedRows] = useState(new Set());
+
+    const toggleRow = (playerId) => {
+        const newExpanded = new Set(expandedRows);
+        if (newExpanded.has(playerId)) {
+            newExpanded.delete(playerId);
+        } else {
+            newExpanded.add(playerId);
+        }
+        setExpandedRows(newExpanded);
+    };
 
     useEffect(() => {
         const fetchUserLeague = async () => {
@@ -108,48 +119,106 @@ const LeagueLeaderboard = () => {
                     </p>
                 </div>
             )}
-            <table className="table table-striped table-hover">
-                <thead className="thead-dark">
-                    <tr>
-                        <th style={{ width: '50px' }}>Rank</th>
-                        <th onClick={() => sortLeaderboard('name')} style={{ cursor: 'pointer' }}>Player</th>
-                        <th onClick={() => sortLeaderboard('total_points')} style={{ cursor: 'pointer' }}>Points</th>
-                        <th onClick={() => sortLeaderboard('wins')} style={{ cursor: 'pointer' }}>Wins</th>
-                        <th onClick={() => sortLeaderboard('losses')} style={{ cursor: 'pointer' }}>Losses</th>
-                        <th onClick={() => sortLeaderboard('draws')} style={{ cursor: 'pointer' }}>Draws</th>
-                        <th onClick={() => sortLeaderboard('total_games')} style={{ cursor: 'pointer' }}>Total Games</th>
-                        <th onClick={() => sortLeaderboard('win_rate')} style={{ cursor: 'pointer' }}>Win Rate</th>
-                        <th style={{ width: '80px' }}>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {leaderboard.map((player) => (
-                        <tr key={player.player_id}>
-                            <td className="fw-bold">{player.rank}</td>
-                            <td>
-                                <Link to={`/leagues/${leagueId}/profile/${player.player_id}`} className="text-decoration-none">
-                                    {player.firstname} {player.lastname}
-                                </Link>
-                            </td>
-                            <td><span className="badge bg-primary">{player.total_points || 0}</span></td>
-                            <td>{player.wins}</td>
-                            <td>{player.losses}</td>
-                            <td>{player.draws}</td>
-                            <td>{player.total_games}</td>
-                            <td>{player.win_rate ? `${player.win_rate}%` : '0%'}</td>
-                            <td>
-                                {player.qualified ? (
-                                    <span className="badge bg-success">
-                                        <i className="fas fa-check-circle"></i> Qualified
-                                    </span>
-                                ) : (
-                                    <span className="badge bg-secondary">-</span>
-                                )}
-                            </td>
+            <div className="table-responsive">
+                <table className="table table-striped table-hover">
+                    <thead className="thead-dark">
+                        <tr>
+                            <th style={{ width: '50px' }}>Rank</th>
+                            <th onClick={() => sortLeaderboard('name')} style={{ cursor: 'pointer' }}>Player</th>
+                            <th onClick={() => sortLeaderboard('total_points')} style={{ cursor: 'pointer' }}>Points</th>
+                            <th className="d-none d-md-table-cell" onClick={() => sortLeaderboard('wins')} style={{ cursor: 'pointer' }}>Wins</th>
+                            <th className="d-none d-lg-table-cell" onClick={() => sortLeaderboard('losses')} style={{ cursor: 'pointer' }}>Losses</th>
+                            <th className="d-none d-lg-table-cell" onClick={() => sortLeaderboard('draws')} style={{ cursor: 'pointer' }}>Draws</th>
+                            <th className="d-none d-md-table-cell" onClick={() => sortLeaderboard('total_games')} style={{ cursor: 'pointer' }}>Games</th>
+                            <th className="d-none d-lg-table-cell" onClick={() => sortLeaderboard('win_rate')} style={{ cursor: 'pointer' }}>Win Rate</th>
+                            <th className="d-none d-md-table-cell" style={{ width: '80px' }}>Status</th>
                         </tr>
-                    ))}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        {leaderboard.map((player) => {
+                            const isExpanded = expandedRows.has(player.player_id);
+                            return (
+                                <React.Fragment key={player.player_id}>
+                                    <tr
+                                        onClick={() => toggleRow(player.player_id)}
+                                        className="d-md-none"
+                                        style={{ cursor: 'pointer' }}
+                                    >
+                                        <td className="fw-bold">
+                                            {player.rank}
+                                            <i className={`fas fa-chevron-${isExpanded ? 'down' : 'right'} ms-2 text-muted`} style={{ fontSize: '0.8em' }}></i>
+                                        </td>
+                                        <td>
+                                            <Link
+                                                to={`/leagues/${leagueId}/profile/${player.player_id}`}
+                                                className="text-decoration-none"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                {player.firstname} {player.lastname}
+                                            </Link>
+                                        </td>
+                                        <td><span className="badge bg-primary">{player.total_points || 0}</span></td>
+                                    </tr>
+                                    {/* Expanded row details for mobile */}
+                                    {isExpanded && (
+                                        <tr className="d-md-none">
+                                            <td colSpan="3" style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}>
+                                                <div className="p-2">
+                                                    <div className="row g-2 small">
+                                                        <div className="col-6">
+                                                            <strong>Record:</strong> {player.wins}W - {player.losses}L - {player.draws}D
+                                                        </div>
+                                                        <div className="col-6">
+                                                            <strong>Total Games:</strong> {player.total_games}
+                                                        </div>
+                                                        <div className="col-6">
+                                                            <strong>Win Rate:</strong> {player.win_rate ? `${player.win_rate}%` : '0%'}
+                                                        </div>
+                                                        <div className="col-6">
+                                                            <strong>Status:</strong>{' '}
+                                                            {player.qualified ? (
+                                                                <span className="badge bg-success">
+                                                                    <i className="fas fa-check-circle"></i> Qualified
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-muted">-</span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+                                    {/* Desktop row - hidden on mobile */}
+                                    <tr key={player.player_id} className="d-none d-md-table-row">
+                                        <td className="fw-bold">{player.rank}</td>
+                                        <td>
+                                            <Link to={`/leagues/${leagueId}/profile/${player.player_id}`} className="text-decoration-none">
+                                                {player.firstname} {player.lastname}
+                                            </Link>
+                                        </td>
+                                        <td><span className="badge bg-primary">{player.total_points || 0}</span></td>
+                                        <td>{player.wins}</td>
+                                        <td className="d-none d-lg-table-cell">{player.losses}</td>
+                                        <td className="d-none d-lg-table-cell">{player.draws}</td>
+                                        <td>{player.total_games}</td>
+                                        <td className="d-none d-lg-table-cell">{player.win_rate ? `${player.win_rate}%` : '0%'}</td>
+                                        <td>
+                                            {player.qualified ? (
+                                                <span className="badge bg-success">
+                                                    <i className="fas fa-check-circle"></i> Qualified
+                                                </span>
+                                            ) : (
+                                                <span className="badge bg-secondary">-</span>
+                                            )}
+                                        </td>
+                                    </tr>
+                                </React.Fragment>
+                            );
+                        })}
+                    </tbody>
+                </table>
+            </div>
         </div>
     );
 };

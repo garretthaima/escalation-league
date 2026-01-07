@@ -6,14 +6,13 @@ const ProfileSection = ({ user, handleLogout, darkMode }) => {
 
     const getProfilePictureSrc = (picture) => {
         if (!picture) {
-            return `${process.env.REACT_APP_BACKEND_URL}/images/profile-pictures/default.png`;
+            return '/images/profile-pictures/avatar1.png';
         }
+        // If it's a Google OAuth picture (full URL)
         if (picture.startsWith('http://') || picture.startsWith('https://')) {
             return picture;
         }
-        if (picture.startsWith('/')) {
-            return `${process.env.REACT_APP_BACKEND_URL}${picture}`;
-        }
+        // Otherwise it's a local avatar path
         return picture;
     };
 
