@@ -2,6 +2,7 @@ const bcrypt = require('bcrypt');
 const db = require('../models/db');
 const redis = require('../utils/redisClient');
 const { updateStats } = require('../utils/statsUtils');
+const logger = require('../utils/logger');
 
 // Fetch User Profile
 const getUserProfile = async (req, res) => {
@@ -39,12 +40,22 @@ const getUserProfile = async (req, res) => {
     const currentLeague = await db('user_leagues')
       .join('leagues', 'user_leagues.league_id', 'leagues.id')
       .select(
-        'leagues.name as league_name',
+        'leagues.id as league_id',
+        'leagues.name',
+        'leagues.start_date',
+        'leagues.end_date',
+        'leagues.is_active',
         'user_leagues.deck_id',
         'user_leagues.league_wins',
-        'user_leagues.league_losses'
+        'user_leagues.league_losses',
+        'user_leagues.league_draws',
+        'user_leagues.total_points',
+        'user_leagues.rank',
+        'user_leagues.current_commander',
+        'user_leagues.commander_partner'
       )
       .where('user_leagues.user_id', req.user.id)
+      .where('user_leagues.is_active', 1)
       .first();
 
     // Fetch the decklist_url from Redis using the deck_id

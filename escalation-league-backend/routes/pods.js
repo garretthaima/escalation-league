@@ -28,14 +28,12 @@ router.get(
 router.post(
     '/:podId/join',
     authenticateToken,
-    authorizePermission(['pod_update']), // Permission to join a pod
     joinPod
 );
 
 router.post(
     '/:podId/log',
     authenticateToken,
-    authorizePermission(['pod_update']), // Permission to log pod results
     logPodResult
 );
 
@@ -43,7 +41,6 @@ router.post(
 router.post(
     '/:podId/override',
     authenticateToken,
-    authorizePermission(['pod_update']), // Permission to override pod
     overridePod
 );
 

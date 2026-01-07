@@ -1,10 +1,24 @@
 const db = require('../models/db');
+const logger = require('../utils/logger');
 
 // Create a league
 const createLeague = async (req, res) => {
     const { name, start_date, end_date, description, max_players, weekly_budget, league_code } = req.body;
 
+    logger.info('League creation requested', {
+        userId: req.user?.id,
+        name,
+        start_date,
+        end_date
+    });
+
     if (!name || !start_date || !end_date) {
+        logger.warn('League creation failed - missing required fields', {
+            userId: req.user?.id,
+            name,
+            start_date,
+            end_date
+        });
         return res.status(400).json({ error: 'Name, start_date, and end_date are required.' });
     }
 
@@ -19,9 +33,18 @@ const createLeague = async (req, res) => {
             league_code,
         });
 
+        logger.info('League created successfully', {
+            userId: req.user?.id,
+            name,
+            league_code
+        });
+
         res.status(201).json({ message: 'League created successfully.' });
     } catch (err) {
-        console.error('Error creating league:', err.message);
+        logger.error('Error creating league', err, {
+            userId: req.user?.id,
+            name
+        });
         res.status(500).json({ error: 'Failed to create league.' });
     }
 };
@@ -292,13 +315,29 @@ const getSignupRequests = async (req, res) => {
 const approveSignupRequest = async (req, res) => {
     const { id } = req.params; // ID of the signup request
 
+    logger.info('Signup approval requested', {
+        userId: req.user?.id,
+        requestId: id
+    });
+
     try {
         // Fetch the signup request
         const request = await db('league_signup_requests').where({ id }).first();
 
         if (!request) {
+            logger.warn('Signup approval failed - request not found', {
+                userId: req.user?.id,
+                requestId: id
+            });
             return res.status(404).json({ error: 'Signup request not found.' });
         }
+
+        logger.debug('Processing signup approval', {
+            userId: req.user?.id,
+            requestId: id,
+            requestUserId: request.user_id,
+            leagueId: request.league_id
+        });
 
         // Approve the request
         await db.transaction(async (trx) => {
@@ -309,11 +348,34 @@ const approveSignupRequest = async (req, res) => {
             await trx('user_leagues')
                 .where({ request_id: id }) // Use request_id to find the corresponding user_leagues entry
                 .update({ is_active: true });
+
+            // Assign league_user role if the user doesn't have it
+            const user = await trx('users').where({ id: request.user_id }).first();
+            const leagueUserRole = await trx('roles').where({ name: 'league_user' }).first();
+
+            if (leagueUserRole && user.role_id !== leagueUserRole.id) {
+                logger.info('Assigning league_user role', {
+                    userId: request.user_id,
+                    oldRoleId: user.role_id,
+                    newRoleId: leagueUserRole.id
+                });
+                await trx('users').where({ id: request.user_id }).update({ role_id: leagueUserRole.id });
+            }
+        });
+
+        logger.info('Signup request approved successfully', {
+            userId: req.user?.id,
+            requestId: id,
+            approvedUserId: request.user_id,
+            leagueId: request.league_id
         });
 
         res.status(200).json({ message: 'Signup request approved successfully.' });
     } catch (err) {
-        console.error('Error approving signup request:', err.message);
+        logger.error('Error approving signup request', err, {
+            userId: req.user?.id,
+            requestId: id
+        });
         res.status(500).json({ error: 'Failed to approve signup request.' });
     }
 };

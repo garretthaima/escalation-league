@@ -59,6 +59,8 @@ services:
         condition: service_healthy
       redis-prod:
         condition: service_started
+    volumes:
+      - ../../escalation-league-backend/logs:/app/logs
     networks:
       - default
       - edge

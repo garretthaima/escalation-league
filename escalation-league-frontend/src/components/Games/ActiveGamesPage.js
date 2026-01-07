@@ -11,6 +11,8 @@ const ActiveGamesTab = () => {
     const [userId, setUserId] = useState(null);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [showWinModal, setShowWinModal] = useState(false);
+    const [selectedPodId, setSelectedPodId] = useState(null);
 
     const { permissions } = usePermissions();
     const { showToast } = useToast();
@@ -108,9 +110,16 @@ const ActiveGamesTab = () => {
             showToast(err.response?.data?.error || 'Failed to override pod.', 'error');
         }
     };
-    const handleDeclareWinner = async (podId) => {
+    const handleDeclareWinner = (podId) => {
+        setSelectedPodId(podId);
+        setShowWinModal(true);
+    };
+
+    const confirmDeclareWinner = async () => {
+        setShowWinModal(false);
+
         try {
-            await logPodResult(podId, { result: 'win' });
+            await logPodResult(selectedPodId, { result: 'win' });
             showToast('Winner declared! Waiting for other players to confirm.', 'success');
             const activePodsData = await getPods({ confirmation_status: 'active' });
             const userActivePods = activePodsData.filter(pod =>
@@ -119,7 +128,14 @@ const ActiveGamesTab = () => {
             setActivePods(userActivePods || []);
         } catch (err) {
             console.error('Error declaring winner:', err.response?.data?.error || err.message);
-            showToast(err.response?.data?.error || 'Failed to declare winner.', 'error');
+
+            // Check if someone else already won
+            if (err.response?.data?.error?.includes('already been declared')) {
+                window.alert('A winner has already been declared for this game. Refreshing...');
+                window.location.reload();
+            } else {
+                showToast(err.response?.data?.error || 'Failed to declare winner.', 'error');
+            }
         }
     };
 
@@ -172,7 +188,7 @@ const ActiveGamesTab = () => {
                                                 </tbody>
                                             </table>
                                         </div>
-                                        {canUpdatePods && pod.participants?.length >= 3 && (
+                                        {pod.participants?.length >= 3 && pod.participants.some((p) => p.player_id === userId) && (
                                             <button
                                                 className="btn btn-warning mt-3"
                                                 onClick={() => handleOverridePod(pod.id)}
@@ -238,7 +254,7 @@ const ActiveGamesTab = () => {
                                             </table>
                                         </div>
                                         {/* Declare Winner Button */}
-                                        {canUpdatePods && pod.participants.some((p) => p.player_id === userId) && (
+                                        {pod.participants.some((p) => String(p.player_id) === String(userId)) && (
                                             <button
                                                 className="btn btn-success mt-3"
                                                 onClick={() => handleDeclareWinner(pod.id)}
@@ -255,6 +271,26 @@ const ActiveGamesTab = () => {
                     )}
                 </div>
             </div>
+
+            {/* Bootstrap Modal for Win Confirmation */}
+            <div className={`modal fade ${showWinModal ? 'show' : ''}`} style={{ display: showWinModal ? 'block' : 'none' }} tabIndex="-1">
+                <div className="modal-dialog">
+                    <div className="modal-content">
+                        <div className="modal-header">
+                            <h5 className="modal-title">Declare Victory</h5>
+                            <button type="button" className="btn-close" onClick={() => setShowWinModal(false)}></button>
+                        </div>
+                        <div className="modal-body">
+                            <p>Are you sure you won this game? This will notify other players to confirm the result.</p>
+                        </div>
+                        <div className="modal-footer">
+                            <button type="button" className="btn btn-secondary" onClick={() => setShowWinModal(false)}>Cancel</button>
+                            <button type="button" className="btn btn-success" onClick={confirmDeclareWinner}>Yes, I Won!</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {showWinModal && <div className="modal-backdrop fade show"></div>}
         </div>
     );
 };

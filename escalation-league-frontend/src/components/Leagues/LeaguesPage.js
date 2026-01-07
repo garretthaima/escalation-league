@@ -9,10 +9,7 @@ const LeaguesPage = () => {
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    const { permissions, loading: loadingPermissions } = usePermissions();
-
-    // Check if the user has the required permission
-    const canReadLeagues = permissions.some((perm) => perm.name === 'league_read');
+    const { loading: loadingPermissions } = usePermissions();
 
     useEffect(() => {
         const fetchLeagueData = async () => {

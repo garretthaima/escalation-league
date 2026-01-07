@@ -1,10 +1,16 @@
 const db = require('../models/db'); // Import the database connection
 const gameService = require('../services/gameService');
+const logger = require('../utils/logger');
 
 // Create a Pod
 const createPod = async (req, res) => {
     const { leagueId } = req.body;
     const creatorId = req.user.id;
+
+    logger.info('Pod creation requested', {
+        userId: creatorId,
+        leagueId
+    });
 
     try {
         // Create the pod and get the inserted ID
@@ -22,9 +28,18 @@ const createPod = async (req, res) => {
         // Fetch the created pod to return it in the response
         const pod = await db('game_pods').where({ id: podId }).first();
 
+        logger.info('Pod created successfully', {
+            userId: creatorId,
+            leagueId,
+            podId
+        });
+
         res.status(201).json(pod);
     } catch (err) {
-        console.error('Error creating pod:', err.message);
+        logger.error('Error creating pod', err, {
+            userId: creatorId,
+            leagueId
+        });
         res.status(500).json({ error: 'Failed to create pod.' });
     }
 };
@@ -89,10 +104,32 @@ const logPodResult = async (req, res) => {
             return res.status(404).json({ error: 'Player is not part of this pod.' });
         }
 
+        // If declaring a win, check if someone else already won
+        if (result === 'win') {
+            const existingWinner = await db('game_players')
+                .where({ pod_id: podId, result: 'win' })
+                .whereNot({ player_id: playerId })
+                .first();
+
+            if (existingWinner) {
+                return res.status(400).json({ error: 'A winner has already been declared for this game.' });
+            }
+        }
+
         // Update the player's confirmation status and optionally their result
         const updateData = { confirmed: 1, confirmation_time: db.fn.now() };
         if (result !== undefined) {
             updateData.result = result;
+        } else {
+            // If no result specified, check if someone else already won
+            // If so, this player should be marked as a loss
+            const winner = await db('game_players')
+                .where({ pod_id: podId, result: 'win' })
+                .first();
+
+            if (winner) {
+                updateData.result = 'loss';
+            }
         }
 
         await db('game_players')

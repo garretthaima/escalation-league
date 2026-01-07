@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const path = require('path');
+const logger = require('./utils/logger');
+const requestLogger = require('./middlewares/requestLogger');
 
 const app = express();
 
@@ -10,6 +12,9 @@ const app = express();
 app.set('trust proxy', 1); // Trust first proxy (nginx)
 // Middleware to parse JSON request bodies
 app.use(express.json());
+
+// Request logging middleware (after json parsing, before routes)
+app.use(requestLogger);
 
 // Helmet security headers (before CORS)
 app.use(helmet({
@@ -76,6 +81,11 @@ app.use('/api', apiLimiter);
   if (process.env.NODE_ENV !== 'test' && require.main === module) {
     const PORT = process.env.PORT || 4000;
     app.listen(PORT, () => {
+      logger.info('Server started', {
+        port: PORT,
+        environment: process.env.NODE_ENV || 'development',
+        nodeVersion: process.version
+      });
       console.log(`Server is running on http://localhost:${PORT}`);
     });
   }

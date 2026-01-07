@@ -22,7 +22,6 @@ const authorizePermission = require('../middlewares/authorizePermission');
 router.post(
     '/signup-request',
     authenticateToken,
-    authorizePermission(['league_signup']), // Permission to request signup
     requestSignupForLeague
 );
 
@@ -30,7 +29,6 @@ router.post(
 router.get(
     '/signup-request',
     authenticateToken,
-    authorizePermission(['league_signup']), // Ensure the user has permission to view their signup requests
     getUserPendingSignupRequests
 );
 
@@ -46,7 +44,6 @@ router.get(
 router.post(
     '/signup',
     authenticateToken,
-    authorizePermission(['league_signup']), // Permission to sign up for a league
     signUpForLeague
 );
 

@@ -1,6 +1,7 @@
 const db = require('../models/db');
 const redis = require('../utils/redisClient'); // Import the Redis client
 const { updateStats } = require('../utils/statsUtils');
+const logger = require('../utils/logger');
 
 
 // Sign up for a league
@@ -286,13 +287,26 @@ const requestSignupForLeague = async (req, res) => {
     const userId = req.user.id;
     const { league_id, deck_id, current_commander, commander_partner } = req.body.data;
 
+    logger.info('Signup request initiated', {
+        userId,
+        league_id,
+        deck_id,
+        current_commander,
+        commander_partner,
+        bodyData: req.body.data
+    });
+
     if (league_id == null || deck_id == null) {
-        console.log('Missing league_id or deck_id in request body.');
+        logger.warn('Signup validation failed - missing required fields', {
+            userId,
+            league_id,
+            deck_id,
+            body: req.body
+        });
         return res.status(400).json({ error: 'League ID and Deck ID are required.' });
     }
 
     try {
-
         // Check if the user already has a pending or approved entry
         const existingRequest = await db('league_signup_requests')
             .where({ user_id: userId, league_id })
@@ -300,17 +314,25 @@ const requestSignupForLeague = async (req, res) => {
             .first();
 
         if (existingRequest) {
+            logger.info('Signup rejected - existing request found', {
+                userId,
+                league_id,
+                existingStatus: existingRequest.status
+            });
             return res.status(400).json({ error: 'You already have a pending or approved signup for this league.' });
         }
 
         // Start a transaction to ensure both tables are updated atomically
+        let requestId;
         await db.transaction(async (trx) => {
             // Insert into league_signup_requests
-            const requestId = await trx('league_signup_requests').insert({
+            requestId = await trx('league_signup_requests').insert({
                 user_id: userId,
                 league_id,
                 status: 'pending',
             }).then(([id]) => id);
+
+            logger.debug('Signup request created', { requestId, userId, league_id });
 
             // Insert into user_leagues with a reference to the signup request
             await trx('user_leagues').insert({
@@ -330,11 +352,25 @@ const requestSignupForLeague = async (req, res) => {
                 league_role: 'player',
                 request_id: requestId, // Reference the signup request
             });
+
+            logger.debug('User league entry created', { userId, league_id, deck_id, requestId });
+        });
+
+        logger.info('Signup request completed successfully', {
+            userId,
+            league_id,
+            deck_id,
+            requestId
         });
 
         res.status(200).json({ success: true, message: 'Signup request submitted successfully.' });
     } catch (err) {
-        console.error('Error submitting signup request:', err.message);
+        logger.error('Error submitting signup request', err, {
+            userId,
+            league_id,
+            deck_id,
+            body: req.body
+        });
         res.status(500).json({ error: 'Failed to submit signup request.' });
     }
 };
@@ -362,11 +398,12 @@ const isUserInLeague = async (req, res) => {
     try {
         console.log('Checking league membership for user ID:', userId);
 
-        // Check if the user is in any league
+        // Check if the user is in any league (only active memberships)
         const userLeague = await db('user_leagues')
             .join('leagues', 'user_leagues.league_id', 'leagues.id')
             .select('leagues.id as league_id', 'leagues.name as league_name', 'user_leagues.joined_at')
             .where('user_leagues.user_id', userId)
+            .where('user_leagues.is_active', 1)
             .first();
 
         console.log('Query result:', userLeague);

@@ -31,7 +31,11 @@ const Navbar = ({ handleLogout }) => {
     const filteredLinks = navbarLinks(inLeague).filter((link) => {
         if (link.section === 'public') return true; // Always show public links
         if (link.section === 'pods') return user && permissions.some((perm) => perm.name === 'pod_read');
-        if (link.section === 'admin') return user && permissions.some((perm) => perm.name === 'admin_page_access');
+        if (link.section === 'admin') {
+            const hasAdminAccess = user && permissions.some((perm) => perm.name === 'admin_page_access');
+            console.log('Admin section check:', { hasAdminAccess, user: !!user, permissionsCount: permissions.length, permissions: permissions.map(p => p.name) });
+            return hasAdminAccess;
+        }
         return false;
     });
 

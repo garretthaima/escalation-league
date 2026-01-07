@@ -101,7 +101,7 @@ const SignUp = () => {
             // Send the signup request to the backend
             const response = await requestSignupForLeague({
                 league_id: parseInt(selectedLeague, 10),
-                deck_id: parseInt(deckId, 10),
+                deck_id: deckId, // Keep as string - deck IDs are alphanumeric
                 current_commander: commanderScryfallId,
                 commander_partner: hasPartnerAbility ? partnerScryfallId : null,
             });

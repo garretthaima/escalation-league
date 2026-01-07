@@ -6,7 +6,6 @@ const CardSearch = ({ budgetId, remainingBudget, onCardAdded, addsLocked = false
     const [searchQuery, setSearchQuery] = useState('');
     const [autocompleteResults, setAutocompleteResults] = useState([]);
     const [selectedCard, setSelectedCard] = useState(null);
-    const [searching, setSearching] = useState(false);
     const [adding, setAdding] = useState(false);
     const [error, setError] = useState(null);
     const inputRef = useRef(null);
@@ -19,14 +18,11 @@ const CardSearch = ({ budgetId, remainingBudget, onCardAdded, addsLocked = false
         }
 
         try {
-            setSearching(true);
             const results = await ScryfallApi.autocompleteWithPrices(query);
             setAutocompleteResults(results || []);
         } catch (err) {
             console.error('Autocomplete error:', err);
             setAutocompleteResults([]);
-        } finally {
-            setSearching(false);
         }
     }, []);
 
@@ -69,7 +65,6 @@ const CardSearch = ({ budgetId, remainingBudget, onCardAdded, addsLocked = false
 
     const handleSelectCard = async (cardName) => {
         try {
-            setSearching(true);
             setError(null);
             const card = await ScryfallApi.getCheapestPrinting(cardName);
             setSelectedCard(card);
@@ -80,8 +75,6 @@ const CardSearch = ({ budgetId, remainingBudget, onCardAdded, addsLocked = false
         } catch (err) {
             console.error('Error fetching card:', err);
             setError('Failed to load card details. Please try again.');
-        } finally {
-            setSearching(false);
         }
     };
 

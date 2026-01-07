@@ -3,6 +3,7 @@ const { fetchMoxfieldDeck, fetchArchidektDeck } = require('../services/deckFetch
 const { fetchDeckDataIfStale, getCachedPriceCheck, cachePriceCheckResults } = require('../services/deckService');
 const { getDeckFromDatabase, saveDeckToDatabase } = require('../services/databaseService');
 const { calculateDeckPrices } = require('../services/priceService');
+const logger = require('../utils/logger');
 
 // Helper function: Validate the decklist URL
 const validateDecklistUrl = (decklistUrl) => {
@@ -16,15 +17,24 @@ const validateDecklistUrl = (decklistUrl) => {
 
 // Main function: Validate and cache deck data
 const validateAndCacheDeck = async (req, res) => {
-    console.log('validateAndCacheDeck received body:', req.body);
     const { decklistUrl } = req.body;
 
+    logger.info('Deck validation requested', {
+        userId: req.user?.id,
+        decklistUrl
+    });
+
     if (!decklistUrl) {
+        logger.warn('Deck validation failed - missing URL', { userId: req.user?.id });
         return res.status(400).json({ error: 'Decklist URL is required.' });
     }
 
     const platform = validateDecklistUrl(decklistUrl);
     if (!platform) {
+        logger.warn('Deck validation failed - unsupported format', {
+            userId: req.user?.id,
+            decklistUrl
+        });
         return res.status(400).json({ error: 'Unsupported decklist URL format.' });
     }
 
@@ -33,19 +43,20 @@ const validateAndCacheDeck = async (req, res) => {
             ? decklistUrl.split('/').pop()
             : decklistUrl.match(/^https:\/\/archidekt\.com\/decks\/([0-9]+)/)[1];
 
-        console.log('Deck ID extracted:', deckId, 'Platform:', platform);
+        logger.debug('Deck ID extracted', { deckId, platform, userId: req.user?.id });
         const cacheKey = `deck:${deckId}`;
 
         // Check if the deck is already cached
         const cachedDeck = await redis.get(cacheKey);
         let deckData;
         if (cachedDeck) {
-            console.log('Deck found in cache:', deckId);
+            logger.debug('Deck found in cache', { deckId, userId: req.user?.id });
             deckData = JSON.parse(cachedDeck);
 
             // Save the cached deck to the database to ensure it is persisted
             await saveDeckToDatabase(deckData);
         } else {
+            logger.info('Fetching deck from platform', { deckId, platform, userId: req.user?.id });
             // Fetch deck data from the appropriate platform
             deckData = platform === 'Moxfield'
                 ? await fetchMoxfieldDeck(deckId)
@@ -53,15 +64,26 @@ const validateAndCacheDeck = async (req, res) => {
 
             // Cache the deck data
             await redis.set(cacheKey, JSON.stringify(deckData), 'EX', 3600); // Cache for 1 hour
-            console.log('Deck cached successfully:', deckId);
+            logger.info('Deck cached successfully', { deckId, userId: req.user?.id });
 
             // Save the deck data to the database
             await saveDeckToDatabase(deckData);
         }
 
+        logger.info('Deck validation successful', {
+            deckId,
+            platform,
+            cached: !!cachedDeck,
+            userId: req.user?.id
+        });
+
         res.status(200).json({ deck: deckData, cached: !!cachedDeck });
     } catch (error) {
-        console.error('Error validating or caching deck:', error.message);
+        logger.error('Error validating or caching deck', error, {
+            decklistUrl,
+            platform,
+            userId: req.user?.id
+        });
         res.status(500).json({ error: 'Failed to validate or cache deck.' });
     }
 };

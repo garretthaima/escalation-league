@@ -76,6 +76,7 @@ exports.seed = async function (knex) {
     league_losses: 0,
     league_draws: 0,
     total_points: 0,
+    is_active: 1,
   }));
 
   await knex('user_leagues').insert(enrollments);

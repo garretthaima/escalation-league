@@ -56,7 +56,7 @@ module.exports = {
         client: 'mysql2',
         connection: {
             host: process.env.CARD_DB_HOST || 'card-db',
-            port: parseInt(process.env.CARD_DB_PORT || '3307'),
+            port: parseInt(process.env.CARD_DB_PORT || '3306'),
             user: process.env.CARD_DB_USER || 'card_user',
             password: process.env.CARD_DB_PASSWORD,
             database: process.env.CARD_DB_NAME || 'scryfall_card_db',

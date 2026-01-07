@@ -4,34 +4,48 @@ const { OAuth2Client } = require('google-auth-library');
 const { generateToken } = require('../utils/tokenUtils');
 const { handleError } = require('../utils/errorUtils');
 const { getSetting } = require('../utils/settingsUtils');
+const logger = require('../utils/logger');
 
 
 // Register User
 const registerUser = async (req, res) => {
     const { firstname, lastname, email, password } = req.body;
 
+    logger.info('User registration attempt', { email, firstname, lastname });
+
     try {
+        // Fetch the default role 'league_user'
+        const leagueUserRole = await db('roles').select('id').where({ name: 'league_user' }).first();
+
+        if (!leagueUserRole) {
+            logger.error('Default role not found during registration', null, { email });
+            return res.status(500).json({ error: 'Default role "league_user" not found in the database.' });
+        }
+
         // Hash the password before storing it
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Insert the user into the database
+        // Insert the user into the database with default role
         const [userId] = await db('users').insert({
             firstname,
             lastname,
             email,
             password: hashedPassword,
+            role_id: leagueUserRole.id, // Assign default league_user role
         });
+
+        logger.info('User registered successfully', { userId, email, roleId: leagueUserRole.id });
 
         // Send a success response
         res.status(201).json({ success: true, userId });
     } catch (err) {
-        console.error('Error registering user:', err.message);
-
         // Handle duplicate email error (MySQL error code 1062)
         if (err.code === 'ER_DUP_ENTRY') {
+            logger.warn('Registration failed - duplicate email', { email });
             return res.status(400).json({ error: 'Email is already registered.' });
         }
 
+        logger.error('Error registering user', err, { email });
         res.status(500).json({ error: 'Failed to register user.' });
     }
 };
