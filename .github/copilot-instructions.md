@@ -248,8 +248,21 @@ expect(res.body.is_deleted).toBe(0); // Not false
 
 ---
 
-## TODO: Future Test Coverage
+## TODO: Future Features
 
+### Real-time Updates / Auto-refresh
+- [ ] Implement polling for ActiveGamesPage (60s interval)
+  - Auto-refresh open pods (check for new games to join)
+  - Auto-refresh active pods (detect winner declarations)
+  - Optional: Add visual indicator when data refreshes
+- [ ] Implement polling for ConfirmGamesPage (60s interval)
+  - Auto-refresh pending confirmations
+  - Detect when games move to completed status
+- [ ] Implement polling for CompletedGamesPage (60s interval)
+  - See newly completed games without manual refresh
+- [ ] Consider WebSocket implementation for true real-time updates (future enhancement)
+
+### Test Coverage
 - [ ] Test password validation (complexity, length)
 - [ ] Test email format validation
 - [ ] Test SQL injection attempts
@@ -263,6 +276,7 @@ expect(res.body.is_deleted).toBe(0); // Not false
 - [ ] Add game pod tests
 - [ ] Add deck management tests
 - [ ] Add user profile tests
+
 ---
 
 ## Game Pod Workflow & Rules

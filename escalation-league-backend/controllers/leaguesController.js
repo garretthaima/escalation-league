@@ -1,5 +1,6 @@
 const db = require('../models/db');
 const logger = require('../utils/logger');
+const { emitSignupRequest, emitSignupResponse } = require('../utils/socketEmitter');
 
 // Create a league
 const createLeague = async (req, res) => {
@@ -370,6 +371,9 @@ const approveSignupRequest = async (req, res) => {
             leagueId: request.league_id
         });
 
+        // Emit WebSocket event to notify the user
+        emitSignupResponse(req.app, request.user_id, 'approved', request.league_id);
+
         res.status(200).json({ message: 'Signup request approved successfully.' });
     } catch (err) {
         logger.error('Error approving signup request', err, {
@@ -402,6 +406,9 @@ const rejectSignupRequest = async (req, res) => {
                 .where({ request_id: id }) // Use request_id to find the corresponding user_leagues entry
                 .update({ is_active: false });
         });
+
+        // Emit WebSocket event to notify the user
+        emitSignupResponse(req.app, request.user_id, 'rejected', request.league_id);
 
         res.status(200).json({ message: 'Signup request rejected successfully.' });
     } catch (err) {

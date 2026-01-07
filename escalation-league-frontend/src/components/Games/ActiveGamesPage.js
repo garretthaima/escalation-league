@@ -4,10 +4,12 @@ import { isUserInLeague } from '../../api/userLeaguesApi';
 import { usePermissions } from '../context/PermissionsProvider';
 import { getUserProfile } from '../../api/usersApi';
 import { useToast } from '../context/ToastContext';
+import { useWebSocket } from '../context/WebSocketProvider';
 
 const ActiveGamesTab = () => {
     const [openPods, setOpenPods] = useState([]);
     const [activePods, setActivePods] = useState([]);
+    const [leagueId, setLeagueId] = useState(null);
     const [userId, setUserId] = useState(null);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -16,6 +18,7 @@ const ActiveGamesTab = () => {
 
     const { permissions } = usePermissions();
     const { showToast } = useToast();
+    const { socket, joinLeague, leaveLeague } = useWebSocket();
 
     // Check permissions
     const canReadPods = permissions.some((perm) => perm.name === 'pod_read');
@@ -47,6 +50,13 @@ const ActiveGamesTab = () => {
 
                 setOpenPods(openPodsData || []);
                 setActivePods(userActivePods || []);
+
+                // Set league ID from first pod for WebSocket room
+                if (openPodsData?.length > 0 && openPodsData[0].league_id) {
+                    setLeagueId(openPodsData[0].league_id);
+                } else if (activePodsData?.length > 0 && activePodsData[0].league_id) {
+                    setLeagueId(activePodsData[0].league_id);
+                }
             } catch (err) {
                 console.error('Error fetching pods:', err);
                 setError('Failed to fetch pods.');
@@ -57,6 +67,68 @@ const ActiveGamesTab = () => {
 
         fetchPods();
     }, [canReadPods]);
+
+    // WebSocket listeners for real-time updates
+    useEffect(() => {
+        if (!socket || !leagueId) return;
+
+        // Join the league room to receive updates
+        joinLeague(leagueId);
+
+        // Listen for new pods
+        socket.on('pod:created', (data) => {
+            console.log('Pod created event:', data);
+            setOpenPods(prev => [...prev, data]);
+            showToast('New game available!', 'info');
+        });
+
+        // Listen for players joining
+        socket.on('pod:player_joined', (data) => {
+            console.log('Player joined event:', data);
+            setOpenPods(prev => prev.map(pod =>
+                pod.id === data.podId
+                    ? { ...pod, participants: [...(pod.participants || []), data.player] }
+                    : pod
+            ));
+        });
+
+        // Listen for pod activation (moved from open to active)
+        socket.on('pod:activated', (data) => {
+            console.log('Pod activated event:', data);
+            const { podId } = data;
+
+            setOpenPods(prev => {
+                const activatedPod = prev.find(pod => pod.id === podId);
+                if (activatedPod && activatedPod.participants?.some(p => p.player_id === userId)) {
+                    setActivePods(activePrev => [...activePrev, { ...activatedPod, confirmation_status: 'active' }]);
+                }
+                return prev.filter(pod => pod.id !== podId);
+            });
+
+            showToast('Game started!', 'success');
+        });
+
+        // Listen for winner declarations (pod moves to pending)
+        socket.on('pod:winner_declared', (data) => {
+            console.log('Winner declared event:', data);
+            // Remove from active pods (it's now pending)
+            setActivePods(prev => prev.filter(pod => pod.id !== data.podId));
+        });
+
+        // Cleanup
+        return () => {
+            if (socket) {
+                socket.off('pod:created');
+                socket.off('pod:player_joined');
+                socket.off('pod:activated');
+                socket.off('pod:winner_declared');
+            }
+            if (leagueId) {
+                leaveLeague(leagueId);
+            }
+        };
+    }, [socket, leagueId, userId, joinLeague, leaveLeague, showToast]);
+
 
     const handleJoinPod = async (podId) => {
         try {

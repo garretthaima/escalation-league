@@ -1,0 +1,129 @@
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { io } from 'socket.io-client';
+
+const WebSocketContext = createContext(null);
+
+export const useWebSocket = () => {
+    const context = useContext(WebSocketContext);
+    if (!context) {
+        throw new Error('useWebSocket must be used within a WebSocketProvider');
+    }
+    return context;
+};
+
+export const WebSocketProvider = ({ children }) => {
+    const [socket, setSocket] = useState(null);
+    const [connected, setConnected] = useState(false);
+    const socketRef = useRef(null);
+
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+
+        if (!token) {
+            // No token, don't connect
+            return;
+        }
+
+        // Get backend URL - use API subdomain based on current hostname
+        let backendUrl = process.env.REACT_APP_BACKEND_URL;
+        if (!backendUrl) {
+            // Auto-detect API URL based on hostname
+            const hostname = window.location.hostname;
+            if (hostname === 'dev.escalationleague.com') {
+                backendUrl = 'https://dev-api.escalationleague.com';
+            } else if (hostname === 'escalationleague.com' || hostname === 'www.escalationleague.com') {
+                backendUrl = 'https://api.escalationleague.com';
+            } else {
+                // Local development fallback
+                backendUrl = 'http://localhost:4000';
+            }
+        }
+
+        // Create socket connection
+        const newSocket = io(backendUrl, {
+            auth: {
+                token
+            },
+            transports: ['polling', 'websocket'], // Start with polling, then upgrade
+            reconnection: true,
+            reconnectionDelay: 1000,
+            reconnectionDelayMax: 5000,
+            reconnectionAttempts: 5
+        });
+
+        socketRef.current = newSocket;
+        setSocket(newSocket);
+
+        // Connection event handlers
+        newSocket.on('connect', () => {
+            console.log('WebSocket connected:', newSocket.id);
+            setConnected(true);
+        });
+
+        newSocket.on('disconnect', (reason) => {
+            console.log('WebSocket disconnected:', reason);
+            setConnected(false);
+        });
+
+        newSocket.on('connect_error', (error) => {
+            console.error('WebSocket connection error:', error.message);
+            setConnected(false);
+        });
+
+        newSocket.on('error', (error) => {
+            console.error('WebSocket error:', error);
+        });
+
+        // Cleanup on unmount
+        return () => {
+            if (newSocket) {
+                console.log('Closing WebSocket connection');
+                newSocket.close();
+            }
+        };
+    }, []); // Empty dependency array - connect once on mount
+
+    // Helper methods to join/leave rooms
+    const joinLeague = (leagueId) => {
+        if (socket && connected) {
+            socket.emit('join:league', leagueId);
+            console.log(`Joined league room: ${leagueId}`);
+        }
+    };
+
+    const leaveLeague = (leagueId) => {
+        if (socket && connected) {
+            socket.emit('leave:league', leagueId);
+            console.log(`Left league room: ${leagueId}`);
+        }
+    };
+
+    const joinPod = (podId) => {
+        if (socket && connected) {
+            socket.emit('join:pod', podId);
+            console.log(`Joined pod room: ${podId}`);
+        }
+    };
+
+    const leavePod = (podId) => {
+        if (socket && connected) {
+            socket.emit('leave:pod', podId);
+            console.log(`Left pod room: ${podId}`);
+        }
+    };
+
+    const value = {
+        socket,
+        connected,
+        joinLeague,
+        leaveLeague,
+        joinPod,
+        leavePod
+    };
+
+    return (
+        <WebSocketContext.Provider value={value}>
+            {children}
+        </WebSocketContext.Provider>
+    );
+};

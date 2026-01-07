@@ -1,6 +1,13 @@
 const db = require('../models/db'); // Import the database connection
 const gameService = require('../services/gameService');
 const logger = require('../utils/logger');
+const {
+    emitPodCreated,
+    emitPlayerJoined,
+    emitPodActivated,
+    emitWinnerDeclared,
+    emitGameConfirmed
+} = require('../utils/socketEmitter');
 
 // Create a Pod
 const createPod = async (req, res) => {
@@ -32,6 +39,14 @@ const createPod = async (req, res) => {
             userId: creatorId,
             leagueId,
             podId
+        });
+
+        // Emit WebSocket event
+        emitPodCreated(req.app, leagueId, {
+            id: podId,
+            league_id: leagueId,
+            creator_id: creatorId,
+            confirmation_status: 'open'
         });
 
         res.status(201).json(pod);
@@ -77,9 +92,21 @@ const joinPod = async (req, res) => {
             player_id: playerId,
         });
 
+        // Fetch user details for WebSocket event
+        const user = await db('users')
+            .where({ id: playerId })
+            .select('id', 'firstname', 'lastname')
+            .first();
+
+        // Emit player joined event
+        emitPlayerJoined(req.app, pod.league_id, podId, user);
+
         // Check if the pod now has enough participants to become active
         if (participantCount + 1 >= 4) {
             await db('game_pods').where({ id: podId }).update({ confirmation_status: 'active' });
+
+            // Emit pod activated event
+            emitPodActivated(req.app, pod.league_id, podId);
         }
 
         res.status(200).json({ message: 'Joined pod successfully.' });
@@ -135,6 +162,15 @@ const logPodResult = async (req, res) => {
         await db('game_players')
             .where({ pod_id: podId, player_id: playerId })
             .update(updateData);
+
+        // Get pod details for WebSocket events
+        const pod = await db('game_pods').where({ id: podId }).first();
+
+        // If declaring a win, update pod status to pending and emit event
+        if (result === 'win') {
+            await db('game_pods').where({ id: podId }).update({ confirmation_status: 'pending' });
+            emitWinnerDeclared(req.app, pod.league_id, podId, playerId);
+        }
 
         // Check if all participants have confirmed
         const participants = await db('game_players').where({ pod_id: podId });
@@ -201,6 +237,9 @@ const logPodResult = async (req, res) => {
                     result: podResult,
                 });
 
+            // Emit game completed event
+            emitGameConfirmed(req.app, pod.league_id, podId, playerId, true);
+
             return res.status(200).json({ message: 'Game result logged successfully, stats updated, and pod marked as complete.' });
         } else {
             // Update the pod's confirmation status to 'pending'
@@ -210,6 +249,9 @@ const logPodResult = async (req, res) => {
                     confirmation_status: 'pending',
                     result: null,
                 });
+
+            // Emit partial confirmation event
+            emitGameConfirmed(req.app, pod.league_id, podId, playerId, false);
 
             return res.status(200).json({ message: 'Confirmation recorded. Waiting for other players.' });
         }
