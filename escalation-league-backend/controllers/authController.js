@@ -160,8 +160,9 @@ const googleAuth = async (req, res) => {
                 await db('users').where({ email }).update(updates);
             }
 
-            // Add role_name to the user object
-            user.role_name = leagueUserRole.name;
+            // Fetch the user's actual role from database (don't override)
+            const userRole = await db('roles').select('name').where({ id: user.role_id }).first();
+            user.role_name = userRole ? userRole.name : leagueUserRole.name;
         }
 
         // Generate token using the utility function
