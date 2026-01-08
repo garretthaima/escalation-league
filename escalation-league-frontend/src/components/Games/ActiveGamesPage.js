@@ -85,10 +85,10 @@ const ActiveGamesTab = () => {
         socket.on('pod:player_joined', (data) => {
             setOpenPods(prev => prev.map(pod =>
                 pod.id === data.podId
-                    ? { 
-                        ...pod, 
+                    ? {
+                        ...pod,
                         participants: [
-                            ...(pod.participants || []), 
+                            ...(pod.participants || []),
                             {
                                 player_id: data.player.id,
                                 firstname: data.player.firstname,
@@ -97,7 +97,7 @@ const ActiveGamesTab = () => {
                                 result: null,
                                 confirmed: 0
                             }
-                        ] 
+                        ]
                     }
                     : pod
             ));
