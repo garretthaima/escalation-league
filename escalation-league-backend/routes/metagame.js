@@ -7,7 +7,7 @@ const router = express.Router();
 
 // Get metagame statistics for a league
 router.get(
-    '/leagues/:leagueId/metagame',
+    '/:leagueId/metagame/analysis',
     authenticateToken,
     authorizePermission(['league_view_details']),
     getMetagameStats
@@ -15,7 +15,7 @@ router.get(
 
 // Get statistics for a specific card
 router.get(
-    '/leagues/:leagueId/metagame/card/:cardName',
+    '/:leagueId/metagame/card/:cardName',
     authenticateToken,
     authorizePermission(['league_view_details']),
     getCardStats

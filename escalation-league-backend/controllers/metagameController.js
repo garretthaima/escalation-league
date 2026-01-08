@@ -1,4 +1,5 @@
 const db = require('../models/db');
+const scryfallDb = require('../models/scryfallDb');
 
 /**
  * Get metagame statistics for the active league
@@ -8,13 +9,24 @@ const getMetagameStats = async (req, res) => {
     try {
         const { leagueId } = req.params;
 
+        console.log('=== METAGAME DEBUG ===');
+        console.log('Fetching metagame for leagueId:', leagueId);
+
         // Get all decks for users in the specified league
         const decksInLeague = await db('user_leagues as ul')
             .join('decks as d', 'ul.deck_id', 'd.id')
             .where('ul.league_id', leagueId)
             .select('d.id', 'd.name', 'd.commanders', 'd.cards', 'd.platform');
 
+        console.log('Found decks:', decksInLeague.length);
+        if (decksInLeague.length > 0) {
+            console.log('First deck:', decksInLeague[0].name);
+            console.log('First deck commanders:', decksInLeague[0].commanders);
+            console.log('First deck cards sample:', JSON.stringify(decksInLeague[0].cards).substring(0, 500));
+        }
+
         if (decksInLeague.length === 0) {
+            console.log('No decks found, returning empty response');
             return res.status(200).json({
                 totalDecks: 0,
                 message: 'No decks found in this league'
@@ -33,6 +45,10 @@ const getMetagameStats = async (req, res) => {
         let cardDrawCards = 0;
         const winConditions = { combat: 0, combo: 0, alternate: 0 };
         const commanderSynergies = {}; // { commanderName: { cardName: count } }
+        const keywordCounts = {}; // { keyword: count }
+        let totalCreatures = 0;
+        let totalInstantsSorceries = 0;
+        let totalArtifactsEnchantments = 0;
 
         const basicLands = ['Plains', 'Island', 'Swamp', 'Mountain', 'Forest', 'Wastes'];
 
@@ -56,6 +72,44 @@ const getMetagameStats = async (req, res) => {
                 ? commanders.map(c => c.name || c)
                 : [];
 
+            // Fetch full card data from scryfall for commanders
+            if (Array.isArray(commanders)) {
+                for (const commander of commanders) {
+                    const scryfallId = commander.scryfall_id || commander.id;
+                    if (scryfallId) {
+                        try {
+                            const cardData = await scryfallDb('cards')
+                                .where('id', scryfallId)
+                                .first();
+
+                            if (cardData) {
+                                // Parse JSON fields safely
+                                const parseIfNeeded = (field) => {
+                                    if (!field) return [];
+                                    if (Array.isArray(field)) return field;
+                                    if (typeof field === 'string') {
+                                        try {
+                                            return JSON.parse(field);
+                                        } catch (e) {
+                                            return [];
+                                        }
+                                    }
+                                    return [];
+                                };
+
+                                // Merge scryfall data into commander object
+                                Object.assign(commander, {
+                                    color_identity: parseIfNeeded(cardData.color_identity),
+                                    colors: parseIfNeeded(cardData.colors)
+                                });
+                            }
+                        } catch (err) {
+                            console.error('Error fetching commander data:', err.message);
+                        }
+                    }
+                }
+            }
+
             // Count commanders
             if (Array.isArray(commanders)) {
                 for (const commander of commanders) {
@@ -67,7 +121,16 @@ const getMetagameStats = async (req, res) => {
                         commanderSynergies[cmdName] = {};
                     }
 
-                    // Track commander color identity
+                    // Track commander color identity for color distribution
+                    if (commander.color_identity && Array.isArray(commander.color_identity)) {
+                        for (const color of commander.color_identity) {
+                            if (colorCounts.hasOwnProperty(color)) {
+                                colorCounts[color]++;
+                            }
+                        }
+                    }
+
+                    // Track commander color identity combinations
                     if (commander.color_identity || commander.colors) {
                         const identity = (commander.color_identity || commander.colors).sort().join('');
                         colorIdentityCounts[identity] = (colorIdentityCounts[identity] || 0) + 1;
@@ -77,83 +140,142 @@ const getMetagameStats = async (req, res) => {
 
             // Count cards (excluding basic lands)
             if (Array.isArray(cards)) {
-                for (const card of cards) {
-                    const cardName = card.name || card;
-                    const cardText = (card.oracle_text || card.text || '').toLowerCase();
-                    const cardType = card.type || card.type_line || '';
+                // Fetch all card details from scryfall in batch
+                const scryfallIds = cards.map(c => c.scryfall_id || c.id).filter(id => id);
 
-                    // Skip basic lands
-                    if (basicLands.includes(cardName)) {
-                        continue;
-                    }
+                try {
+                    const cardDetails = await scryfallDb('cards')
+                        .whereIn('id', scryfallIds)
+                        .select('id', 'name', 'cmc', 'colors', 'type_line', 'oracle_text', 'keywords');
 
-                    cardCounts[cardName] = (cardCounts[cardName] || 0) + 1;
-
-                    // Track commander synergies - which cards appear with which commanders
-                    for (const cmdName of commanderNames) {
-                        if (commanderSynergies[cmdName]) {
-                            commanderSynergies[cmdName][cardName] = (commanderSynergies[cmdName][cardName] || 0) + 1;
-                        }
-                    }
-
-                    // Mana curve analysis
-                    const cmc = card.cmc || card.mana_cost || 0;
-                    if (typeof cmc === 'number') {
-                        cmcCounts[cmc] = (cmcCounts[cmc] || 0) + 1;
-                    }
-
-                    // Count colors if available
-                    if (card.colors && Array.isArray(card.colors)) {
-                        for (const color of card.colors) {
-                            if (colorCounts.hasOwnProperty(color)) {
-                                colorCounts[color]++;
+                    // Helper to parse JSON fields safely
+                    const parseIfNeeded = (field) => {
+                        if (!field) return [];
+                        if (Array.isArray(field)) return field;
+                        if (typeof field === 'string') {
+                            try {
+                                return JSON.parse(field);
+                            } catch (e) {
+                                return [];
                             }
                         }
+                        return [];
+                    };
+
+                    // Create lookup map
+                    const cardMap = {};
+                    for (const card of cardDetails) {
+                        cardMap[card.id] = {
+                            ...card,
+                            colors: parseIfNeeded(card.colors),
+                            oracle_text: card.oracle_text || ''
+                        };
                     }
 
-                    // Count card types if available
-                    if (cardType) {
-                        const primaryType = cardType.split('—')[0].trim();
-                        typeCounts[primaryType] = (typeCounts[primaryType] || 0) + 1;
-                    }
+                    // Process each card with full scryfall data
+                    for (const card of cards) {
+                        const scryfallId = card.scryfall_id || card.id;
+                        const fullCard = cardMap[scryfallId] || card;
 
-                    // Detect interaction cards
-                    if (removalKeywords.some(kw => cardText.includes(kw) || cardType.toLowerCase().includes('removal'))) {
-                        interactionCards.removal++;
-                    }
-                    if (counterspellKeywords.some(kw => cardText.includes(kw)) || cardType.toLowerCase().includes('counterspell')) {
-                        interactionCards.counterspells++;
-                    }
-                    if (boardWipeKeywords.some(kw => cardText.includes(kw))) {
-                        interactionCards.boardWipes++;
-                    }
+                        const cardName = fullCard.name || card.name;
+                        const cardText = (fullCard.oracle_text || '').toLowerCase();
+                        const cardType = fullCard.type_line || '';
 
-                    // Detect ramp cards
-                    if (rampKeywords.some(kw => cardText.includes(kw) || cardName.toLowerCase().includes(kw))) {
-                        rampCards++;
-                    }
+                        // Skip basic lands
+                        if (basicLands.includes(cardName)) {
+                            continue;
+                        }
 
-                    // Detect card draw
-                    if (drawKeywords.some(kw => cardText.includes(kw) || cardName.toLowerCase().includes(kw))) {
-                        cardDrawCards++;
-                    }
+                        cardCounts[cardName] = (cardCounts[cardName] || 0) + 1;
 
-                    // Detect win conditions
-                    if (comboKeywords.some(kw => cardText.includes(kw))) {
-                        winConditions.combo++;
+                        // Track commander synergies - which cards appear with which commanders
+                        for (const cmdName of commanderNames) {
+                            if (commanderSynergies[cmdName]) {
+                                commanderSynergies[cmdName][cardName] = (commanderSynergies[cmdName][cardName] || 0) + 1;
+                            }
+                        }
+
+                        // Mana curve analysis
+                        const cmc = fullCard.cmc !== undefined ? fullCard.cmc : 0;
+                        const cmcKey = cmc >= 7 ? '7+' : String(cmc);
+                        cmcCounts[cmcKey] = (cmcCounts[cmcKey] || 0) + 1;
+
+                        // Count colors if available
+                        if (fullCard.colors && Array.isArray(fullCard.colors)) {
+                            for (const color of fullCard.colors) {
+                                if (colorCounts.hasOwnProperty(color)) {
+                                    colorCounts[color]++;
+                                }
+                            }
+                        }
+
+                        // Count card types if available
+                        if (cardType) {
+                            const primaryType = cardType.split('—')[0].trim();
+                            typeCounts[primaryType] = (typeCounts[primaryType] || 0) + 1;
+                        }
+
+                        // Detect interaction cards
+                        if (removalKeywords.some(kw => cardText.includes(kw) || cardType.toLowerCase().includes('removal'))) {
+                            interactionCards.removal++;
+                        }
+                        if (counterspellKeywords.some(kw => cardText.includes(kw)) || cardType.toLowerCase().includes('counterspell')) {
+                            interactionCards.counterspells++;
+                        }
+                        if (boardWipeKeywords.some(kw => cardText.includes(kw))) {
+                            interactionCards.boardWipes++;
+                        }
+
+                        // Detect ramp cards
+                        if (rampKeywords.some(kw => cardText.includes(kw) || cardName.toLowerCase().includes(kw))) {
+                            rampCards++;
+                        }
+
+                        // Detect card draw
+                        if (drawKeywords.some(kw => cardText.includes(kw) || cardName.toLowerCase().includes(kw))) {
+                            cardDrawCards++;
+                        }
+
+                        // Detect win conditions
+                        if (comboKeywords.some(kw => cardText.includes(kw))) {
+                            winConditions.combo++;
+                        } else if (alternateWinKeywords.some(kw => cardText.includes(kw))) {
+                            winConditions.alternate++;
+                        } else if (combatKeywords.some(kw => cardText.includes(kw) || cardType.toLowerCase().includes('creature'))) {
+                            winConditions.combat++;
+                        }
+
+                        // Count keywords and track card types
+                        const keywords = parseIfNeeded(fullCard.keywords);
+                        const cardTypeLower = cardType.toLowerCase();
+
+                        // Track card type totals for percentage calculations
+                        if (cardTypeLower.includes('creature')) {
+                            totalCreatures++;
+                        }
+                        if (cardTypeLower.includes('instant') || cardTypeLower.includes('sorcery')) {
+                            totalInstantsSorceries++;
+                        }
+                        if (cardTypeLower.includes('artifact') || cardTypeLower.includes('enchantment')) {
+                            totalArtifactsEnchantments++;
+                        }
+
+                        if (keywords && Array.isArray(keywords)) {
+                            keywords.forEach(keyword => {
+                                if (keyword) {
+                                    keywordCounts[keyword] = (keywordCounts[keyword] || 0) + 1;
+                                }
+                            });
+                        }
                     }
-                    if (alternateWinKeywords.some(kw => cardText.includes(kw))) {
-                        winConditions.alternate++;
-                    }
-                    if (combatKeywords.some(kw => cardText.includes(kw) || cardType.toLowerCase().includes('creature'))) {
-                        winConditions.combat++;
-                    }
+                } catch (err) {
+                    console.error('Error fetching/processing card details:', err.message);
                 }
             }
         }
 
         // Sort and format results
-        const topCards = Object.entries(cardCounts)
+        const topCardsList = Object.entries(cardCounts)
             .sort(([, a], [, b]) => b - a)
             .slice(0, 50) // Top 50 most played cards
             .map(([name, count]) => ({
@@ -161,6 +283,79 @@ const getMetagameStats = async (req, res) => {
                 count,
                 percentage: ((count / decksInLeague.length) * 100).toFixed(2)
             }));
+
+        // Fetch scryfall data for top cards to get images
+        let topCards = topCardsList;
+        if (topCardsList.length > 0) {
+            try {
+                // For double-faced cards, also search by front face name
+                const topCardNames = topCardsList.map(c => c.name);
+                const frontFaceNames = topCardsList.map(c => c.name.split(' // ')[0]);
+                const allSearchNames = [...new Set([...topCardNames, ...frontFaceNames])];
+
+                const topCardData = await scryfallDb('cards')
+                    .whereIn('name', allSearchNames)
+                    .select('name', 'id', 'image_uris', 'card_faces');
+
+                // Helper to parse image_uris
+                const parseImageUris = (field) => {
+                    if (!field) return null;
+                    if (typeof field === 'object' && !Array.isArray(field)) return field;
+                    if (typeof field === 'string') {
+                        try {
+                            return JSON.parse(field);
+                        } catch (e) {
+                            return null;
+                        }
+                    }
+                    return null;
+                };
+
+                // Create a map for quick lookup (by both full name and front face)
+                const topCardMap = new Map();
+                for (const card of topCardData) {
+                    const imageUris = parseImageUris(card.image_uris);
+                    const cardFaces = parseImageUris(card.card_faces);
+
+                    let cardData = {
+                        scryfall_id: card.id,
+                        image_uri: imageUris?.normal || imageUris?.small || null,
+                        image_uris: [] // Array for multi-faced cards
+                    };
+
+                    // If card has multiple faces, get image for each face
+                    if (cardFaces && Array.isArray(cardFaces) && cardFaces.length > 1) {
+                        cardData.image_uris = cardFaces.map(face => {
+                            const faceImageUris = parseImageUris(face.image_uris);
+                            return faceImageUris?.normal || faceImageUris?.small || null;
+                        }).filter(uri => uri !== null);
+                    } else if (cardData.image_uri) {
+                        cardData.image_uris = [cardData.image_uri];
+                    }
+
+                    topCardMap.set(card.name, cardData);
+                }
+
+                // Merge scryfall data with top cards
+                topCards = topCardsList.map(card => {
+                    // Try full name first, then front face name
+                    let scryfallData = topCardMap.get(card.name);
+                    if (!scryfallData && card.name.includes(' // ')) {
+                        const frontFace = card.name.split(' // ')[0];
+                        scryfallData = topCardMap.get(frontFace);
+                    }
+                    return {
+                        ...card,
+                        scryfall_id: scryfallData?.scryfall_id || null,
+                        image_uri: scryfallData?.image_uri || null,
+                        image_uris: scryfallData?.image_uris || []
+                    };
+                });
+            } catch (err) {
+                console.error('Error fetching top card images:', err);
+                // If error, use cards without images
+            }
+        }
 
         const topCommanders = Object.entries(commanderCounts)
             .sort(([, a], [, b]) => b - a)
@@ -211,9 +406,9 @@ const getMetagameStats = async (req, res) => {
                 percentage: ((count / decksInLeague.length) * 100).toFixed(2)
             }));
 
-        // Detect staples (cards in 50%+ of decks)
-        const stapleThreshold = Math.ceil(decksInLeague.length * 0.5);
-        const staples = Object.entries(cardCounts)
+        // Detect staples (cards in 40%+ of decks)
+        const stapleThreshold = Math.ceil(decksInLeague.length * 0.4);
+        const staplesList = Object.entries(cardCounts)
             .filter(([, count]) => count >= stapleThreshold)
             .sort(([, a], [, b]) => b - a)
             .map(([name, count]) => ({
@@ -221,6 +416,84 @@ const getMetagameStats = async (req, res) => {
                 count,
                 percentage: ((count / decksInLeague.length) * 100).toFixed(2)
             }));
+
+        // Fetch scryfall data for staples to get images
+        let staples = staplesList;
+        if (staplesList.length > 0) {
+            try {
+                // For double-faced cards, also search by front face name
+                const stapleNames = staplesList.map(s => s.name);
+                const frontFaceNames = staplesList.map(s => s.name.split(' // ')[0]);
+                const allSearchNames = [...new Set([...stapleNames, ...frontFaceNames])];
+
+                console.log('Fetching staple images for:', stapleNames);
+                const stapleCards = await scryfallDb('cards')
+                    .whereIn('name', allSearchNames)
+                    .select('name', 'id', 'image_uris', 'card_faces');
+
+                console.log('Found staple cards:', stapleCards.length);
+                console.log('Sample card:', stapleCards[0]);
+
+                // Helper to parse image_uris
+                const parseImageUris = (field) => {
+                    if (!field) return null;
+                    if (typeof field === 'object' && !Array.isArray(field)) return field;
+                    if (typeof field === 'string') {
+                        try {
+                            return JSON.parse(field);
+                        } catch (e) {
+                            return null;
+                        }
+                    }
+                    return null;
+                };
+
+                // Create a map for quick lookup
+                const stapleCardMap = new Map();
+                for (const card of stapleCards) {
+                    const imageUris = parseImageUris(card.image_uris);
+                    const cardFaces = parseImageUris(card.card_faces);
+
+                    let cardData = {
+                        scryfall_id: card.id,
+                        image_uri: imageUris?.small || imageUris?.normal || null,
+                        image_uris: [] // Array for multi-faced cards
+                    };
+
+                    // If card has multiple faces, get image for each face
+                    if (cardFaces && Array.isArray(cardFaces) && cardFaces.length > 1) {
+                        cardData.image_uris = cardFaces.map(face => {
+                            const faceImageUris = parseImageUris(face.image_uris);
+                            return faceImageUris?.small || faceImageUris?.normal || null;
+                        }).filter(uri => uri !== null);
+                    } else if (cardData.image_uri) {
+                        cardData.image_uris = [cardData.image_uri];
+                    }
+
+                    stapleCardMap.set(card.name, cardData);
+                }
+
+                // Merge scryfall data with staples
+                staples = staplesList.map(staple => {
+                    // Try full name first, then front face name
+                    let scryfallData = stapleCardMap.get(staple.name);
+                    if (!scryfallData && staple.name.includes(' // ')) {
+                        const frontFace = staple.name.split(' // ')[0];
+                        scryfallData = stapleCardMap.get(frontFace);
+                    }
+                    return {
+                        ...staple,
+                        scryfall_id: scryfallData?.scryfall_id || null,
+                        image_uri: scryfallData?.image_uri || null,
+                        image_uris: scryfallData?.image_uris || []
+                    };
+                });
+                console.log('Staples with images:', staples.slice(0, 2));
+            } catch (err) {
+                console.error('Error fetching staple images:', err);
+                // If error, use staples without images
+            }
+        }
 
         // Archetype detection based on card types
         const totalTypeCounts = Object.values(typeCounts).reduce((sum, count) => sum + count, 0);
@@ -247,7 +520,64 @@ const getMetagameStats = async (req, res) => {
         // Calculate total cards for resource metrics
         const totalCardsAnalyzed = Object.values(cardCounts).reduce((sum, count) => sum + count, 0);
 
-        res.status(200).json({
+        // Categorize keywords
+        const keywordCategories = {
+            combat: ['Flying', 'Trample', 'Deathtouch', 'Lifelink', 'First Strike', 'Double Strike', 'Vigilance', 'Reach', 'Menace'],
+            protection: ['Hexproof', 'Ward', 'Protection', 'Indestructible', 'Shroud'],
+            utility: ['Mill', 'Proliferate', 'Cascade', 'Storm', 'Convoke', 'Delve', 'Flashback', 'Kicker'],
+            speed: ['Haste', 'Flash']
+        };
+
+        const categorizedKeywords = {
+            combat: [],
+            protection: [],
+            utility: [],
+            speed: []
+        };
+
+        // Sort keywords by count and categorize
+        const sortedKeywords = Object.entries(keywordCounts)
+            .sort(([, a], [, b]) => b - a);
+
+        for (const [keyword, count] of sortedKeywords) {
+            let percentage = 0;
+            let total = totalCardsAnalyzed;
+            let baseType = 'cards';
+
+            // Find which category this keyword belongs to
+            let categorized = false;
+            for (const [category, keywords] of Object.entries(keywordCategories)) {
+                if (keywords.includes(keyword)) {
+                    // Calculate percentage based on card type
+                    if (category === 'combat') {
+                        percentage = totalCreatures > 0 ? ((count / totalCreatures) * 100).toFixed(2) : 0;
+                        baseType = 'creatures';
+                    } else if (category === 'speed' && keyword === 'Flash') {
+                        percentage = totalInstantsSorceries > 0 ? ((count / totalInstantsSorceries) * 100).toFixed(2) : 0;
+                        baseType = 'instants/sorceries';
+                    } else if (category === 'utility') {
+                        // Utility keywords can appear on various card types, use total
+                        percentage = totalCardsAnalyzed > 0 ? ((count / totalCardsAnalyzed) * 100).toFixed(2) : 0;
+                        baseType = 'cards';
+                    } else {
+                        percentage = totalCardsAnalyzed > 0 ? ((count / totalCardsAnalyzed) * 100).toFixed(2) : 0;
+                        baseType = 'cards';
+                    }
+
+                    categorizedKeywords[category].push({ keyword, count, percentage, baseType });
+                    categorized = true;
+                    break;
+                }
+            }
+
+            // If not in predefined categories, add to utility with general percentage
+            if (!categorized && categorizedKeywords.utility.length < 10) {
+                percentage = totalCardsAnalyzed > 0 ? ((count / totalCardsAnalyzed) * 100).toFixed(2) : 0;
+                categorizedKeywords.utility.push({ keyword, count, percentage, baseType: 'cards' });
+            }
+        }
+
+        const response = {
             totalDecks: decksInLeague.length,
             topCards,
             topCommanders,
@@ -283,8 +613,25 @@ const getMetagameStats = async (req, res) => {
                 alternate: winConditions.alternate,
                 totalCards: winConditions.combat + winConditions.combo + winConditions.alternate
             },
+            keywords: categorizedKeywords,
             commanderSynergies: topCommanderSynergies
+        };
+
+        console.log('Response summary:', {
+            totalDecks: response.totalDecks,
+            topCardsLength: response.topCards?.length,
+            topCommandersLength: response.topCommanders?.length,
+            staples: response.staples?.length,
+            manaCurveKeys: response.manaCurve?.distribution?.length,
+            colorCounts: colorCounts,
+            colorDistributionLength: response.colorDistribution?.length,
+            interaction: response.interaction,
+            resources: response.resources,
+            winConditions: response.winConditions
         });
+        console.log('Staples data sample:', response.staples?.slice(0, 3));
+
+        res.status(200).json(response);
 
     } catch (err) {
         console.error('Error fetching metagame stats:', err.message);

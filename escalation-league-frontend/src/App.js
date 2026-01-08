@@ -21,6 +21,7 @@ import { HomePage, Footer, Contact } from './components/Shared/';
 import { ToastProvider } from './components/context/ToastContext';
 import { WebSocketProvider } from './components/context/WebSocketProvider';
 import { BudgetDashboard } from './components/Budget';
+import { MetagameDashboard } from './components/Metagame';
 
 const App = () => {
     const [user, setUser] = useState(null);
@@ -71,6 +72,7 @@ const App = () => {
                                 <Route path="leaderboard" element={<LeagueLeaderboard />} />
                                 <Route path="price-check" element={<PriceCheckPage />} />
                                 <Route path="budget" element={<BudgetDashboard />} />
+                                <Route path="metagame" element={<MetagameDashboard />} />
                                 <Route path="past" element={<PastLeagues />} />
                             </Route>
 

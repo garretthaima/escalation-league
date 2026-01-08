@@ -89,8 +89,14 @@ const LeaguesPage = () => {
                                 >
                                     Price Check
                                 </Link>
-                            </li>
-                        </>
+                            </li>                            <li className="nav-item">
+                                <Link
+                                    to="/leagues/metagame"
+                                    className={`nav-link ${location.pathname === '/leagues/metagame' ? 'active' : ''}`}
+                                >
+                                    Metagame
+                                </Link>
+                            </li>                        </>
                     ) : (
                         <li className="nav-item">
                             <Link

@@ -128,12 +128,12 @@ try {
 }
 
 /**
- * Mounts metagame-related routes at `/metagame`.
+ * Mounts metagame-related routes at `/leagues/:leagueId/metagame`.
  * @module routes/metagame
  */
 try {
     const metagameRoutes = require('./metagame');
-    router.use('/metagame', metagameRoutes); // Metagame analysis routes
+    router.use('/leagues', metagameRoutes); // Metagame routes nested under leagues
 } catch (err) {
     console.error('Error loading metagameRoutes:', err.message);
 }
