@@ -148,9 +148,13 @@ const googleAuth = async (req, res) => {
                 role_name: leagueUserRole.name, // Include role_name
             };
         } else {
-            // Only update picture if it is null (user hasn't uploaded a custom picture)
-            // Do NOT update firstname/lastname - respect user's manual changes
+            // User exists - update Google ID if not already set, and picture if null
             const updates = {};
+
+            // Link Google ID to existing account if not already linked
+            if (!user.google_id && sub) {
+                updates.google_id = sub;
+            }
 
             if (!user.picture) {
                 updates.picture = picture;
