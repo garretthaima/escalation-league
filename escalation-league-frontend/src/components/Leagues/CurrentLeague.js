@@ -141,8 +141,8 @@ const CurrentLeague = () => {
                 {activeTab === 'participants' && (
                     <div className="card">
                         <div className="card-body">
-                            <p className="mb-3 text-secondary">{participants.length} player{participants.length !== 1 ? 's' : ''} in this league</p>
-                            {participants.length > 0 ? (
+                            <p className="mb-3 text-secondary">{Array.isArray(participants) ? participants.length : 0} player{(Array.isArray(participants) ? participants.length : 0) !== 1 ? 's' : ''} in this league</p>
+                            {Array.isArray(participants) && participants.length > 0 ? (
                                 <ul className="list-group">
                                     {participants.map((participant) => (
                                         <li key={participant.user_id} className="list-group-item d-flex justify-content-between align-items-center">

@@ -4,10 +4,12 @@ import { isUserInLeague } from '../../api/userLeaguesApi';
 import { usePermissions } from '../context/PermissionsProvider';
 import { getUserProfile } from '../../api/usersApi';
 import { useToast } from '../context/ToastContext';
+import { useWebSocket } from '../context/WebSocketProvider';
 
 const ActiveGamesTab = () => {
     const [openPods, setOpenPods] = useState([]);
     const [activePods, setActivePods] = useState([]);
+    const [leagueId, setLeagueId] = useState(null);
     const [userId, setUserId] = useState(null);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -16,6 +18,7 @@ const ActiveGamesTab = () => {
 
     const { permissions } = usePermissions();
     const { showToast } = useToast();
+    const { socket, connected, joinLeague, leaveLeague } = useWebSocket();
 
     // Check permissions
     const canReadPods = permissions.some((perm) => perm.name === 'pod_read');
@@ -47,6 +50,13 @@ const ActiveGamesTab = () => {
 
                 setOpenPods(openPodsData || []);
                 setActivePods(userActivePods || []);
+
+                // Set league ID from first pod for WebSocket room
+                if (openPodsData?.length > 0 && openPodsData[0].league_id) {
+                    setLeagueId(openPodsData[0].league_id);
+                } else if (activePodsData?.length > 0 && activePodsData[0].league_id) {
+                    setLeagueId(activePodsData[0].league_id);
+                }
             } catch (err) {
                 console.error('Error fetching pods:', err);
                 setError('Failed to fetch pods.');
@@ -58,12 +68,91 @@ const ActiveGamesTab = () => {
         fetchPods();
     }, [canReadPods]);
 
+    // WebSocket listeners for real-time updates
+    useEffect(() => {
+        if (!socket || !connected || !leagueId) return;
+
+        // Join the league room to receive updates
+        joinLeague(leagueId);
+
+        // Listen for new pods
+        socket.on('pod:created', (data) => {
+            setOpenPods(prev => [...prev, data]);
+            showToast('New game available!', 'info');
+        });
+
+        // Listen for players joining
+        socket.on('pod:player_joined', (data) => {
+            setOpenPods(prev => prev.map(pod =>
+                pod.id === data.podId
+                    ? {
+                        ...pod,
+                        participants: [
+                            ...(pod.participants || []),
+                            {
+                                player_id: data.player.id,
+                                firstname: data.player.firstname,
+                                lastname: data.player.lastname,
+                                email: data.player.email || '',
+                                result: null,
+                                confirmed: 0
+                            }
+                        ]
+                    }
+                    : pod
+            ));
+        });
+
+        // Listen for pod activation (moved from open to active)
+        socket.on('pod:activated', (data) => {
+            const { podId } = data;
+
+            setOpenPods(prev => {
+                const activatedPod = prev.find(pod => pod.id === podId);
+                if (activatedPod && activatedPod.participants?.some(p => p.player_id === userId)) {
+                    setActivePods(activePrev => [...activePrev, { ...activatedPod, confirmation_status: 'active' }]);
+                }
+                return prev.filter(pod => pod.id !== podId);
+            });
+
+            showToast('Game started!', 'success');
+        });
+
+        // Listen for winner declarations (pod moves to pending)
+        socket.on('pod:winner_declared', (data) => {
+            // Remove from active pods (it's now pending)
+            setActivePods(prev => prev.filter(pod => pod.id !== data.podId));
+        });
+
+        // Listen for pod deletions (admin removed a pod)
+        socket.on('pod:deleted', (data) => {
+            // Remove from both open and active pods
+            setOpenPods(prev => prev.filter(pod => pod.id !== data.podId));
+            setActivePods(prev => prev.filter(pod => pod.id !== data.podId));
+            showToast('A game was deleted', 'info');
+        });
+
+        // Cleanup
+        return () => {
+            if (socket) {
+                socket.off('pod:created');
+                socket.off('pod:player_joined');
+                socket.off('pod:activated');
+                socket.off('pod:winner_declared');
+                socket.off('pod:deleted');
+            }
+            if (leagueId) {
+                leaveLeague(leagueId);
+            }
+        };
+    }, [socket, connected, leagueId, userId, joinLeague, leaveLeague, showToast]);
+
+
     const handleJoinPod = async (podId) => {
         try {
             await joinPod(podId);
             showToast('Joined pod successfully!', 'success');
-            const openPodsData = await getPods({ confirmation_status: 'open' }); // Refresh open pods
-            setOpenPods(openPodsData || []);
+            // No need to refresh - WebSocket will update the UI for all users including this one
         } catch (err) {
             console.error('Error joining pod:', err.response?.data?.error || err.message);
             showToast(err.response?.data?.error || 'Failed to join pod.', 'error');
@@ -81,10 +170,7 @@ const ActiveGamesTab = () => {
             const leagueId = response.league.league_id;
             await createPod({ leagueId });
 
-            // Refresh open pods to get full pod data with participants
-            const openPodsData = await getPods({ confirmation_status: 'open' });
-            setOpenPods(openPodsData || []);
-
+            // WebSocket event (pod:created) will update the UI
             showToast(`New pod created successfully in league: ${response.league.league_name}!`, 'success');
         } catch (err) {
             console.error('Error creating pod:', err.response?.data?.error || err.message);
@@ -96,15 +182,7 @@ const ActiveGamesTab = () => {
         try {
             await overridePod(podId);
             showToast('Pod successfully overridden to active!', 'success');
-            const [openPodsData, activePodsData] = await Promise.all([
-                getPods({ confirmation_status: 'open' }),
-                getPods({ confirmation_status: 'active' }),
-            ]);
-            const userActivePods = activePodsData.filter(pod =>
-                pod.participants?.some(p => p.player_id === userId)
-            );
-            setOpenPods(openPodsData || []);
-            setActivePods(userActivePods || []);
+            // WebSocket event (pod:activated) will update the UI
         } catch (err) {
             console.error('Error overriding pod:', err.response?.data?.error || err.message);
             showToast(err.response?.data?.error || 'Failed to override pod.', 'error');
@@ -121,18 +199,14 @@ const ActiveGamesTab = () => {
         try {
             await logPodResult(selectedPodId, { result: 'win' });
             showToast('Winner declared! Waiting for other players to confirm.', 'success');
-            const activePodsData = await getPods({ confirmation_status: 'active' });
-            const userActivePods = activePodsData.filter(pod =>
-                pod.participants?.some(p => p.player_id === userId)
-            );
-            setActivePods(userActivePods || []);
+            // WebSocket event (pod:winner_declared) will update the UI
         } catch (err) {
             console.error('Error declaring winner:', err.response?.data?.error || err.message);
 
             // Check if someone else already won
             if (err.response?.data?.error?.includes('already been declared')) {
-                window.alert('A winner has already been declared for this game. Refreshing...');
-                window.location.reload();
+                showToast('A winner has already been declared for this game.', 'info');
+                // WebSocket event will update the UI, no need to reload
             } else {
                 showToast(err.response?.data?.error || 'Failed to declare winner.', 'error');
             }
@@ -146,6 +220,10 @@ const ActiveGamesTab = () => {
     if (error) {
         return <div className="alert alert-danger">{error}</div>;
     }
+
+    // Defensive: always use arrays for pods and participants
+    const safeOpenPods = Array.isArray(openPods) ? openPods : [];
+    const safeActivePods = Array.isArray(activePods) ? activePods : [];
 
     return (
         <div>
@@ -161,8 +239,8 @@ const ActiveGamesTab = () => {
                     </button>
                 )}
                 <div className="row">
-                    {openPods.length > 0 ? (
-                        openPods.map((pod) => (
+                    {safeOpenPods.length > 0 ? (
+                        safeOpenPods.map((pod) => (
                             <div key={pod.id} className="col-md-6 mb-4">
                                 <div className="card">
                                     <div className="card-body">
@@ -174,7 +252,8 @@ const ActiveGamesTab = () => {
                                                         <tr key={rowIndex}>
                                                             {Array.from({ length: 2 }).map((_, colIndex) => {
                                                                 const participantIndex = rowIndex * 2 + colIndex;
-                                                                const participant = pod.participants?.[participantIndex];
+                                                                const participantsArr = Array.isArray(pod.participants) ? pod.participants : [];
+                                                                const participant = participantsArr[participantIndex];
                                                                 return (
                                                                     <td key={colIndex}>
                                                                         {participant
@@ -188,7 +267,7 @@ const ActiveGamesTab = () => {
                                                 </tbody>
                                             </table>
                                         </div>
-                                        {pod.participants?.length >= 3 && pod.participants.some((p) => p.player_id === userId) && (
+                                        {Array.isArray(pod.participants) && pod.participants.length >= 3 && pod.participants.some((p) => p.player_id === userId) && (
                                             <button
                                                 className="btn btn-warning mt-3"
                                                 onClick={() => handleOverridePod(pod.id)}
@@ -201,13 +280,15 @@ const ActiveGamesTab = () => {
                                                 className="btn btn-secondary mt-3"
                                                 onClick={() => handleJoinPod(pod.id)}
                                                 disabled={
-                                                    pod.participants?.some((p) => p.player_id === userId) || // Check if user is already in the pod
-                                                    pod.participants.length >= 4 // Check if pod is full
+                                                    Array.isArray(pod.participants) && (
+                                                        pod.participants.some((p) => p.player_id === userId) ||
+                                                        pod.participants.length >= 4
+                                                    )
                                                 }
                                             >
-                                                {pod.participants?.some((p) => p.player_id === userId)
+                                                {Array.isArray(pod.participants) && pod.participants.some((p) => p.player_id === userId)
                                                     ? 'Already Joined'
-                                                    : pod.participants.length >= 4
+                                                    : Array.isArray(pod.participants) && pod.participants.length >= 4
                                                         ? 'Pod Full'
                                                         : 'Join Pod'}
                                             </button>
@@ -226,8 +307,8 @@ const ActiveGamesTab = () => {
             <div>
                 <h3>Active Games</h3>
                 <div className="row">
-                    {activePods.length > 0 ? (
-                        activePods.map((pod) => (
+                    {safeActivePods.length > 0 ? (
+                        safeActivePods.map((pod) => (
                             <div key={pod.id} className="col-md-6 mb-4">
                                 <div className="card">
                                     <div className="card-body">
@@ -239,7 +320,8 @@ const ActiveGamesTab = () => {
                                                         <tr key={rowIndex}>
                                                             {Array.from({ length: 2 }).map((_, colIndex) => {
                                                                 const participantIndex = rowIndex * 2 + colIndex;
-                                                                const participant = pod.participants?.[participantIndex];
+                                                                const participantsArr = Array.isArray(pod.participants) ? pod.participants : [];
+                                                                const participant = participantsArr[participantIndex];
                                                                 return (
                                                                     <td key={colIndex}>
                                                                         {participant
@@ -254,7 +336,7 @@ const ActiveGamesTab = () => {
                                             </table>
                                         </div>
                                         {/* Declare Winner Button */}
-                                        {pod.participants.some((p) => String(p.player_id) === String(userId)) && (
+                                        {Array.isArray(pod.participants) && pod.participants.some((p) => String(p.player_id) === String(userId)) && (
                                             <button
                                                 className="btn btn-success mt-3"
                                                 onClick={() => handleDeclareWinner(pod.id)}

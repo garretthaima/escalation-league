@@ -50,15 +50,8 @@ const LeagueLeaderboard = () => {
         if (leagueId) {
             const fetchLeagueStats = async () => {
                 try {
-                    console.log('Fetching league stats for leagueId:', leagueId);
                     const { leaderboard, stats } = await getLeagueStats(leagueId);
-                    console.log('League stats response:', { leaderboard, stats });
-
-                    // Filter out players with no games played
-                    const filteredLeaderboard = leaderboard.filter((player) => player.total_games > 0);
-                    console.log('Filtered Leaderboard:', filteredLeaderboard);
-
-                    setLeaderboard(filteredLeaderboard);
+                    setLeaderboard(leaderboard);
                     setStats(stats);
                 } catch (err) {
                     console.error('Error fetching league stats:', err);
