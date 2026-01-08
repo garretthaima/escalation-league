@@ -43,19 +43,19 @@ const CompletedGamesTab = () => {
     useEffect(() => {
         if (!userId) return;
 
-        let filtered = [...completedGames];
+        let filtered = Array.isArray(completedGames) ? [...completedGames] : [];
 
         // Filter by user participation
         if (showMyGamesOnly) {
             filtered = filtered.filter(game =>
-                game.participants?.some(p => p.player_id === userId)
+                Array.isArray(game.participants) && game.participants.some(p => p.player_id === userId)
             );
         }
 
         // Filter by player name
         if (playerFilter.trim()) {
             filtered = filtered.filter(game =>
-                game.participants?.some(p =>
+                Array.isArray(game.participants) && game.participants.some(p =>
                     `${p.firstname} ${p.lastname}`.toLowerCase().includes(playerFilter.toLowerCase())
                 )
             );

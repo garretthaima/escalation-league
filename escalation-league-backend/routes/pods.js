@@ -9,10 +9,12 @@ const {
 } = require('../controllers/podsController');
 const authenticateToken = require('../middlewares/authentication');
 const authorizePermission = require('../middlewares/authorizePermission');
+const { gameLimiter } = require('../middlewares/rateLimitMiddleware');
 
 // Pod Management Endpoints
 router.post(
     '/',
+    gameLimiter, // Apply game-specific rate limiting
     authenticateToken,
     authorizePermission(['pod_create']), // Permission to create a pod
     createPod
@@ -20,6 +22,7 @@ router.post(
 
 router.get(
     '/',
+    gameLimiter, // Apply game-specific rate limiting
     authenticateToken,
     authorizePermission(['pod_read']), // Permission to fetch pods with filtering
     getPods
@@ -27,12 +30,14 @@ router.get(
 
 router.post(
     '/:podId/join',
+    gameLimiter, // Apply game-specific rate limiting
     authenticateToken,
     joinPod
 );
 
 router.post(
     '/:podId/log',
+    gameLimiter, // Apply game-specific rate limiting
     authenticateToken,
     logPodResult
 );
@@ -40,6 +45,7 @@ router.post(
 
 router.post(
     '/:podId/override',
+    gameLimiter, // Apply game-specific rate limiting
     authenticateToken,
     overridePod
 );

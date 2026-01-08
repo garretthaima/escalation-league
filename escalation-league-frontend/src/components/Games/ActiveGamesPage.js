@@ -219,6 +219,10 @@ const ActiveGamesTab = () => {
         return <div className="alert alert-danger">{error}</div>;
     }
 
+    // Defensive: always use arrays for pods and participants
+    const safeOpenPods = Array.isArray(openPods) ? openPods : [];
+    const safeActivePods = Array.isArray(activePods) ? activePods : [];
+
     return (
         <div>
             {/* Open Pods Section */}
@@ -233,8 +237,8 @@ const ActiveGamesTab = () => {
                     </button>
                 )}
                 <div className="row">
-                    {openPods.length > 0 ? (
-                        openPods.map((pod) => (
+                    {safeOpenPods.length > 0 ? (
+                        safeOpenPods.map((pod) => (
                             <div key={pod.id} className="col-md-6 mb-4">
                                 <div className="card">
                                     <div className="card-body">
@@ -246,7 +250,8 @@ const ActiveGamesTab = () => {
                                                         <tr key={rowIndex}>
                                                             {Array.from({ length: 2 }).map((_, colIndex) => {
                                                                 const participantIndex = rowIndex * 2 + colIndex;
-                                                                const participant = pod.participants?.[participantIndex];
+                                                                const participantsArr = Array.isArray(pod.participants) ? pod.participants : [];
+                                                                const participant = participantsArr[participantIndex];
                                                                 return (
                                                                     <td key={colIndex}>
                                                                         {participant
@@ -260,7 +265,7 @@ const ActiveGamesTab = () => {
                                                 </tbody>
                                             </table>
                                         </div>
-                                        {pod.participants?.length >= 3 && pod.participants.some((p) => p.player_id === userId) && (
+                                        {Array.isArray(pod.participants) && pod.participants.length >= 3 && pod.participants.some((p) => p.player_id === userId) && (
                                             <button
                                                 className="btn btn-warning mt-3"
                                                 onClick={() => handleOverridePod(pod.id)}
@@ -273,13 +278,15 @@ const ActiveGamesTab = () => {
                                                 className="btn btn-secondary mt-3"
                                                 onClick={() => handleJoinPod(pod.id)}
                                                 disabled={
-                                                    pod.participants?.some((p) => p.player_id === userId) || // Check if user is already in the pod
-                                                    pod.participants.length >= 4 // Check if pod is full
+                                                    Array.isArray(pod.participants) && (
+                                                        pod.participants.some((p) => p.player_id === userId) ||
+                                                        pod.participants.length >= 4
+                                                    )
                                                 }
                                             >
-                                                {pod.participants?.some((p) => p.player_id === userId)
+                                                {Array.isArray(pod.participants) && pod.participants.some((p) => p.player_id === userId)
                                                     ? 'Already Joined'
-                                                    : pod.participants.length >= 4
+                                                    : Array.isArray(pod.participants) && pod.participants.length >= 4
                                                         ? 'Pod Full'
                                                         : 'Join Pod'}
                                             </button>
@@ -298,8 +305,8 @@ const ActiveGamesTab = () => {
             <div>
                 <h3>Active Games</h3>
                 <div className="row">
-                    {activePods.length > 0 ? (
-                        activePods.map((pod) => (
+                    {safeActivePods.length > 0 ? (
+                        safeActivePods.map((pod) => (
                             <div key={pod.id} className="col-md-6 mb-4">
                                 <div className="card">
                                     <div className="card-body">
@@ -311,7 +318,8 @@ const ActiveGamesTab = () => {
                                                         <tr key={rowIndex}>
                                                             {Array.from({ length: 2 }).map((_, colIndex) => {
                                                                 const participantIndex = rowIndex * 2 + colIndex;
-                                                                const participant = pod.participants?.[participantIndex];
+                                                                const participantsArr = Array.isArray(pod.participants) ? pod.participants : [];
+                                                                const participant = participantsArr[participantIndex];
                                                                 return (
                                                                     <td key={colIndex}>
                                                                         {participant
@@ -326,7 +334,7 @@ const ActiveGamesTab = () => {
                                             </table>
                                         </div>
                                         {/* Declare Winner Button */}
-                                        {pod.participants.some((p) => String(p.player_id) === String(userId)) && (
+                                        {Array.isArray(pod.participants) && pod.participants.some((p) => String(p.player_id) === String(userId)) && (
                                             <button
                                                 className="btn btn-success mt-3"
                                                 onClick={() => handleDeclareWinner(pod.id)}

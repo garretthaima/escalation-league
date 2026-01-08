@@ -24,23 +24,24 @@ export const WebSocketProvider = ({ children }) => {
             return;
         }
 
-        // Get backend URL - use API subdomain based on current hostname
-        let backendUrl = process.env.REACT_APP_BACKEND_URL;
-        if (!backendUrl) {
+        // Use dedicated SOCKET_URL for WebSocket, fallback to auto-detect
+        let socketUrl = process.env.REACT_APP_SOCKET_URL;
+        if (!socketUrl) {
             // Auto-detect API URL based on hostname
             const hostname = window.location.hostname;
             if (hostname === 'dev.escalationleague.com') {
-                backendUrl = 'https://dev-api.escalationleague.com';
+                socketUrl = 'https://dev-api.escalationleague.com';
             } else if (hostname === 'escalationleague.com' || hostname === 'www.escalationleague.com') {
-                backendUrl = 'https://api.escalationleague.com';
+                socketUrl = 'https://api.escalationleague.com';
             } else {
                 // Local development fallback
-                backendUrl = 'http://localhost:4000';
+                socketUrl = 'http://localhost:4000';
             }
         }
 
         // Create socket connection
-        const newSocket = io(backendUrl, {
+        const newSocket = io(socketUrl, {
+            path: '/socket.io/', // Explicitly set Socket.IO path
             auth: {
                 token
             },

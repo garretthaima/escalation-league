@@ -63,18 +63,21 @@ const ConfirmGamesTab = () => {
         return ''; // Default for unconfirmed participants
     };
 
+    // Defensive: ensure arrays are always defined
+    const safeGames = Array.isArray(gamesWaitingConfirmation) ? gamesWaitingConfirmation : [];
+
     return (
         <div className="container mt-4">
             {error && <div className="alert alert-danger">{error}</div>}
 
-            {gamesWaitingConfirmation.length === 0 ? (
+            {safeGames.length === 0 ? (
                 <div className="alert alert-info text-center">
                     <i className="fas fa-info-circle me-2"></i>
                     No games waiting for confirmation.
                 </div>
             ) : (
                 <div className="row">
-                    {gamesWaitingConfirmation.map((pod) => (
+                    {safeGames.map((pod) => (
                         <div key={pod.id} className="col-md-6 mb-4">
                             <div className="card">
                                 <div className="card-header" style={{ backgroundColor: '#6c757d', color: 'white' }}>
@@ -94,7 +97,7 @@ const ConfirmGamesTab = () => {
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {pod.participants?.map((participant) => (
+                                                {Array.isArray(pod.participants) && pod.participants.map((participant) => (
                                                     <tr key={participant.player_id} className={getParticipantClass(participant)}>
                                                         <td>
                                                             <strong>{participant.firstname} {participant.lastname}</strong>
@@ -114,7 +117,7 @@ const ConfirmGamesTab = () => {
                                         </table>
                                     </div>
                                     {/* Show Confirm Button only for the logged-in user who hasn't confirmed */}
-                                    {pod.participants.some(
+                                    {Array.isArray(pod.participants) && pod.participants.some(
                                         (participant) =>
                                             participant.player_id === userId &&
                                             participant.confirmed === 0

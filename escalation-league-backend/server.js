@@ -88,18 +88,63 @@ app.use('/api', apiLimiter);
       methods: ['GET', 'POST']
     },
     path: '/socket.io/',
-    transports: ['websocket', 'polling']
+    transports: ['polling', 'websocket'], // Match frontend: polling first
+    allowEIO3: true // Support older clients
   });
 
-  console.log('[DEBUG] Socket.IO server created');
+  // Configure Redis adapter for horizontal scaling (production)
+  if (process.env.NODE_ENV === 'production') {
+    const { createAdapter } = require('@socket.io/redis-adapter');
+    const { createClient } = require('redis');
+    
+    const pubClient = createClient({
+      url: `redis://${process.env.REDIS_HOST || 'localhost'}:${process.env.REDIS_PORT || 6379}`
+    });
+    const subClient = pubClient.duplicate();
 
-  // Log all Socket.IO connection attempts
+    Promise.all([pubClient.connect(), subClient.connect()]).then(() => {
+      io.adapter(createAdapter(pubClient, subClient));
+      console.log('[INFO] Socket.IO Redis adapter configured');
+    }).catch((err) => {
+      console.error('[ERROR] Failed to connect Redis adapter:', err);
+      // Continue without Redis adapter (single instance mode)
+    });
+  }
+
+  console.log('[DEBUG] Socket.IO server created with transports:', ['polling', 'websocket']);
+  console.log('[DEBUG] Allowed origins:', allowedOrigins);
+
+  // Log all Socket.IO engine events
   io.engine.on("connection_error", (err) => {
-    console.log('[DEBUG] Socket.IO connection error:', err);
+    console.log('[DEBUG] Socket.IO connection error:', {
+      code: err.code,
+      message: err.message,
+      context: err.context
+    });
+  });
+
+  io.engine.on("connection", (rawSocket) => {
+    console.log('[DEBUG] Socket.IO engine connection established:', {
+      id: rawSocket.id,
+      transport: rawSocket.transport.name
+    });
+  });
+
+  io.engine.on("initial_headers", (headers, req) => {
+    console.log('[DEBUG] Socket.IO initial headers from:', req.url);
+  });
+
+  io.engine.on("headers", (headers, req) => {
+    console.log('[DEBUG] Socket.IO headers for:', req.url);
   });
 
   // Make io accessible to controllers
   app.set('io', io);
+
+  // ADD TEST: Log when ANY connection reaches Socket.IO level
+  io.on('connection', (socket) => {
+    console.log('[DEBUG] !!!!! SOCKET.IO CONNECTION SUCCESSFUL !!!!!', socket.id);
+  });
 
   // Socket.IO connection handling
   const socketHandler = require('./services/socketHandler');

@@ -60,6 +60,8 @@ services:
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
       MOXFIELD_USER_AGENT: ${MOXFIELD_USER_AGENT}
       SCRYFALL_USER_AGENT: ${SCRYFALL_USER_AGENT}
+      # Debug
+      DEBUG: "socket.io:*,engine:*"
     depends_on:
       db-dev:
         condition: service_healthy

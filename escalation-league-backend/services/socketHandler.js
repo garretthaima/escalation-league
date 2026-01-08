@@ -5,55 +5,50 @@ const logger = require('../utils/logger');
 module.exports = (io) => {
     console.log('[DEBUG] Socket handler initialized');
 
-    // Middleware for authentication
-    io.use(async (socket, next) => {
-        console.log('[DEBUG] Socket connection attempt', {
-            id: socket.id,
-            hasToken: !!socket.handshake.auth.token
+    // Log connection errors at namespace level
+    io.of("/").on("connection_error", (err) => {
+        console.log('[DEBUG] Namespace connection error:', {
+            message: err.message,
+            data: err.data
         });
+    });
 
+    // Authentication middleware for Socket.IO
+    io.use(async (socket, next) => {
         try {
             const token = socket.handshake.auth.token;
-
-            console.log('[DEBUG] Token check:', {
-                hasToken: !!token,
-                tokenPreview: token ? token.substring(0, 20) + '...' : 'none'
-            });
-
+            
             if (!token) {
-                console.log('[DEBUG] No token provided');
+                logger.warn('WebSocket connection attempt without token');
                 return next(new Error('Authentication required'));
             }
 
-            // Verify JWT token
-            const secretKey = await getSetting('secret_key');
-            console.log('[DEBUG] Secret key retrieved:', !!secretKey);
-
-            const decoded = jwt.verify(token, secretKey);
-            console.log('[DEBUG] Token decoded successfully:', { userId: decoded.id });
-
+            // Get JWT secret from settings
+            const jwtSecret = await getSetting('secret_key');
+            
+            // Verify token
+            const decoded = jwt.verify(token, jwtSecret);
             socket.userId = decoded.id;
-            socket.userEmail = decoded.email;
-
+            
             logger.info('WebSocket authenticated', {
-                userId: socket.userId,
+                userId: decoded.id,
                 socketId: socket.id
             });
-
+            
             next();
-        } catch (err) {
+        } catch (error) {
             logger.error('WebSocket authentication failed', {
-                error: err.message,
+                error: error.message,
                 socketId: socket.id
             });
-            next(new Error('Authentication failed'));
+            next(new Error('Invalid token'));
         }
     });
 
     io.on('connection', (socket) => {
-        logger.info('WebSocket connected', {
-            userId: socket.userId,
-            socketId: socket.id
+        console.log('[DEBUG] WebSocket connected (authenticated):', {
+            socketId: socket.id,
+            userId: socket.userId
         });
 
         // Join user's personal room (for notifications)
