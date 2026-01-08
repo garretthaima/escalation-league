@@ -98,7 +98,7 @@ const MetagameDashboard = () => {
                             <i className="fas fa-chart-pie me-2" style={{ fontSize: '1.5rem' }}></i>
                             Metagame Analysis
                         </h2>
-                        <span className="badge bg-info text-dark ms-3" style={{ fontSize: '0.9rem' }}>BETA</span>
+                        <span className="badge bg-warning text-dark ms-3" style={{ fontSize: '0.9rem' }}>BETA</span>
                     </div>
                     {activeLeague && (
                         <p className="text-muted">
