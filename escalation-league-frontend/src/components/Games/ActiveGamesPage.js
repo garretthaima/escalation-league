@@ -115,6 +115,15 @@ const ActiveGamesTab = () => {
             setActivePods(prev => prev.filter(pod => pod.id !== data.podId));
         });
 
+        // Listen for pod deletions (admin removed a pod)
+        socket.on('pod:deleted', (data) => {
+            console.log('Pod deleted event:', data);
+            // Remove from both open and active pods
+            setOpenPods(prev => prev.filter(pod => pod.id !== data.podId));
+            setActivePods(prev => prev.filter(pod => pod.id !== data.podId));
+            showToast('A game was deleted', 'info');
+        });
+
         // Cleanup
         return () => {
             if (socket) {
@@ -122,6 +131,7 @@ const ActiveGamesTab = () => {
                 socket.off('pod:player_joined');
                 socket.off('pod:activated');
                 socket.off('pod:winner_declared');
+                socket.off('pod:deleted');
             }
             if (leagueId) {
                 leaveLeague(leagueId);

@@ -2,13 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { getPods, logPodResult } from '../../api/podsApi';
 import { getUserProfile } from '../../api/usersApi';
 import { useToast } from '../context/ToastContext';
+import { useWebSocket } from '../context/WebSocketProvider';
 import { getResultBadge, getConfirmationBadge } from '../../utils/badgeHelpers';
 
 const ConfirmGamesTab = () => {
     const [gamesWaitingConfirmation, setGamesWaitingConfirmation] = useState([]);
     const [userId, setUserId] = useState(null);
+    const [leagueId, setLeagueId] = useState(null);
     const [error, setError] = useState(null);
     const { showToast } = useToast();
+    const { socket, joinLeague, leaveLeague } = useWebSocket();
 
     useEffect(() => {
         const fetchGamesWaitingConfirmation = async () => {
@@ -23,6 +26,11 @@ const ConfirmGamesTab = () => {
                     pod.participants?.some(p => p.player_id === userProfile.user.id)
                 );
                 setGamesWaitingConfirmation(userPods);
+
+                // Set league ID from first pod for WebSocket room
+                if (userPods.length > 0 && userPods[0].league_id) {
+                    setLeagueId(userPods[0].league_id);
+                }
             } catch (err) {
                 console.error('Error fetching games waiting confirmation:', err);
                 setError('Failed to fetch games waiting confirmation.');
@@ -32,21 +40,82 @@ const ConfirmGamesTab = () => {
         fetchGamesWaitingConfirmation();
     }, []);
 
+    // WebSocket listeners for real-time confirmation updates
+    useEffect(() => {
+        if (!socket || !leagueId) return;
+
+        // Join the league room to receive updates
+        joinLeague(leagueId);
+
+        // Listen for when someone confirms a result
+        socket.on('pod:confirmed', (data) => {
+            console.log('Pod confirmed event:', data);
+            const { podId, playerId, isComplete } = data;
+
+            setGamesWaitingConfirmation(prev => {
+                // If game is complete, remove it from the list
+                if (isComplete) {
+                    showToast('Game fully confirmed and completed!', 'success');
+                    return prev.filter(pod => pod.id !== podId);
+                }
+
+                // Otherwise, update the participant's confirmation status
+                return prev.map(pod => {
+                    if (pod.id === podId && Array.isArray(pod.participants)) {
+                        return {
+                            ...pod,
+                            participants: pod.participants.map(p =>
+                                p.player_id === playerId
+                                    ? { ...p, confirmed: 1 }
+                                    : p
+                            )
+                        };
+                    }
+                    return pod;
+                });
+            });
+
+            // Show toast notification if another player confirmed
+            if (playerId !== userId && !isComplete) {
+                showToast('A player confirmed the game result', 'info');
+            }
+        });
+
+        // Cleanup
+        return () => {
+            if (socket) {
+                socket.off('pod:confirmed');
+            }
+            if (leagueId) {
+                leaveLeague(leagueId);
+            }
+        };
+    }, [socket, leagueId, userId, joinLeague, leaveLeague, showToast]);
+
     const handleConfirm = async (podId, leagueId) => {
         try {
             // Confirm the game - backend will now handle stats updates automatically
-            // Don't send result - just confirm with existing result
             await logPodResult(podId, {});
 
             showToast('Game successfully confirmed!', 'success');
 
-            // Refresh the list of games waiting confirmation
-            const pods = await getPods({ confirmation_status: 'pending' });
-            // Filter to only show pods where current user is a participant
-            const userPods = pods.filter(pod =>
-                pod.participants?.some(p => p.player_id === userId)
+            // WebSocket will handle removing the game if it's complete
+            // Just update local state to mark this user as confirmed
+            setGamesWaitingConfirmation(prev =>
+                prev.map(pod => {
+                    if (pod.id === podId && Array.isArray(pod.participants)) {
+                        return {
+                            ...pod,
+                            participants: pod.participants.map(p =>
+                                p.player_id === userId
+                                    ? { ...p, confirmed: 1 }
+                                    : p
+                            )
+                        };
+                    }
+                    return pod;
+                })
             );
-            setGamesWaitingConfirmation(userPods);
         } catch (err) {
             console.error('Error confirming game:', err.message);
             showToast('Failed to confirm game.', 'error');

@@ -89,6 +89,8 @@ services:
       context: ../../escalation-league-frontend
       dockerfile: Dockerfile
       args:
+        REACT_APP_API_URL: https://dev-api.escalationleague.com/api
+        REACT_APP_SOCKET_URL: https://dev-api.escalationleague.com
         REACT_APP_BACKEND_URL: https://dev-api.escalationleague.com/api
         REACT_APP_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
         REACT_APP_SCRYFALL_USER_AGENT: EscalationLeague-Dev/1.0; garretthaima@gmail.com

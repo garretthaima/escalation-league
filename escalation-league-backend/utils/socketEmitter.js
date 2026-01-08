@@ -142,12 +142,29 @@ const emitSignupResponse = (app, userId, status, leagueId) => {
     }
 };
 
+/**
+ * Emit pod deleted event
+ */
+const emitPodDeleted = (app, leagueId, podId) => {
+    try {
+        const io = app.get('io');
+        if (io) {
+            io.to(`league:${leagueId}`).emit('pod:deleted', { podId });
+            io.to(`pod:${podId}`).emit('pod:deleted', { podId });
+            logger.info('WebSocket emitted pod:deleted', { leagueId, podId });
+        }
+    } catch (err) {
+        logger.error('Failed to emit pod:deleted', { error: err.message });
+    }
+};
+
 module.exports = {
     emitPodCreated,
     emitPlayerJoined,
     emitPodActivated,
     emitWinnerDeclared,
     emitGameConfirmed,
+    emitPodDeleted,
     emitSignupRequest,
     emitSignupResponse
 };

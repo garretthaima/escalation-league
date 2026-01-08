@@ -9,6 +9,7 @@ import {
 } from '../../api/leaguesApi';
 import { getLeagueParticipants, updateParticipantStatus } from '../../api/userLeaguesApi';
 import { useToast } from '../context/ToastContext';
+import { useWebSocket } from '../context/WebSocketProvider';
 import EditLeagueModal from './EditLeagueModal';
 
 const LeagueAdminPage = () => {
@@ -22,11 +23,39 @@ const LeagueAdminPage = () => {
     const [showEditModal, setShowEditModal] = useState(false);
     const [selectedLeague, setSelectedLeague] = useState(null);
     const { showToast } = useToast();
+    const { socket, joinLeague, leaveLeague } = useWebSocket();
 
     // Fetch leagues and signup requests on component mount
     useEffect(() => {
         fetchData();
     }, []);
+
+    // WebSocket listeners for real-time signup request updates
+    useEffect(() => {
+        if (!socket || leagues.length === 0) return;
+
+        // Join all league rooms to receive signup requests
+        leagues.forEach(league => {
+            joinLeague(league.id);
+        });
+
+        // Listen for new signup requests
+        socket.on('league:signup_request', (requestData) => {
+            console.log('New signup request received:', requestData);
+            setSignupRequests(prev => [...prev, requestData]);
+            showToast('New league signup request received!', 'info');
+        });
+
+        // Cleanup
+        return () => {
+            if (socket) {
+                socket.off('league:signup_request');
+            }
+            leagues.forEach(league => {
+                leaveLeague(league.id);
+            });
+        };
+    }, [socket, leagues, joinLeague, leaveLeague, showToast]);
 
     const fetchData = async () => {
         try {
@@ -62,6 +91,7 @@ const LeagueAdminPage = () => {
         try {
             await approveSignupRequest(requestId);
             showToast('Signup request approved!', 'success');
+            // Remove from local state immediately (no refetch needed)
             setSignupRequests((prev) => prev.filter((req) => req.id !== requestId));
         } catch (err) {
             showToast('Failed to approve signup request. Please try again.', 'error');
@@ -73,6 +103,7 @@ const LeagueAdminPage = () => {
         try {
             await rejectSignupRequest(requestId);
             showToast('Signup request rejected!', 'success');
+            // Remove from local state immediately (no refetch needed)
             setSignupRequests((prev) => prev.filter((req) => req.id !== requestId));
         } catch (err) {
             showToast('Failed to reject signup request. Please try again.', 'error');

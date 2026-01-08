@@ -1,4 +1,5 @@
 const db = require('../models/db');
+const { emitPodDeleted } = require('../utils/socketEmitter');
 
 
 // Update a Pod
@@ -253,6 +254,11 @@ const deletePod = async (req, res) => {
 
         // Soft delete the pod
         await db('game_pods').where({ id: podId }).update({ deleted_at: db.fn.now() });
+
+        // Emit WebSocket event for real-time UI update
+        if (currentPod && currentPod.league_id) {
+            emitPodDeleted(req.app, currentPod.league_id, podId);
+        }
 
         res.status(200).json({ message: 'Pod deleted successfully.' });
     } catch (err) {

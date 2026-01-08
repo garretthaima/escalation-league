@@ -26,6 +26,14 @@ export const WebSocketProvider = ({ children }) => {
 
         // Use dedicated SOCKET_URL for WebSocket, fallback to auto-detect
         let socketUrl = process.env.REACT_APP_SOCKET_URL;
+
+        console.log('[WebSocket] Environment:', {
+            REACT_APP_SOCKET_URL: process.env.REACT_APP_SOCKET_URL,
+            REACT_APP_API_URL: process.env.REACT_APP_API_URL,
+            REACT_APP_BACKEND_URL: process.env.REACT_APP_BACKEND_URL,
+            hostname: window.location.hostname
+        });
+
         if (!socketUrl) {
             // Auto-detect API URL based on hostname
             const hostname = window.location.hostname;
@@ -37,6 +45,9 @@ export const WebSocketProvider = ({ children }) => {
                 // Local development fallback
                 socketUrl = 'http://localhost:4000';
             }
+            console.log('[WebSocket] Auto-detected URL:', socketUrl);
+        } else {
+            console.log('[WebSocket] Using env var:', socketUrl);
         }
 
         // Create socket connection

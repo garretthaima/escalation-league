@@ -1,6 +1,18 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_BACKEND_URL;
+// Use env vars, with auto-detect fallback for local dev
+let API_BASE_URL = process.env.REACT_APP_API_URL || process.env.REACT_APP_BACKEND_URL;
+
+if (!API_BASE_URL) {
+    // Local development fallback when running npm start without env vars
+    const hostname = window.location.hostname;
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        API_BASE_URL = 'http://localhost:4000/api';
+    } else {
+        console.warn('No API URL configured and not on localhost. Requests may fail.');
+        API_BASE_URL = '/api'; // Relative path fallback
+    }
+}
 
 const axiosInstance = axios.create({
     baseURL: API_BASE_URL, // Set the base URL for all API calls
