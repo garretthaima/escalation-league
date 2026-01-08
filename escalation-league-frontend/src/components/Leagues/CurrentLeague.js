@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
 import { getLeagueDetails } from '../../api/leaguesApi';
 import { getLeagueParticipants, getUserLeagueStats } from '../../api/userLeaguesApi';
+import ScryfallApi from '../../api/scryfallApi';
 import UpdateCommanderModal from './UpdateCommanderModal';
 
 const CurrentLeague = () => {
@@ -9,10 +10,20 @@ const CurrentLeague = () => {
     const [league, setLeague] = useState(null);
     const [participants, setParticipants] = useState([]);
     const [userLeagueData, setUserLeagueData] = useState(null);
+    const [commanderCard, setCommanderCard] = useState(null);
+    const [partnerCard, setPartnerCard] = useState(null);
     const [showCommanderModal, setShowCommanderModal] = useState(false);
-    const [activeTab, setActiveTab] = useState('details');
+    const [activeTab, setActiveTab] = useState(() => {
+        return sessionStorage.getItem('currentLeagueTab') || 'details';
+    });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+
+    // Handler to update tab and persist to sessionStorage
+    const handleTabChange = (tab) => {
+        setActiveTab(tab);
+        sessionStorage.setItem('currentLeagueTab', tab);
+    };
 
     useEffect(() => {
         const fetchLeagueDetails = async () => {
@@ -40,6 +51,37 @@ const CurrentLeague = () => {
         fetchLeagueDetails();
     }, [activeLeague]);
 
+    // Fetch commander card details only when viewing My League Info tab
+    useEffect(() => {
+        const fetchCommanderCards = async () => {
+            if (activeTab !== 'myinfo' || !userLeagueData) return;
+
+            const cardPromises = [];
+
+            if (userLeagueData.current_commander && !commanderCard) {
+                cardPromises.push(
+                    ScryfallApi.getCardByName(userLeagueData.current_commander)
+                        .then(card => setCommanderCard(card))
+                        .catch(err => console.error('Error fetching commander card:', err))
+                );
+            }
+
+            if (userLeagueData.commander_partner && !partnerCard) {
+                cardPromises.push(
+                    ScryfallApi.getCardByName(userLeagueData.commander_partner)
+                        .then(card => setPartnerCard(card))
+                        .catch(err => console.error('Error fetching partner card:', err))
+                );
+            }
+
+            if (cardPromises.length > 0) {
+                await Promise.all(cardPromises);
+            }
+        };
+
+        fetchCommanderCards();
+    }, [activeTab, userLeagueData, commanderCard, partnerCard]);
+
     if (loading) {
         return <div className="text-center mt-5">Loading...</div>;
     }
@@ -65,7 +107,7 @@ const CurrentLeague = () => {
                 <li className="nav-item" role="presentation">
                     <button
                         className={`nav-link ${activeTab === 'details' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('details')}
+                        onClick={() => handleTabChange('details')}
                         type="button"
                     >
                         League Details
@@ -74,7 +116,7 @@ const CurrentLeague = () => {
                 <li className="nav-item" role="presentation">
                     <button
                         className={`nav-link ${activeTab === 'myinfo' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('myinfo')}
+                        onClick={() => handleTabChange('myinfo')}
                         type="button"
                     >
                         My League Info
@@ -83,7 +125,7 @@ const CurrentLeague = () => {
                 <li className="nav-item" role="presentation">
                     <button
                         className={`nav-link ${activeTab === 'participants' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('participants')}
+                        onClick={() => handleTabChange('participants')}
                         type="button"
                     >
                         Participants
@@ -101,8 +143,8 @@ const CurrentLeague = () => {
                             <p><strong>Description:</strong> {league.description}</p>
                             <p><strong>Current Week:</strong> {league.current_week}</p>
                             <p><strong>Weekly Budget:</strong> ${league.weekly_budget}</p>
-                            <p><strong>Start Date:</strong> {new Date(league.start_date).toLocaleDateString()}</p>
-                            <p><strong>End Date:</strong> {new Date(league.end_date).toLocaleDateString()}</p>
+                            <p><strong>Start Date:</strong> {new Date(league.start_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}</p>
+                            <p><strong>End Date:</strong> {new Date(league.end_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}</p>
                         </div>
                     </div>
                 )}
@@ -121,10 +163,49 @@ const CurrentLeague = () => {
                                     Update
                                 </button>
                             </div>
-                            <p><strong>Commander:</strong> {userLeagueData.current_commander || 'Not set'}</p>
-                            {userLeagueData.commander_partner && (
-                                <p><strong>Partner:</strong> {userLeagueData.commander_partner}</p>
+
+                            {commanderCard ? (
+                                <div className="mb-3">
+                                    <p className="mb-2"><strong>Commander:</strong></p>
+                                    <div className="d-flex align-items-center">
+                                        <img
+                                            src={commanderCard.image_uris?.small}
+                                            alt={commanderCard.name}
+                                            style={{ width: '146px', height: '204px', borderRadius: '8px' }}
+                                            className="me-3"
+                                        />
+                                        <div>
+                                            <h6>{commanderCard.name}</h6>
+                                            <small className="text-muted">{commanderCard.type_line}</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <p><strong>Commander:</strong> {userLeagueData.current_commander || 'Not set'}</p>
                             )}
+
+                            {partnerCard && (
+                                <div className="mb-3">
+                                    <p className="mb-2">
+                                        <strong>
+                                            {partnerCard.type_line?.includes('Background') ? 'Background:' : 'Partner:'}
+                                        </strong>
+                                    </p>
+                                    <div className="d-flex align-items-center">
+                                        <img
+                                            src={partnerCard.image_uris?.small}
+                                            alt={partnerCard.name}
+                                            style={{ width: '146px', height: '204px', borderRadius: '8px' }}
+                                            className="me-3"
+                                        />
+                                        <div>
+                                            <h6>{partnerCard.name}</h6>
+                                            <small className="text-muted">{partnerCard.type_line}</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                             {userLeagueData.decklist_url && (
                                 <p><strong>Decklist:</strong> <a href={userLeagueData.decklist_url} target="_blank" rel="noopener noreferrer">View Deck</a></p>
                             )}

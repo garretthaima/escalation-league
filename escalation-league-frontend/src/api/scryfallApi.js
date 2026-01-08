@@ -1,12 +1,14 @@
 import axiosInstance from './axiosConfig';
 
 const ScryfallApi = {
-    async autocomplete(query) {
+    async autocomplete(query, filter = null) {
         if (!query) return [];
         try {
-            const response = await axiosInstance.get('/scryfall/autocomplete', {
-                params: { q: query },
-            });
+            const params = { q: query };
+            if (filter) {
+                params.filter = filter;
+            }
+            const response = await axiosInstance.get('/scryfall/autocomplete', { params });
             return response.data; // Array of card names
         } catch (error) {
             console.error('Error fetching autocomplete suggestions from backend proxy:', error);

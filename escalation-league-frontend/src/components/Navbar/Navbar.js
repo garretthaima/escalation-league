@@ -47,6 +47,11 @@ const Navbar = ({ handleLogout }) => {
                 <a className="navbar-brand d-flex align-items-center" href="/">
                     <img src="/logo.png" alt="Escalation League Logo" style={{ height: '32px', marginRight: '10px' }} />
                     Escalation League
+                    {process.env.REACT_APP_ENV === 'development' && (
+                        <span className="badge bg-warning text-dark ms-2" style={{ fontSize: '0.7rem', verticalAlign: 'middle' }}>
+                            DEV
+                        </span>
+                    )}
                 </a>
                 <button
                     className="navbar-toggler"
