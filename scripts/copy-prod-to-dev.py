@@ -30,9 +30,12 @@ def load_env_file(filepath):
             # Parse KEY=VALUE
             if '=' in line:
                 key, value = line.split('=', 1)
+                key = key.strip()
                 # Remove quotes if present
                 value = value.strip().strip('"').strip("'")
-                env_vars[key.strip()] = value
+                # Only set if not already set (first occurrence wins)
+                # But for duplicate keys, use the LAST one (more recent)
+                env_vars[key] = value
     return env_vars
 
 def run_command(description, command, dry_run=False):

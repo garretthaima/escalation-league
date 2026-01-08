@@ -127,4 +127,15 @@ try {
     console.error('Error loading budgetsRoutes:', err.message);
 }
 
+/**
+ * Mounts metagame-related routes at `/metagame`.
+ * @module routes/metagame
+ */
+try {
+    const metagameRoutes = require('./metagame');
+    router.use('/metagame', metagameRoutes); // Metagame analysis routes
+} catch (err) {
+    console.error('Error loading metagameRoutes:', err.message);
+}
+
 module.exports = router;
