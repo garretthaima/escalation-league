@@ -68,6 +68,14 @@ export const WebSocketProvider = ({ children }) => {
         newSocket.on('connect_error', (error) => {
             console.error('WebSocket connection error:', error.message);
             setConnected(false);
+
+            // Check if error is authentication-related
+            if (error.message === 'Invalid token' || error.message === 'Authentication required') {
+                console.warn('WebSocket authentication failed - session expired');
+                localStorage.removeItem('token');
+                localStorage.removeItem('refreshToken');
+                window.location.href = '/signin';
+            }
         });
 
         newSocket.on('error', (error) => {
