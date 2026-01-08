@@ -11,7 +11,7 @@ const ConfirmGamesTab = () => {
     const [leagueId, setLeagueId] = useState(null);
     const [error, setError] = useState(null);
     const { showToast } = useToast();
-    const { socket, joinLeague, leaveLeague } = useWebSocket();
+    const { socket, connected, joinLeague, leaveLeague } = useWebSocket();
 
     useEffect(() => {
         const fetchGamesWaitingConfirmation = async () => {
@@ -42,7 +42,7 @@ const ConfirmGamesTab = () => {
 
     // WebSocket listeners for real-time confirmation updates
     useEffect(() => {
-        if (!socket || !leagueId) return;
+        if (!socket || !connected || !leagueId) return;
 
         // Join the league room to receive updates
         joinLeague(leagueId);
@@ -90,7 +90,7 @@ const ConfirmGamesTab = () => {
                 leaveLeague(leagueId);
             }
         };
-    }, [socket, leagueId, userId, joinLeague, leaveLeague, showToast]);
+    }, [socket, connected, leagueId, userId, joinLeague, leaveLeague, showToast]);
 
     const handleConfirm = async (podId, leagueId) => {
         try {
@@ -98,24 +98,7 @@ const ConfirmGamesTab = () => {
             await logPodResult(podId, {});
 
             showToast('Game successfully confirmed!', 'success');
-
-            // WebSocket will handle removing the game if it's complete
-            // Just update local state to mark this user as confirmed
-            setGamesWaitingConfirmation(prev =>
-                prev.map(pod => {
-                    if (pod.id === podId && Array.isArray(pod.participants)) {
-                        return {
-                            ...pod,
-                            participants: pod.participants.map(p =>
-                                p.player_id === userId
-                                    ? { ...p, confirmed: 1 }
-                                    : p
-                            )
-                        };
-                    }
-                    return pod;
-                })
-            );
+            // WebSocket event (pod:confirmed) will update the UI
         } catch (err) {
             console.error('Error confirming game:', err.message);
             showToast('Failed to confirm game.', 'error');

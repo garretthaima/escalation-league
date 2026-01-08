@@ -18,7 +18,7 @@ const ActiveGamesTab = () => {
 
     const { permissions } = usePermissions();
     const { showToast } = useToast();
-    const { socket, joinLeague, leaveLeague } = useWebSocket();
+    const { socket, connected, joinLeague, leaveLeague } = useWebSocket();
 
     // Check permissions
     const canReadPods = permissions.some((perm) => perm.name === 'pod_read');
@@ -70,31 +70,41 @@ const ActiveGamesTab = () => {
 
     // WebSocket listeners for real-time updates
     useEffect(() => {
-        if (!socket || !leagueId) return;
+        if (!socket || !connected || !leagueId) return;
 
         // Join the league room to receive updates
         joinLeague(leagueId);
 
         // Listen for new pods
         socket.on('pod:created', (data) => {
-            console.log('Pod created event:', data);
             setOpenPods(prev => [...prev, data]);
             showToast('New game available!', 'info');
         });
 
         // Listen for players joining
         socket.on('pod:player_joined', (data) => {
-            console.log('Player joined event:', data);
             setOpenPods(prev => prev.map(pod =>
                 pod.id === data.podId
-                    ? { ...pod, participants: [...(pod.participants || []), data.player] }
+                    ? { 
+                        ...pod, 
+                        participants: [
+                            ...(pod.participants || []), 
+                            {
+                                player_id: data.player.id,
+                                firstname: data.player.firstname,
+                                lastname: data.player.lastname,
+                                email: data.player.email || '',
+                                result: null,
+                                confirmed: 0
+                            }
+                        ] 
+                    }
                     : pod
             ));
         });
 
         // Listen for pod activation (moved from open to active)
         socket.on('pod:activated', (data) => {
-            console.log('Pod activated event:', data);
             const { podId } = data;
 
             setOpenPods(prev => {
@@ -110,14 +120,12 @@ const ActiveGamesTab = () => {
 
         // Listen for winner declarations (pod moves to pending)
         socket.on('pod:winner_declared', (data) => {
-            console.log('Winner declared event:', data);
             // Remove from active pods (it's now pending)
             setActivePods(prev => prev.filter(pod => pod.id !== data.podId));
         });
 
         // Listen for pod deletions (admin removed a pod)
         socket.on('pod:deleted', (data) => {
-            console.log('Pod deleted event:', data);
             // Remove from both open and active pods
             setOpenPods(prev => prev.filter(pod => pod.id !== data.podId));
             setActivePods(prev => prev.filter(pod => pod.id !== data.podId));
@@ -137,15 +145,14 @@ const ActiveGamesTab = () => {
                 leaveLeague(leagueId);
             }
         };
-    }, [socket, leagueId, userId, joinLeague, leaveLeague, showToast]);
+    }, [socket, connected, leagueId, userId, joinLeague, leaveLeague, showToast]);
 
 
     const handleJoinPod = async (podId) => {
         try {
             await joinPod(podId);
             showToast('Joined pod successfully!', 'success');
-            const openPodsData = await getPods({ confirmation_status: 'open' }); // Refresh open pods
-            setOpenPods(openPodsData || []);
+            // No need to refresh - WebSocket will update the UI for all users including this one
         } catch (err) {
             console.error('Error joining pod:', err.response?.data?.error || err.message);
             showToast(err.response?.data?.error || 'Failed to join pod.', 'error');
@@ -163,10 +170,7 @@ const ActiveGamesTab = () => {
             const leagueId = response.league.league_id;
             await createPod({ leagueId });
 
-            // Refresh open pods to get full pod data with participants
-            const openPodsData = await getPods({ confirmation_status: 'open' });
-            setOpenPods(openPodsData || []);
-
+            // WebSocket event (pod:created) will update the UI
             showToast(`New pod created successfully in league: ${response.league.league_name}!`, 'success');
         } catch (err) {
             console.error('Error creating pod:', err.response?.data?.error || err.message);
@@ -178,15 +182,7 @@ const ActiveGamesTab = () => {
         try {
             await overridePod(podId);
             showToast('Pod successfully overridden to active!', 'success');
-            const [openPodsData, activePodsData] = await Promise.all([
-                getPods({ confirmation_status: 'open' }),
-                getPods({ confirmation_status: 'active' }),
-            ]);
-            const userActivePods = activePodsData.filter(pod =>
-                pod.participants?.some(p => p.player_id === userId)
-            );
-            setOpenPods(openPodsData || []);
-            setActivePods(userActivePods || []);
+            // WebSocket event (pod:activated) will update the UI
         } catch (err) {
             console.error('Error overriding pod:', err.response?.data?.error || err.message);
             showToast(err.response?.data?.error || 'Failed to override pod.', 'error');
@@ -203,18 +199,14 @@ const ActiveGamesTab = () => {
         try {
             await logPodResult(selectedPodId, { result: 'win' });
             showToast('Winner declared! Waiting for other players to confirm.', 'success');
-            const activePodsData = await getPods({ confirmation_status: 'active' });
-            const userActivePods = activePodsData.filter(pod =>
-                pod.participants?.some(p => p.player_id === userId)
-            );
-            setActivePods(userActivePods || []);
+            // WebSocket event (pod:winner_declared) will update the UI
         } catch (err) {
             console.error('Error declaring winner:', err.response?.data?.error || err.message);
 
             // Check if someone else already won
             if (err.response?.data?.error?.includes('already been declared')) {
-                window.alert('A winner has already been declared for this game. Refreshing...');
-                window.location.reload();
+                showToast('A winner has already been declared for this game.', 'info');
+                // WebSocket event will update the UI, no need to reload
             } else {
                 showToast(err.response?.data?.error || 'Failed to declare winner.', 'error');
             }

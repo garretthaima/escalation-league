@@ -23,7 +23,7 @@ const LeagueAdminPage = () => {
     const [showEditModal, setShowEditModal] = useState(false);
     const [selectedLeague, setSelectedLeague] = useState(null);
     const { showToast } = useToast();
-    const { socket, joinLeague, leaveLeague } = useWebSocket();
+    const { socket, connected, joinLeague, leaveLeague } = useWebSocket();
 
     // Fetch leagues and signup requests on component mount
     useEffect(() => {
@@ -32,7 +32,7 @@ const LeagueAdminPage = () => {
 
     // WebSocket listeners for real-time signup request updates
     useEffect(() => {
-        if (!socket || leagues.length === 0) return;
+        if (!socket || !connected || leagues.length === 0) return;
 
         // Join all league rooms to receive signup requests
         leagues.forEach(league => {
@@ -55,7 +55,7 @@ const LeagueAdminPage = () => {
                 leaveLeague(league.id);
             });
         };
-    }, [socket, leagues, joinLeague, leaveLeague, showToast]);
+    }, [socket, connected, leagues, joinLeague, leaveLeague, showToast]);
 
     const fetchData = async () => {
         try {
