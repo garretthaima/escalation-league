@@ -17,7 +17,7 @@ module.exports = (io) => {
     io.use(async (socket, next) => {
         try {
             const token = socket.handshake.auth.token;
-            
+
             if (!token) {
                 logger.warn('WebSocket connection attempt without token');
                 return next(new Error('Authentication required'));
@@ -25,16 +25,16 @@ module.exports = (io) => {
 
             // Get JWT secret from settings
             const jwtSecret = await getSetting('secret_key');
-            
+
             // Verify token
             const decoded = jwt.verify(token, jwtSecret);
             socket.userId = decoded.id;
-            
+
             logger.info('WebSocket authenticated', {
                 userId: decoded.id,
                 socketId: socket.id
             });
-            
+
             next();
         } catch (error) {
             logger.error('WebSocket authentication failed', {

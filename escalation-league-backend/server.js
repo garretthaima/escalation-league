@@ -96,7 +96,7 @@ app.use('/api', apiLimiter);
   if (process.env.NODE_ENV === 'production') {
     const { createAdapter } = require('@socket.io/redis-adapter');
     const { createClient } = require('redis');
-    
+
     const pubClient = createClient({
       url: `redis://${process.env.REDIS_HOST || 'localhost'}:${process.env.REDIS_PORT || 6379}`
     });
