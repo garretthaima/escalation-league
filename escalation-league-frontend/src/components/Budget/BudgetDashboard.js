@@ -146,16 +146,20 @@ const BudgetDashboard = () => {
                 <div className="col-12">
                     <div className="d-flex align-items-center mb-3">
                         <h2 className="mb-0">
-                            <i className="fas fa-wallet me-2"></i>
+                            <i className="fas fa-wallet me-2" style={{ fontSize: '1.5rem' }}></i>
                             Budget Dashboard
                         </h2>
                         <span className="badge bg-warning text-dark ms-3" style={{ fontSize: '0.9rem' }}>BETA</span>
                     </div>
                     {activeLeague && (
-                        <p className="text-muted">
+                        <p className="text-muted mb-2">
                             {activeLeague.name} - Week {activeLeague.current_week}
                         </p>
                     )}
+                    <div className="alert alert-info py-2 mb-0">
+                        <i className="fas fa-info-circle me-2"></i>
+                        <small>Card prices are updated once daily and may not reflect current market values.</small>
+                    </div>
                 </div>
             </div>
 

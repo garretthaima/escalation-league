@@ -95,7 +95,19 @@ const PriceCheckPage = () => {
 
     return (
         <div className="container mt-4">
-            <h2>Deck Price Check <span className="badge bg-warning text-dark ms-2">BETA</span></h2>
+            <div className="mb-3">
+                <div className="d-flex align-items-center mb-2">
+                    <h2 className="mb-0">
+                        <i className="fas fa-search-dollar me-2" style={{ fontSize: '1.5rem' }}></i>
+                        Deck Price Check
+                    </h2>
+                    <span className="badge bg-warning text-dark ms-3" style={{ fontSize: '0.9rem' }}>BETA</span>
+                </div>
+                <div className="alert alert-info py-2 mt-2">
+                    <i className="fas fa-info-circle me-2"></i>
+                    <small>Card prices are updated once daily and may not reflect current market values.</small>
+                </div>
+            </div>
             <button className="btn btn-primary mb-4" onClick={handlePriceCheck} disabled={loading || !deckId}>
                 {loading ? 'Checking...' : 'Check Deck Price'}
             </button>

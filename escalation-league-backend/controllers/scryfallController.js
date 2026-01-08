@@ -6,26 +6,69 @@ const SCRYFALL_BASE_URL = 'https://api.scryfall.com';
 const USER_AGENT = 'EscalationLeague/1.0; garretthaima@gmail.com';
 const AUTOCOMPLETE_CACHE_TTL = 600; // 10 minutes
 
+// Helper function to parse JSON fields (MySQL driver might already parse them)
+const parseIfNeeded = (field) => {
+    if (!field) return null;
+    return typeof field === 'string' ? JSON.parse(field) : field;
+};
+
 const ScryfallController = {
-    // Proxy for autocomplete endpoint
+    // Autocomplete using local Scryfall mirror (to avoid rate limits)
     async autocomplete(req, res) {
-        const { q } = req.query;
+        const { q, filter } = req.query;
 
         if (!q) {
             return res.status(400).json({ error: 'The "q" query parameter is required.' });
         }
 
         try {
-            const response = await axios.get(`${SCRYFALL_BASE_URL}/cards/autocomplete`, {
-                params: { q },
-                headers: {
-                    'User-Agent': USER_AGENT,
-                },
+            // Check cache first
+            const cacheKey = `autocomplete-simple:${q.toLowerCase()}:${filter || 'all'}`;
+            const cached = await redis.get(cacheKey);
+            if (cached) {
+                return res.json(JSON.parse(cached));
+            }
+
+            // Query local Scryfall mirror database
+            let query = scryfallDb('cards')
+                .select('name', scryfallDb.raw('ANY_VALUE(image_uris) as image_uris'))
+                .where('name', 'like', `${q}%`)
+                .whereRaw('JSON_CONTAINS(games, \'"paper"\')')
+                .whereNot('border_color', 'gold')
+                .whereRaw('JSON_EXTRACT(legalities, "$.commander") IN ("legal", "restricted")');
+
+            // Apply filters for partner/background
+            if (filter === 'partner') {
+                // Filter for cards with "Partner" in oracle text or keywords
+                query = query.where(function () {
+                    this.whereRaw('LOWER(oracle_text) LIKE ?', ['%partner%'])
+                        .orWhereRaw('JSON_CONTAINS(LOWER(keywords), \'"partner"\')');
+                });
+            } else if (filter === 'background') {
+                // Filter for Background enchantments
+                query = query.where('type_line', 'like', '%Background%');
+            }
+
+            const results = await query
+                .groupBy('name')
+                .orderBy('name')
+                .limit(20);
+
+            const cardData = results.map(r => {
+                const imageUris = parseIfNeeded(r.image_uris);
+                return {
+                    name: r.name,
+                    image: imageUris?.small || null
+                };
             });
-            res.json(response.data.data); // Return the array of card names
+
+            // Cache for 10 minutes
+            await redis.setex(cacheKey, AUTOCOMPLETE_CACHE_TTL, JSON.stringify(cardData));
+
+            res.json(cardData);
         } catch (error) {
-            console.error('Error fetching autocomplete suggestions from Scryfall:', error);
-            res.status(error.response?.status || 500).json({ error: 'Failed to fetch autocomplete suggestions.' });
+            console.error('Error fetching autocomplete suggestions from local mirror:', error);
+            res.status(500).json({ error: 'Failed to fetch autocomplete suggestions.' });
         }
     },
 
@@ -100,7 +143,7 @@ const ScryfallController = {
         }
     },
 
-    // Proxy for getCardByName endpoint
+    // Get card by exact name from local Scryfall mirror
     async getCardByName(req, res) {
         const { exact } = req.query;
 
@@ -109,16 +152,47 @@ const ScryfallController = {
         }
 
         try {
-            const response = await axios.get(`${SCRYFALL_BASE_URL}/cards/named`, {
-                params: { exact },
-                headers: {
-                    'User-Agent': USER_AGENT,
-                },
-            });
-            res.json(response.data); // Return the full card details
+            // Check cache first
+            const cacheKey = `card-by-name:${exact.toLowerCase()}`;
+            const cached = await redis.get(cacheKey);
+            if (cached) {
+                return res.json(JSON.parse(cached));
+            }
+
+            // Query local Scryfall mirror database for the most recent printing with an image
+            const card = await scryfallDb('cards')
+                .select('*')
+                .where('name', exact)
+                .whereRaw('JSON_CONTAINS(games, \'"paper"\')')
+                .whereNot('border_color', 'gold')
+                .whereRaw('JSON_EXTRACT(legalities, "$.commander") IN ("legal", "restricted")')
+                .whereRaw('JSON_EXTRACT(image_uris, "$.normal") IS NOT NULL')
+                .orderBy('released_at', 'desc')
+                .first();
+
+            if (!card) {
+                return res.status(404).json({ error: 'Card not found.' });
+            }
+
+            const cardData = {
+                ...card,
+                image_uris: parseIfNeeded(card.image_uris),
+                prices: parseIfNeeded(card.prices),
+                legalities: parseIfNeeded(card.legalities),
+                colors: parseIfNeeded(card.colors),
+                color_identity: parseIfNeeded(card.color_identity),
+                games: parseIfNeeded(card.games),
+                card_faces: parseIfNeeded(card.card_faces),
+                keywords: parseIfNeeded(card.keywords),
+            };
+
+            // Cache for 1 hour (card data doesn't change often)
+            await redis.setex(cacheKey, 3600, JSON.stringify(cardData));
+
+            res.json(cardData);
         } catch (error) {
-            console.error('Error fetching card details from Scryfall:', error);
-            res.status(error.response?.status || 500).json({ error: 'Failed to fetch card details.' });
+            console.error('Error fetching card details from local mirror:', error);
+            res.status(500).json({ error: 'Failed to fetch card details.' });
         }
     },
 

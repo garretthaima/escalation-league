@@ -20,6 +20,7 @@ const SignUp = () => {
     const [commanderSuggestions, setCommanderSuggestions] = useState([]);
     const [partnerSuggestions, setPartnerSuggestions] = useState([]);
     const [hasPartnerAbility, setHasPartnerAbility] = useState(false);
+    const [commanderAbilityType, setCommanderAbilityType] = useState(null); // 'partner' or 'background'
     const [decklistUrl, setDecklistUrl] = useState('');
     const [deckValidationError, setDeckValidationError] = useState(''); // Validation error state
     const navigate = useNavigate();
@@ -116,54 +117,39 @@ const SignUp = () => {
         }
     };
 
-    const fetchCommanderSuggestions = async (query, setSuggestions) => {
+    const fetchCommanderSuggestions = async (query, setSuggestions, filter = null) => {
         if (!query) {
             setSuggestions([]);
             return;
         }
 
         try {
-            const suggestions = await ScryfallApi.autocomplete(query);
-
-            const detailedSuggestions = await Promise.all(
-                suggestions.map(async (name) => {
-                    try {
-                        const card = await ScryfallApi.getCardByName(name);
-                        return {
-                            name,
-                            image: card.image_uris?.small || null,
-                        };
-                    } catch {
-                        return { name, image: null };
-                    }
-                })
-            );
-
-            setSuggestions(detailedSuggestions);
+            // Autocomplete now returns { name, image } objects directly
+            const suggestions = await ScryfallApi.autocomplete(query, filter);
+            setSuggestions(suggestions);
         } catch (error) {
             console.error('Error fetching commander suggestions:', error);
         }
     };
 
-    const handleCommanderChange = async (e) => {
+    const handleCommanderChange = (e) => {
         const value = e.target.value;
         setCommander(value);
         fetchCommanderSuggestions(value, setCommanderSuggestions);
 
-        try {
-            const card = await ScryfallApi.getCardByName(value);
-            const oracleText = card.oracle_text || '';
-            setHasPartnerAbility(oracleText.toLowerCase().includes('partner'));
-        } catch (error) {
-            console.error('Error fetching commander details:', error);
+        // Don't fetch card details on every keystroke - only when a card is selected
+        // Reset partner ability if the user is typing a new commander name
+        if (!value) {
             setHasPartnerAbility(false);
+            setCommanderAbilityType(null);
         }
     };
 
     const handlePartnerChange = (e) => {
         const value = e.target.value;
         setCommanderPartner(value);
-        fetchCommanderSuggestions(value, setPartnerSuggestions);
+        // Apply filter based on commander ability type
+        fetchCommanderSuggestions(value, setPartnerSuggestions, commanderAbilityType);
     };
 
     const handleCommanderSelection = async (name) => {
@@ -172,13 +158,21 @@ const SignUp = () => {
 
         try {
             const card = await ScryfallApi.getCardByName(name);
-            const oracleText = card.oracle_text || '';
-            setHasPartnerAbility(oracleText.toLowerCase().includes('partner'));
+            const oracleText = (card.oracle_text || '').toLowerCase();
+            const keywords = card.keywords || [];
+
+            // Check for Partner or Choose a Background
+            const hasPartner = oracleText.includes('partner');
+            const hasBackground = keywords.some(kw => kw.toLowerCase().includes('choose a background'));
+
+            setHasPartnerAbility(hasPartner || hasBackground);
+            setCommanderAbilityType(hasBackground ? 'background' : hasPartner ? 'partner' : null);
             // Store the Scryfall ID
             setCommanderScryfallId(card.id || '');
         } catch (error) {
             console.error('Error fetching commander details:', error);
             setHasPartnerAbility(false);
+            setCommanderAbilityType(null);
             setCommanderScryfallId('');
         }
     };
