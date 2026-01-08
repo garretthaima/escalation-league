@@ -27,13 +27,6 @@ export const WebSocketProvider = ({ children }) => {
         // Use dedicated SOCKET_URL for WebSocket, fallback to auto-detect
         let socketUrl = process.env.REACT_APP_SOCKET_URL;
 
-        console.log('[WebSocket] Environment:', {
-            REACT_APP_SOCKET_URL: process.env.REACT_APP_SOCKET_URL,
-            REACT_APP_API_URL: process.env.REACT_APP_API_URL,
-            REACT_APP_BACKEND_URL: process.env.REACT_APP_BACKEND_URL,
-            hostname: window.location.hostname
-        });
-
         if (!socketUrl) {
             // Auto-detect API URL based on hostname
             const hostname = window.location.hostname;
@@ -45,9 +38,6 @@ export const WebSocketProvider = ({ children }) => {
                 // Local development fallback
                 socketUrl = 'http://localhost:4000';
             }
-            console.log('[WebSocket] Auto-detected URL:', socketUrl);
-        } else {
-            console.log('[WebSocket] Using env var:', socketUrl);
         }
 
         // Create socket connection
@@ -68,12 +58,10 @@ export const WebSocketProvider = ({ children }) => {
 
         // Connection event handlers
         newSocket.on('connect', () => {
-            console.log('WebSocket connected:', newSocket.id);
             setConnected(true);
         });
 
         newSocket.on('disconnect', (reason) => {
-            console.log('WebSocket disconnected:', reason);
             setConnected(false);
         });
 
@@ -89,7 +77,6 @@ export const WebSocketProvider = ({ children }) => {
         // Cleanup on unmount
         return () => {
             if (newSocket) {
-                console.log('Closing WebSocket connection');
                 newSocket.close();
             }
         };
@@ -99,28 +86,24 @@ export const WebSocketProvider = ({ children }) => {
     const joinLeague = (leagueId) => {
         if (socket && connected) {
             socket.emit('join:league', leagueId);
-            console.log(`Joined league room: ${leagueId}`);
         }
     };
 
     const leaveLeague = (leagueId) => {
         if (socket && connected) {
             socket.emit('leave:league', leagueId);
-            console.log(`Left league room: ${leagueId}`);
         }
     };
 
     const joinPod = (podId) => {
         if (socket && connected) {
             socket.emit('join:pod', podId);
-            console.log(`Joined pod room: ${podId}`);
         }
     };
 
     const leavePod = (podId) => {
         if (socket && connected) {
             socket.emit('leave:pod', podId);
-            console.log(`Left pod room: ${podId}`);
         }
     };
 
