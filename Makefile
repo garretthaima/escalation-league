@@ -44,10 +44,12 @@ help:
 	@echo "  make cards         - Start Scryfall card database"
 	@echo ""
 	@echo "🔄 Restart & Deploy:"
-	@echo "  make deploy-prod   - Rebuild and restart production"
-	@echo "  make deploy-dev    - Rebuild and restart development"
+	@echo "  make deploy-prod   - Build, tag, and deploy production"
+	@echo "  make deploy-dev    - Build, tag, and deploy development"
 	@echo "  make deploy-edge   - Rebuild and restart edge proxy"
 	@echo "  make deploy-cards  - Rebuild and restart card database"
+	@echo "  make rollback-prod - Rollback production to previous tag"
+	@echo "  make rollback-dev  - Rollback development to previous tag"
 	@echo "  make restart-prod  - Restart production (no rebuild)"
 	@echo "  make restart-dev   - Restart development (no rebuild)"
 	@echo "  make restart-edge  - Restart edge proxy (no rebuild)"
@@ -185,19 +187,21 @@ cards: network
 # DEPLOY COMMANDS (rebuild + restart)
 # ============================================================================
 
-deploy-prod: build-prod
-	@echo "Deploying production..."
-	@$(DOCKER_COMPOSE) --env-file $(PROD_ENV) -f $(PROD_COMPOSE) up -d --force-recreate
-	@echo "Waiting for services to be healthy..."
-	@sleep 15
-	@echo "Running smoke tests..."
-	@./scripts/smoke-test.sh prod || (echo "Smoke tests failed! Check deployment." && exit 1)
-	@echo "✅ Production deployed and verified"
+deploy-prod:
+	@echo "🚀 Deploying production with tagging..."
+	@./scripts/deploy-tagged.sh prod
 
-deploy-dev: build-dev
-	@echo "🚀 Deploying development..."
-	@make docker-preclean
-	@$(DOCKER_COMPOSE) --env-file $(DEV_ENV) -f $(DEV_COMPOSE) up -d --force-recreate
+deploy-dev:
+	@echo "🚀 Deploying development with tagging..."
+	@./scripts/deploy-tagged.sh dev
+
+rollback-prod:
+	@echo "🔄 Rolling back production..."
+	@./scripts/rollback.sh prod
+
+rollback-dev:
+	@echo "🔄 Rolling back development..."
+	@./scripts/rollback.sh dev
 	@echo "Waiting for services to be healthy..."
 	@sleep 15
 	@echo "Running smoke tests..."
