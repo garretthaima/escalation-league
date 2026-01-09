@@ -1,5 +1,11 @@
 # Escalation League - Development Reference
 
+## General Guidelines
+
+- **No emojis** in commit messages, GitHub issue comments, or pull request descriptions
+- Keep commit messages clear and professional
+- Use markdown formatting for GitHub comments without decorative emojis
+
 ## Database Schema Reference
 
 ### Test Database Connection
