@@ -46,11 +46,14 @@ export const WebSocketProvider = ({ children }) => {
             auth: {
                 token
             },
-            transports: ['polling', 'websocket'], // Start with polling, then upgrade
+            transports: ['websocket', 'polling'], // WebSocket first for lower latency
+            upgrade: true,
+            rememberUpgrade: true,    // Remember successful WebSocket upgrade
             reconnection: true,
-            reconnectionDelay: 1000,
-            reconnectionDelayMax: 5000,
-            reconnectionAttempts: 5
+            reconnectionDelay: 500,   // Faster reconnection (500ms)
+            reconnectionDelayMax: 2000, // Max 2s delay
+            reconnectionAttempts: 10,
+            timeout: 5000            // 5s connection timeout
         });
 
         socketRef.current = newSocket;

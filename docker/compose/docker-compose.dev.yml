@@ -85,9 +85,10 @@ services:
     container_name: escalation-league-redis-dev
     ports:
       - "6380:6379"
-    command: [ "redis-server", "--appendonly", "yes" ]
+    command: [ "redis-server", "/usr/local/etc/redis/redis.conf" ]
     volumes:
       - compose_redis_dev_data:/data
+      - ../../docker/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
