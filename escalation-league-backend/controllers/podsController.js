@@ -209,6 +209,12 @@ const logPodResult = async (req, res) => {
 
             // Update stats for all participants
             for (const p of participants) {
+                // DQ'd players get 0 for everything
+                if (p.result === 'disqualified') {
+                    // DQ'd players don't get any stats or points
+                    continue;
+                }
+
                 const wins = p.result === 'win' ? 1 : 0;
                 const losses = p.result === 'loss' ? 1 : 0;
                 const draws = p.result === 'draw' ? 1 : 0;
@@ -277,13 +283,17 @@ const logPodResult = async (req, res) => {
 
 
 const getPods = async (req, res) => {
-    const { podId, confirmation_status, league_id } = req.query; // Optional filters
+    const { podId, confirmation_status, league_id, includeDeleted } = req.query; // Optional filters
 
     try {
         const query = db('game_pods as gp')
             .leftJoin('leagues as l', 'gp.league_id', 'l.id')
-            .select('gp.*', 'l.name as league_name')
-            .where({ 'gp.deleted_at': null });
+            .select('gp.*', 'l.name as league_name');
+
+        // Only filter out deleted pods if includeDeleted is not 'true'
+        if (includeDeleted !== 'true') {
+            query.where({ 'gp.deleted_at': null });
+        }
 
         if (podId) {
             query.andWhere({ 'gp.id': podId });

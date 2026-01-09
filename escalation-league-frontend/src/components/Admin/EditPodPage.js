@@ -1,0 +1,659 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { updatePod, removeParticipant, addParticipant, toggleDQ, deletePod } from '../../api/podsAdminApi';
+import { getPods } from '../../api/podsApi';
+import { getLeagueParticipants } from '../../api/userLeaguesApi';
+import { useToast } from '../context/ToastContext';
+import ConfirmModal from '../Shared/ConfirmModal';
+import './EditPodPage.css';
+
+const EditPodPage = () => {
+    const { podId } = useParams();
+    const navigate = useNavigate();
+    const { showToast } = useToast();
+
+    const [pod, setPod] = useState(null);
+    const [participants, setParticipants] = useState([]);
+    const [leagueUsers, setLeagueUsers] = useState([]);
+    const [selectedUserId, setSelectedUserId] = useState('');
+    const [winnerId, setWinnerId] = useState('');
+    const [isDraw, setIsDraw] = useState(false);
+    const [currentWinner, setCurrentWinner] = useState(null);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [showAddModal, setShowAddModal] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [pendingRemovals, setPendingRemovals] = useState([]); // Track participants to remove
+    const [pendingAdditions, setPendingAdditions] = useState([]); // Track participants to add
+    const [showPodInfo, setShowPodInfo] = useState(false); // Collapsed by default on mobile
+    const [originalParticipants, setOriginalParticipants] = useState([]); // Track original state for comparison
+    const [originalWinnerId, setOriginalWinnerId] = useState('');
+    const [originalIsDraw, setOriginalIsDraw] = useState(false);
+
+    useEffect(() => {
+        const fetchPodDetails = async () => {
+            try {
+                const podDetails = await getPods({ podId });
+                if (podDetails) {
+                    setPod(podDetails);
+                    setParticipants(podDetails.participants || []);
+                    setOriginalParticipants(JSON.parse(JSON.stringify(podDetails.participants || []))); // Deep copy
+
+                    const winner = podDetails.participants.find(
+                        (participant) => participant.result === 'win'
+                    );
+                    setCurrentWinner(winner || null);
+
+                    // Pre-populate winner dropdown with current winner
+                    if (winner) {
+                        setWinnerId(winner.player_id.toString());
+                        setOriginalWinnerId(winner.player_id.toString());
+                    }
+
+                    // Check if it's a draw
+                    const allDraw = podDetails.participants.length > 0 &&
+                        podDetails.participants.every(p => p.result === 'draw');
+                    setIsDraw(allDraw);
+                    setOriginalIsDraw(allDraw);
+
+                    // Fetch league participants for adding players
+                    if (podDetails.league_id) {
+                        const leagueParticipants = await getLeagueParticipants(podDetails.league_id);
+                        // API returns array directly, and uses user_id not id
+                        const users = Array.isArray(leagueParticipants) ? leagueParticipants : [];
+                        // Map user_id to id for consistency
+                        const mappedUsers = users.map(u => ({ ...u, id: u.user_id }));
+                        setLeagueUsers(mappedUsers);
+                    }
+                } else {
+                    showToast('Pod not found', 'error');
+                    navigate('/admin/pods');
+                }
+            } catch (err) {
+                console.error('Error fetching pod details:', err.message);
+                showToast('Failed to load pod details', 'error');
+                navigate('/admin/pods');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchPodDetails();
+    }, [podId, navigate]);
+
+    // Check if there are any unsaved changes
+    const hasChanges = () => {
+        // Check for pending additions or removals
+        if (pendingRemovals.length > 0 || pendingAdditions.length > 0) {
+            return true;
+        }
+
+        // Check if winner changed
+        if (winnerId !== originalWinnerId) {
+            return true;
+        }
+
+        // Check if draw status changed
+        if (isDraw !== originalIsDraw) {
+            return true;
+        }
+
+        // Check if any DQ status changed
+        const dqChanged = participants.some((p, index) => {
+            const original = originalParticipants[index];
+            return original && p.result !== original.result;
+        });
+
+        if (dqChanged) {
+            return true;
+        }
+
+        return false;
+    };
+
+    const handleRemoveParticipant = (participantId) => {
+        // Mark for removal instead of actually removing from state
+        setPendingRemovals([...pendingRemovals, participantId]);
+
+        // If removing the winner, clear winner selection
+        if (winnerId == participantId) {
+            setWinnerId('');
+            setCurrentWinner(null);
+        }
+
+        showToast('Participant marked for removal', 'info');
+    };
+
+    const handleUndoRemove = (participantId) => {
+        setPendingRemovals(pendingRemovals.filter(id => id !== participantId));
+        showToast('Removal cancelled', 'info');
+    };
+
+    const handleAddParticipant = () => {
+        if (participants.length - pendingRemovals.length + pendingAdditions.length >= 4) {
+            showToast('Pod is full (maximum 4 players)', 'error');
+            return;
+        }
+        setShowAddModal(true);
+    };
+
+    const confirmAddParticipant = () => {
+        if (!selectedUserId) {
+            showToast('Please select a player', 'error');
+            return;
+        }
+
+        // Check if player already in pod or pending addition
+        if (participants.some(p => p.player_id == selectedUserId) ||
+            pendingAdditions.some(p => p.player_id == selectedUserId)) {
+            showToast('Player is already in this pod', 'error');
+            return;
+        }
+
+        // Find the user details
+        const userToAdd = leagueUsers.find(u => u.id == selectedUserId);
+        if (!userToAdd) {
+            showToast('User not found', 'error');
+            return;
+        }
+
+        // Add to pending additions
+        const newParticipant = {
+            player_id: userToAdd.id,
+            firstname: userToAdd.firstname,
+            lastname: userToAdd.lastname,
+            result: null,
+            confirmed: 0,
+            isNew: true
+        };
+
+        setPendingAdditions([...pendingAdditions, newParticipant]);
+        showToast('Participant marked for addition', 'info');
+        setShowAddModal(false);
+        setSelectedUserId('');
+    };
+
+    const handleUndoAdd = (participantId) => {
+        setPendingAdditions(pendingAdditions.filter(p => p.player_id !== participantId));
+        showToast('Addition cancelled', 'info');
+    };
+
+    const handleToggleDQ = (playerId) => {
+        // Find participant first to check current state
+        const participant = participants.find(p => p.player_id === playerId);
+        const willBeDQd = participant?.result !== 'disqualified';
+
+        // Local state update only - actual toggle happens on Save
+        setParticipants(participants.map(p => {
+            if (p.player_id === playerId) {
+                const newResult = p.result === 'disqualified' ? 'loss' : 'disqualified';
+                return { ...p, result: newResult };
+            }
+            return p;
+        }));
+
+        if (willBeDQd) {
+            showToast('Player will be DQ\'d on Save', 'info');
+        } else {
+            showToast('Player will be reinstated on Save', 'info');
+        }
+    };
+
+    const handleDeletePod = async () => {
+        setShowDeleteConfirm(true);
+    };
+
+    const confirmDeletePod = async () => {
+        try {
+            await deletePod(pod.id);
+            showToast('Pod deleted successfully', 'success');
+            navigate('/admin/pods');
+        } catch (err) {
+            console.error('Error deleting pod:', err.message);
+            showToast('Failed to delete pod', 'error');
+        } finally {
+            setShowDeleteConfirm(false);
+        }
+    };
+
+    const handleSave = async () => {
+        // Combine current participants + pending additions - pending removals
+        const finalParticipants = [
+            ...participants.filter(p => !pendingRemovals.includes(p.player_id)),
+            ...pendingAdditions
+        ];
+
+        // Build the updates payload with final state
+        const updates = {
+            participants: finalParticipants.map((participant) => {
+                let result;
+                if (isDraw) {
+                    result = 'draw';
+                } else if (winnerId && participant.player_id == winnerId) {
+                    result = 'win';
+                } else if (participant.result === 'disqualified') {
+                    result = 'disqualified'; // Preserve DQ status
+                } else {
+                    result = 'loss';
+                }
+
+                return {
+                    player_id: participant.player_id,
+                    result: result,
+                    confirmed: 1,
+                };
+            }),
+            result: isDraw ? 'draw' : 'win',
+            confirmation_status: 'complete',
+        };
+
+        try {
+            await updatePod(pod.id, updates);
+            showToast('Pod updated successfully', 'success');
+            navigate('/admin/pods');
+        } catch (err) {
+            console.error('Error updating pod:', err.message);
+            showToast('Failed to update pod', 'error');
+        }
+    };
+
+    const handleForceComplete = async () => {
+        try {
+            const updatedParticipants = participants.map((participant) => ({
+                player_id: participant.player_id,
+                result: participant.result || 'loss',
+                confirmed: 1,
+            }));
+
+            const updates = {
+                participants: updatedParticipants,
+                confirmation_status: 'complete',
+            };
+
+            await updatePod(pod.id, updates);
+            showToast('Pod marked as complete', 'success');
+            navigate('/admin/pods');
+        } catch (err) {
+            console.error('Error overriding pod status:', err.message);
+            showToast('Failed to override pod status', 'error');
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="container mt-4">
+                <div className="text-center">
+                    <div className="spinner-border" role="status">
+                        <span className="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (!pod) {
+        return null;
+    }
+
+    return (
+        <div className="container mt-4">
+            {/* Header */}
+            <div className="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <button
+                        className="btn btn-link text-decoration-none p-0 mb-2"
+                        onClick={() => navigate('/admin/pods')}
+                    >
+                        <i className="fas fa-arrow-left me-2"></i>
+                        Back to Pods
+                    </button>
+                    <h2 className="mb-0">
+                        <i className="fas fa-edit me-2"></i>
+                        Edit Pod #{pod.id}
+                    </h2>
+                </div>
+            </div>
+
+            <div className="row">
+                <div className="col-lg-8">
+                    {/* Pod Information Card */}
+                    <div className="card mb-4">
+                        <div
+                            className="card-header d-flex justify-content-between align-items-center"
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => setShowPodInfo(!showPodInfo)}
+                        >
+                            <h5 className="mb-0">
+                                <i className="fas fa-info-circle me-2"></i>
+                                Pod Information
+                            </h5>
+                            <i className={`fas fa-chevron-${showPodInfo ? 'up' : 'down'} d-md-none`}></i>
+                        </div>
+                        <div className={`card-body collapse ${showPodInfo ? 'show' : ''} d-md-block`}>
+                            <div className="row">
+                                <div className="col-md-3 mb-3">
+                                    <small className="text-muted d-block mb-1">Status</small>
+                                    <span className={`badge ${pod.confirmation_status === 'open' ? 'bg-info' :
+                                        pod.confirmation_status === 'active' ? 'bg-warning text-dark' :
+                                            pod.confirmation_status === 'pending' ? 'bg-warning text-dark' :
+                                                'bg-success'
+                                        }`}>
+                                        {pod.confirmation_status.charAt(0).toUpperCase() + pod.confirmation_status.slice(1)}
+                                    </span>
+                                </div>
+                                <div className="col-md-3 mb-3">
+                                    <small className="text-muted d-block mb-1">Result</small>
+                                    <span>{pod.result === 'win' ? 'Win' : pod.result === 'draw' ? 'Draw' : 'Pending'}</span>
+                                </div>
+                                <div className="col-md-3 mb-3">
+                                    <small className="text-muted d-block mb-1">Date Created</small>
+                                    <span>{new Date(pod.created_at).toLocaleDateString()}</span>
+                                </div>
+                                <div className="col-md-3 mb-3">
+                                    <small className="text-muted d-block mb-1">Players</small>
+                                    <span>{participants.length} participants</span>
+                                </div>
+                            </div>
+                            <div className="row">
+                                <div className="col-md-6">
+                                    <small className="text-muted d-block mb-1">League</small>
+                                    <span>{pod.league_name || `League #${pod.league_id}`}</span>
+                                </div>
+                                <div className="col-md-6">
+                                    <small className="text-muted d-block mb-1">Win Condition</small>
+                                    <span>{pod.win_condition?.name || 'Not set'}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Participants Card */}
+                    <div className="card mb-4">
+                        <div className="card-header d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 className="mb-0 d-inline">
+                                    <i className="fas fa-users me-2"></i>
+                                    Participants
+                                </h5>
+                                <span className="badge bg-secondary ms-2">
+                                    {participants.length - pendingRemovals.length + pendingAdditions.length}/4
+                                </span>
+                            </div>
+                            {participants.length - pendingRemovals.length + pendingAdditions.length < 4 && (
+                                <button
+                                    className="btn btn-sm btn-primary"
+                                    onClick={handleAddParticipant}
+                                >
+                                    <i className="fas fa-plus me-1"></i>
+                                    Add Player
+                                </button>
+                            )}
+                        </div>
+                        <ul className="list-group list-group-flush">
+                            {participants.map((participant, index) => {
+                                const isPendingRemoval = pendingRemovals.includes(participant.player_id);
+                                const isWinner = winnerId == participant.player_id;
+                                const canBeWinner = !isDraw && !isPendingRemoval && participant.result !== 'disqualified';
+
+                                return (
+                                    <li
+                                        key={`${participant.player_id || 'participant'}-${index}`}
+                                        className={`list-group-item ${isPendingRemoval ? 'list-group-item-danger text-decoration-line-through opacity-50' :
+                                                isWinner ? 'list-group-item-success' :
+                                                    participant.result === 'disqualified' ? 'list-group-item-warning' :
+                                                        currentWinner && currentWinner.player_id === participant.player_id ? 'list-group-item-success' : ''
+                                            }`}
+                                    >
+                                        <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                            <div className="flex-grow-1 d-flex align-items-center gap-2">
+                                                <strong>{participant.firstname} {participant.lastname}</strong>
+                                                {isPendingRemoval && (
+                                                    <span className="badge bg-danger">
+                                                        <i className="fas fa-trash me-1"></i>
+                                                        Will be removed
+                                                    </span>
+                                                )}
+                                                {participant.result === 'disqualified' && !isPendingRemoval && (
+                                                    <span className="badge bg-warning text-dark">
+                                                        <i className="fas fa-flag me-1"></i>
+                                                        DQ (0 pts)
+                                                    </span>
+                                                )}
+                                                {pod.confirmation_status === 'pending' && !participant.confirmed && !isPendingRemoval && (
+                                                    <span className="badge bg-secondary">
+                                                        <i className="fas fa-clock me-1"></i>
+                                                        Not confirmed
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="btn-group">
+                                                {isPendingRemoval ? (
+                                                    <button
+                                                        className="btn btn-outline-secondary btn-sm"
+                                                        onClick={() => handleUndoRemove(participant.player_id)}
+                                                    >
+                                                        <i className="fas fa-undo me-1"></i>
+                                                        <span className="d-none d-sm-inline">Undo</span>
+                                                    </button>
+                                                ) : (
+                                                    <>
+                                                        {canBeWinner && (
+                                                            <button
+                                                                className={`btn btn-sm ${isWinner ? 'btn-success' : 'btn-outline-success'}`}
+                                                                onClick={() => setWinnerId(isWinner ? '' : participant.player_id.toString())}
+                                                                title={isWinner ? 'Unselect as winner' : 'Mark as winner'}
+                                                            >
+                                                                <i className={`fas ${isWinner ? 'fa-trophy' : 'fa-crown'}`}></i>
+                                                                <span className="d-none d-md-inline ms-1">{isWinner ? 'Winner' : 'Winner'}</span>
+                                                            </button>
+                                                        )}
+                                                        <button
+                                                            className={`btn btn-sm ${participant.result === 'disqualified' ? 'btn-warning' : 'btn-outline-warning'}`}
+                                                            onClick={() => handleToggleDQ(participant.player_id)}
+                                                            title={participant.result === 'disqualified' ? 'Reinstate player' : 'Mark as DQ'}
+                                                        >
+                                                            <i className={`fas ${participant.result === 'disqualified' ? 'fa-undo' : 'fa-flag'}`}></i>
+                                                            <span className="d-none d-md-inline ms-1">{participant.result === 'disqualified' ? 'Undo' : 'DQ'}</span>
+                                                        </button>
+                                                        <button
+                                                            className="btn btn-outline-danger btn-sm"
+                                                            onClick={() => handleRemoveParticipant(participant.player_id)}
+                                                            title="Remove participant"
+                                                        >
+                                                            <i className="fas fa-times"></i>
+                                                            <span className="d-none d-md-inline ms-1">Remove</span>
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </li>
+                                );
+                            })}
+                            {pendingAdditions.map((participant, index) => (
+                                <li
+                                    key={`new-${participant.player_id || 'participant'}-${index}`}
+                                    className="list-group-item d-flex justify-content-between align-items-center list-group-item-info"
+                                >
+                                    <div>
+                                        <strong>{participant.firstname} {participant.lastname}</strong>
+                                        <span className="badge bg-info text-dark ms-2">
+                                            <i className="fas fa-plus me-1"></i>
+                                            Will be added
+                                        </span>
+                                    </div>
+                                    <button
+                                        className="btn btn-outline-secondary btn-sm"
+                                        onClick={() => handleUndoAdd(participant.player_id)}
+                                    >
+                                        <i className="fas fa-undo me-1"></i>
+                                        Undo
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                </div>
+
+                <div className="col-lg-4">
+                    {/* Actions Card */}
+                    <div className="card mb-4 sticky-top" style={{ top: '20px' }}>
+                        <div className="card-header">
+                            <h5 className="mb-0">
+                                <i className="fas fa-bolt me-2"></i>
+                                Actions
+                            </h5>
+                        </div>
+                        <div className="card-body">
+                            {/* Draw Toggle */}
+                            <div className="mb-3">
+                                <button
+                                    type="button"
+                                    className={`btn w-100 ${isDraw ? 'btn-warning' : 'btn-outline-secondary'}`}
+                                    onClick={() => {
+                                        const newDrawState = !isDraw;
+                                        setIsDraw(newDrawState);
+                                        if (newDrawState) {
+                                            setWinnerId(''); // Clear winner when marking as draw
+                                        }
+                                    }}
+                                >
+                                    <i className={`fas ${isDraw ? 'fa-check-circle' : 'fa-handshake'} me-2`}></i>
+                                    {isDraw ? 'Marked as Draw' : 'Mark as Draw'}
+                                </button>
+                                {isDraw && (
+                                    <small className="text-muted d-block mt-2">
+                                        <i className="fas fa-info-circle me-1"></i>
+                                        All non-DQ'd players will receive draw points
+                                    </small>
+                                )}
+                            </div>
+
+                            <hr />
+
+                            <button
+                                type="button"
+                                className="btn btn-primary w-100 mb-2"
+                                onClick={handleSave}
+                                disabled={!hasChanges()}
+                            >
+                                <i className="fas fa-save me-2"></i>
+                                Save Changes
+                            </button>
+
+                            {pod.confirmation_status === 'pending' && (
+                                <div className="alert alert-warning mb-3">
+                                    <p className="mb-2">
+                                        <i className="fas fa-exclamation-triangle me-2"></i>
+                                        <strong>Pending Confirmation</strong>
+                                    </p>
+                                    <p className="small mb-2">Waiting for player confirmations.</p>
+                                    <button
+                                        className="btn btn-warning btn-sm w-100"
+                                        onClick={handleForceComplete}
+                                    >
+                                        <i className="fas fa-forward me-2"></i>
+                                        Force Complete
+                                    </button>
+                                </div>
+                            )}
+
+                            <hr />
+
+                            <h6 className="text-danger">
+                                <i className="fas fa-exclamation-triangle me-2"></i>
+                                Danger Zone
+                            </h6>
+                            <p className="text-muted small mb-2">
+                                Deleting this pod will reverse all stat changes and cannot be undone.
+                            </p>
+                            <button
+                                type="button"
+                                className="btn btn-outline-danger w-100"
+                                onClick={handleDeletePod}
+                            >
+                                <i className="fas fa-trash me-2"></i>
+                                Delete Pod
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <ConfirmModal
+                show={showDeleteConfirm}
+                title="Delete Pod"
+                message="Are you sure you want to delete this pod? This action cannot be undone."
+                onConfirm={confirmDeletePod}
+                onCancel={() => setShowDeleteConfirm(false)}
+                confirmText="Delete"
+                type="danger"
+            />
+
+            {/* Add Participant Modal */}
+            {showAddModal && (
+                <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                    <div className="modal-dialog modal-dialog-centered">
+                        <div className="modal-content">
+                            <div className="modal-header">
+                                <h5 className="modal-title">
+                                    <i className="fas fa-user-plus me-2"></i>
+                                    Add Participant
+                                </h5>
+                                <button
+                                    type="button"
+                                    className="btn-close"
+                                    onClick={() => setShowAddModal(false)}
+                                ></button>
+                            </div>
+                            <div className="modal-body">
+                                <p>Select a player to add to this pod:</p>
+                                <select
+                                    className="form-select"
+                                    value={selectedUserId}
+                                    onChange={(e) => setSelectedUserId(e.target.value)}
+                                >
+                                    <option value="">Choose player...</option>
+                                    {leagueUsers
+                                        .filter(user => {
+                                            // Exclude if user is in pod AND NOT pending removal
+                                            const isInPod = participants.some(p => p.player_id == user.id);
+                                            const isPendingRemoval = pendingRemovals.some(id => id == user.id);
+                                            const isPendingAddition = pendingAdditions.some(p => p.player_id == user.id);
+
+                                            // Show user if: (not in pod OR pending removal) AND not pending addition
+                                            return (!isInPod || isPendingRemoval) && !isPendingAddition;
+                                        })
+                                        .map(user => (
+                                            <option key={user.id} value={user.id}>
+                                                {user.firstname} {user.lastname}
+                                            </option>
+                                        ))}
+                                </select>
+                            </div>
+                            <div className="modal-footer">
+                                <button
+                                    type="button"
+                                    className="btn btn-secondary"
+                                    onClick={() => setShowAddModal(false)}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    className="btn btn-primary"
+                                    onClick={confirmAddParticipant}
+                                    disabled={!selectedUserId}
+                                >
+                                    <i className="fas fa-plus me-2"></i>
+                                    Add Player
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+export default EditPodPage;

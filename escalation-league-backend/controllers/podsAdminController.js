@@ -21,6 +21,11 @@ const updatePod = async (req, res) => {
                 .first();
 
             for (const p of currentParticipants) {
+                // Skip DQ'd players - they never got stats in the first place
+                if (p.result === 'disqualified') {
+                    continue;
+                }
+
                 const wins = p.result === 'win' ? -1 : 0;
                 const losses = p.result === 'loss' ? -1 : 0;
                 const draws = p.result === 'draw' ? -1 : 0;
@@ -103,6 +108,11 @@ const updatePod = async (req, res) => {
                     .first();
 
                 for (const p of newParticipants) {
+                    // Skip DQ'd players - they don't get any stats or points
+                    if (p.result === 'disqualified') {
+                        continue;
+                    }
+
                     const wins = p.result === 'win' ? 1 : 0;
                     const losses = p.result === 'loss' ? 1 : 0;
                     const draws = p.result === 'draw' ? 1 : 0;
@@ -169,6 +179,10 @@ const removeParticipant = async (req, res) => {
     const { podId, playerId } = req.params;
 
     try {
+        console.log('=== REMOVE PARTICIPANT ===');
+        console.log('Pod ID:', podId);
+        console.log('Player ID:', playerId);
+
         const participant = await db('game_players')
             .where({ pod_id: podId, player_id: playerId })
             .first();
@@ -177,13 +191,119 @@ const removeParticipant = async (req, res) => {
             return res.status(404).json({ error: 'Participant not found in the pod.' });
         }
 
+        console.log('Participant to remove:', participant);
+
+        // Check if this player was the winner
+        const wasWinner = participant.result === 'win';
+        console.log('Was winner?', wasWinner);
+
+        // Get all participants BEFORE removal for logging
+        const allParticipantsBefore = await db('game_players').where({ pod_id: podId });
+        console.log('All participants BEFORE removal:', allParticipantsBefore.map(p => ({ id: p.player_id, result: p.result })));
+
         // Remove the participant from the pod
         await db('game_players').where({ pod_id: podId, player_id: playerId }).del();
 
-        res.status(200).json({ message: 'Participant removed successfully.' });
+        // Get all participants AFTER removal for logging
+        const allParticipantsAfter = await db('game_players').where({ pod_id: podId });
+        console.log('All participants AFTER removal:', allParticipantsAfter.map(p => ({ id: p.player_id, result: p.result })));
+
+        // If the removed player was the winner, reset the pod status and clear winner
+        if (wasWinner) {
+            const pod = await db('game_pods').where({ id: podId }).first();
+
+            // If pod was in pending or complete status, reset it
+            if (pod && (pod.confirmation_status === 'pending' || pod.confirmation_status === 'complete')) {
+                console.log('Resetting pod status from', pod.confirmation_status, 'to active');
+                await db('game_pods').where({ id: podId }).update({
+                    confirmation_status: 'active',
+                    result: null
+                });
+            }
+        }
+
+        console.log('=== END REMOVE PARTICIPANT ===');
+
+        res.status(200).json({
+            message: 'Participant removed successfully.',
+            winnerRemoved: wasWinner
+        });
     } catch (err) {
         console.error('Error removing participant:', err.message);
         res.status(500).json({ error: 'Failed to remove participant.' });
+    }
+};
+
+// Add Participant to Pod
+const addParticipant = async (req, res) => {
+    const { podId } = req.params;
+    const { playerId } = req.body;
+
+    if (!playerId) {
+        return res.status(400).json({ error: 'Player ID is required.' });
+    }
+
+    try {
+        // Check if pod exists
+        const pod = await db('game_pods').where({ id: podId }).first();
+        if (!pod) {
+            return res.status(404).json({ error: 'Pod not found.' });
+        }
+
+        // Check if pod is already complete
+        if (pod.confirmation_status === 'complete') {
+            return res.status(400).json({ error: 'Cannot add participants to a completed pod.' });
+        }
+
+        // Check current participant count
+        const currentParticipants = await db('game_players').where({ pod_id: podId });
+        if (currentParticipants.length >= 4) {
+            return res.status(400).json({ error: 'Pod is full. Maximum 4 players allowed.' });
+        }
+
+        // Check if player is already in the pod
+        const existingParticipant = currentParticipants.find(p => p.player_id === parseInt(playerId));
+        if (existingParticipant) {
+            return res.status(400).json({ error: 'Player is already in this pod.' });
+        }
+
+        // Verify player exists and is in the league
+        const player = await db('users').where({ id: playerId }).first();
+        if (!player) {
+            return res.status(404).json({ error: 'Player not found.' });
+        }
+
+        if (pod.league_id) {
+            const userInLeague = await db('user_leagues')
+                .where({ user_id: playerId, league_id: pod.league_id })
+                .first();
+            if (!userInLeague) {
+                return res.status(400).json({ error: 'Player is not enrolled in this league.' });
+            }
+        }
+
+        // Add the participant
+        await db('game_players').insert({
+            pod_id: podId,
+            player_id: playerId,
+            result: null,
+            confirmed: 0
+        });
+
+        // If adding 4th player to an open pod, move to active
+        if (currentParticipants.length === 3 && pod.confirmation_status === 'open') {
+            await db('game_pods').where({ id: podId }).update({
+                confirmation_status: 'active'
+            });
+        }
+
+        res.status(200).json({
+            message: 'Participant added successfully.',
+            participantCount: currentParticipants.length + 1
+        });
+    } catch (err) {
+        console.error('Error adding participant:', err.message);
+        res.status(500).json({ error: 'Failed to add participant.' });
     }
 };
 
@@ -225,6 +345,11 @@ const deletePod = async (req, res) => {
             console.log('Reversing stats for pod deletion:', { podId, participants: currentParticipants.length });
 
             for (const p of currentParticipants) {
+                // Skip DQ'd players - they never got stats in the first place
+                if (p.result === 'disqualified') {
+                    continue;
+                }
+
                 const wins = p.result === 'win' ? -1 : 0;
                 const losses = p.result === 'loss' ? -1 : 0;
                 const draws = p.result === 'draw' ? -1 : 0;
@@ -267,9 +392,92 @@ const deletePod = async (req, res) => {
     }
 };
 
+// Toggle DQ status for a player
+const toggleDQ = async (req, res) => {
+    const { podId, playerId } = req.params;
+
+    try {
+        // Check if pod exists
+        const pod = await db('game_pods').where({ id: podId }).first();
+        if (!pod) {
+            return res.status(404).json({ error: 'Pod not found.' });
+        }
+
+        // Check if participant exists
+        const participant = await db('game_players')
+            .where({ pod_id: podId, player_id: playerId })
+            .first();
+
+        if (!participant) {
+            return res.status(404).json({ error: 'Participant not found in this pod.' });
+        }
+
+        // Toggle between disqualified and loss
+        // If currently disqualified, change to loss
+        // If currently anything else, change to disqualified
+        const newResult = participant.result === 'disqualified' ? 'loss' : 'disqualified';
+
+        await db('game_players')
+            .where({ pod_id: podId, player_id: playerId })
+            .update({ result: newResult });
+
+        // If pod is already complete, need to recalculate stats
+        if (pod.confirmation_status === 'complete' && pod.league_id) {
+            const league = await db('leagues')
+                .where({ id: pod.league_id })
+                .select('points_per_win', 'points_per_loss', 'points_per_draw')
+                .first();
+
+            if (newResult === 'disqualified') {
+                // Player is now DQ'd - remove their stats (they had loss stats before)
+                const lossPoints = league.points_per_loss || 1;
+
+                await db('users')
+                    .where({ id: playerId })
+                    .increment({
+                        losses: -1
+                    });
+
+                await db('user_leagues')
+                    .where({ user_id: playerId, league_id: pod.league_id })
+                    .increment({
+                        league_losses: -1,
+                        total_points: -lossPoints
+                    });
+            } else {
+                // Player is no longer DQ'd - add loss stats back
+                const lossPoints = league.points_per_loss || 1;
+
+                await db('users')
+                    .where({ id: playerId })
+                    .increment({
+                        losses: 1
+                    });
+
+                await db('user_leagues')
+                    .where({ user_id: playerId, league_id: pod.league_id })
+                    .increment({
+                        league_losses: 1,
+                        total_points: lossPoints
+                    });
+            }
+        }
+
+        res.status(200).json({
+            message: `Player ${newResult === 'disqualified' ? 'disqualified' : 'reinstated'} successfully.`,
+            result: newResult
+        });
+    } catch (err) {
+        console.error('Error toggling DQ status:', err.message);
+        res.status(500).json({ error: 'Failed to toggle DQ status.' });
+    }
+};
+
 module.exports = {
     updatePod,
     removeParticipant,
+    addParticipant,
     updateParticipantResult,
+    toggleDQ,
     deletePod,
 };

@@ -1,0 +1,55 @@
+/* Dark mode styles for Edit Pod Page */
+body.dark-mode .card {
+    background-color: #2d3748;
+    border-color: #4a5568;
+}
+
+body.dark-mode .card-header {
+    background-color: #1a202c;
+    border-color: #4a5568;
+    color: #f8f9fa;
+}
+
+body.dark-mode .list-group-item {
+    background-color: #2d3748;
+    border-color: #4a5568;
+    color: #e2e8f0;
+}
+
+body.dark-mode .list-group-item-success {
+    background-color: #22543d;
+    border-color: #276749;
+    color: #9ae6b4;
+}
+
+body.dark-mode .alert-warning {
+    background-color: #744210;
+    border-color: #975a16;
+    color: #fbd38d;
+}
+
+body.dark-mode .text-muted {
+    color: #a0aec0 !important;
+}
+
+body.dark-mode .form-select,
+body.dark-mode .form-control {
+    background-color: #1a202c;
+    border-color: #4a5568;
+    color: #e2e8f0;
+}
+
+body.dark-mode .form-select:focus,
+body.dark-mode .form-control:focus {
+    background-color: #2d3748;
+    border-color: #63b3ed;
+    color: #e2e8f0;
+}
+
+body.dark-mode .form-check-label {
+    color: #e2e8f0;
+}
+
+body.dark-mode .sticky-top {
+    background-color: #1a202c;
+}

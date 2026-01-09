@@ -44,6 +44,7 @@ const navbarLinks = (inLeague) => [
         children: [
             { label: 'League Management', path: '/admin/leagues', order: 1 },
             { label: 'Pods', path: '/admin/pods', order: 2 },
+            { label: 'User Roles', path: '/admin/users', order: 3 },
         ],
     },
 ];

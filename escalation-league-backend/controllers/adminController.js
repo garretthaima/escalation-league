@@ -1,10 +1,22 @@
 const db = require('../models/db');
+const redis = require('../utils/redisClient');
 
 // Fetch All Users (Admin Only)
 const getAllUsers = async (req, res) => {
 
     try {
-        const users = await db('users').select('id', 'firstname', 'lastname', 'email', 'role', 'is_active');
+        const users = await db('users')
+            .leftJoin('roles', 'users.role_id', 'roles.id')
+            .select(
+                'users.id',
+                'users.firstname',
+                'users.lastname',
+                'users.email',
+                'users.role_id',
+                'roles.name as role',
+                'users.is_active'
+            )
+            .whereNot('users.id', 1); // Exclude the admin break-glass account
         res.status(200).json({ users });
     } catch (err) {
         console.error('Error fetching all users:', err);
@@ -207,6 +219,65 @@ const reviewRoleRequest = async (req, res) => {
     }
 };
 
+// Assign Role to User (Admin Only)
+const assignUserRole = async (req, res) => {
+    const { userId } = req.params;
+    const { roleId } = req.body;
+
+    if (!roleId) {
+        return res.status(400).json({ error: 'Role ID is required.' });
+    }
+
+    try {
+        // Verify the user exists
+        const user = await db('users').where({ id: userId }).first();
+        if (!user) {
+            return res.status(404).json({ error: 'User not found.' });
+        }
+
+        // Verify the role exists
+        const role = await db('roles').where({ id: roleId }).first();
+        if (!role) {
+            return res.status(404).json({ error: 'Role not found.' });
+        }
+
+        // Update the user's role
+        await db('users').where({ id: userId }).update({ role_id: roleId });
+
+        // Invalidate the Redis cache for this user so changes take effect immediately
+        const cacheKey = `user:role:${userId}`;
+        await redis.del(cacheKey);
+
+        res.status(200).json({
+            success: true,
+            message: `User role updated to ${role.name} successfully.`,
+            user: {
+                id: user.id,
+                email: user.email,
+                role_id: roleId,
+                role_name: role.name
+            }
+        });
+    } catch (err) {
+        console.error('Error assigning user role:', err.message);
+        res.status(500).json({ error: 'Failed to assign user role.' });
+    }
+};
+
+// Get All Roles (for dropdown in frontend)
+const getAllRoles = async (req, res) => {
+    try {
+        const roles = await db('roles')
+            .select('id', 'name', 'description')
+            .orderBy('id');
+
+        res.status(200).json({ roles });
+    } catch (err) {
+        console.error('Error fetching roles:', err.message);
+        res.status(500).json({ error: 'Failed to fetch roles.' });
+    }
+};
+
 
 module.exports = {
     getAllUsers,
@@ -218,5 +289,7 @@ module.exports = {
     getUserActivityLogs,
     getLeagueReport,
     getPendingRoleRequests,
-    reviewRoleRequest
+    reviewRoleRequest,
+    assignUserRole,
+    getAllRoles
 };

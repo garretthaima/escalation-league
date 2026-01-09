@@ -10,7 +10,9 @@ const {
     resetUserPassword,
     getLeagueReport,
     getPendingRoleRequests,
-    reviewRoleRequest
+    reviewRoleRequest,
+    assignUserRole,
+    getAllRoles
 } = require('../controllers/adminController');
 const authenticateToken = require('../middlewares/authentication');
 const authorizePermission = require('../middlewares/authorizePermission');
@@ -78,6 +80,18 @@ router.post(
     authenticateToken,
     authorizePermission(['admin_user_update']), // Permission to review role requests
     reviewRoleRequest
+);
+router.put(
+    '/user/:userId/role',
+    authenticateToken,
+    authorizePermission(['admin_user_update']), // Permission to assign roles
+    assignUserRole
+);
+router.get(
+    '/roles',
+    authenticateToken,
+    authorizePermission(['admin_user_read']), // Permission to view roles
+    getAllRoles
 );
 
 // Add podsAdmin routes as a subroute

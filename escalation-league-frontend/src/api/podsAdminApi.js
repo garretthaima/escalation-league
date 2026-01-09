@@ -12,9 +12,21 @@ export const removeParticipant = async (podId, playerId) => {
     return response.data;
 };
 
+// Add a participant to a pod
+export const addParticipant = async (podId, playerId) => {
+    const response = await axiosInstance.post(`/admin/pods/${podId}/participants`, { playerId });
+    return response.data;
+};
+
 // Update a participant's result in a pod
 export const updateParticipantResult = async (podId, playerId, result) => {
     const response = await axiosInstance.put(`/admin/pods/${podId}/participants/${playerId}`, { result });
+    return response.data;
+};
+
+// Toggle DQ status for a participant
+export const toggleDQ = async (podId, playerId) => {
+    const response = await axiosInstance.patch(`/admin/pods/${podId}/participants/${playerId}/dq`);
     return response.data;
 };
 

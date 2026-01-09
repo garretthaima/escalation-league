@@ -13,6 +13,9 @@ const AdminPage = () => {
                 <li>
                     <Link to="/admin/pods">Pods</Link>
                 </li>
+                <li>
+                    <Link to="/admin/users">User Role Management</Link>
+                </li>
             </ul>
         </div>
     );

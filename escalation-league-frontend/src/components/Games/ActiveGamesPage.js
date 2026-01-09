@@ -24,6 +24,7 @@ const ActiveGamesTab = () => {
     const canReadPods = permissions.some((perm) => perm.name === 'pod_read');
     const canCreatePods = permissions.some((perm) => perm.name === 'pod_create');
     const canUpdatePods = permissions.some((perm) => perm.name === 'pod_update');
+    const isAdmin = permissions.some((perm) => perm.name === 'admin_pod_update');
 
     useEffect(() => {
         const fetchPods = async () => {
@@ -43,8 +44,8 @@ const ActiveGamesTab = () => {
                     getPods({ confirmation_status: 'active' }), // Active pods
                 ]);
 
-                // Only filter active pods - keep open pods visible to everyone so they can join
-                const userActivePods = activePodsData.filter(pod =>
+                // Only filter active pods if not admin - admins see all
+                const userActivePods = isAdmin ? activePodsData : activePodsData.filter(pod =>
                     pod.participants?.some(p => p.player_id === userProfile.user.id)
                 );
 

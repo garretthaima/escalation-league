@@ -1,5 +1,11 @@
 const jwt = require('jsonwebtoken');
-const { getSetting } = require('../utils/settingsUtils'); // Import getSetting utility
+const { promisify } = require('util');
+const { getSetting } = require('../utils/settingsUtils');
+const db = require('../models/db');
+const redis = require('../utils/redisClient');
+
+const jwtVerify = promisify(jwt.verify);
+const CACHE_TTL = 30; // 30 seconds TTL in Redis
 
 const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
@@ -16,27 +22,65 @@ const authenticateToken = async (req, res, next) => {
       return res.status(500).json({ error: 'Internal server error. Secret key not found.' });
     }
 
-    // Verify the token
-    jwt.verify(token, SECRET_KEY, (err, user) => {
-      if (err) {
-        return res.status(403).json({ error: 'Forbidden. Invalid token.' });
-      }
+    // Verify the token (now properly promisified)
+    const user = await jwtVerify(token, SECRET_KEY);
 
-      // Validate required fields in the token payload
-      if (!user.id || !user.role_id) {
-        return res.status(400).json({ error: 'Invalid token payload. Missing required fields.' });
-      }
+    // Validate required fields in the token payload
+    if (!user.id) {
+      return res.status(400).json({ error: 'Invalid token payload. Missing user ID.' });
+    }
 
-      // Attach only the required fields to req.user
+    // Check Redis cache first
+    const cacheKey = `user:role:${user.id}`;
+    const cached = await redis.get(cacheKey);
+
+    if (cached) {
+      // Use cached data
+      const userData = JSON.parse(cached);
       req.user = {
         id: user.id,
-        role_id: user.role_id
+        role_id: userData.role_id
       };
+      return next();
+    }
 
-      next();
-    });
+    // Fetch the user's current role_id from the database
+    const dbUser = await db('users')
+      .select('role_id', 'is_active', 'is_banned')
+      .where({ id: user.id })
+      .first();
+
+    if (!dbUser) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    // Check if user is active and not banned
+    if (!dbUser.is_active) {
+      return res.status(403).json({ error: 'Account is inactive.' });
+    }
+
+    if (dbUser.is_banned) {
+      return res.status(403).json({ error: 'Account is banned.' });
+    }
+
+    // Cache in Redis with TTL
+    await redis.setex(cacheKey, CACHE_TTL, JSON.stringify({ role_id: dbUser.role_id }));
+
+    // Attach user info with current role_id from database
+    req.user = {
+      id: user.id,
+      role_id: dbUser.role_id
+    };
+
+    next();
   } catch (err) {
-    console.error('Error fetching secret key or verifying token:', err.message);
+    if (err.name === 'JsonWebTokenError') {
+      return res.status(403).json({ error: 'Forbidden. Invalid token.' });
+    }
+    if (err.name === 'TokenExpiredError') {
+      return res.status(403).json({ error: 'Forbidden. Token expired.' });
+    }
+    console.error('Error in authentication:', err.message);
     res.status(500).json({ error: 'Internal server error.' });
   }
 };

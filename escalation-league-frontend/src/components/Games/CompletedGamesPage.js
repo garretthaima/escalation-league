@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getPods } from '../../api/podsApi';
 import { getUserProfile } from '../../api/usersApi';
+import { usePermissions } from '../context/PermissionsProvider';
 
 const CompletedGamesTab = () => {
     const [completedGames, setCompletedGames] = useState([]);
@@ -10,11 +11,13 @@ const CompletedGamesTab = () => {
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(true);
     const [viewMode, setViewMode] = useState('cards'); // 'cards' or 'table'
+    const { permissions } = usePermissions();
+    const isAdmin = permissions.some((perm) => perm.name === 'admin_pod_update');
 
     // Filter states
     const [playerFilter, setPlayerFilter] = useState('');
     const [dateFilter, setDateFilter] = useState('');
-    const [showMyGamesOnly, setShowMyGamesOnly] = useState(true);
+    const [showMyGamesOnly, setShowMyGamesOnly] = useState(!isAdmin); // Admins see all by default
     const [winConditionFilter, setWinConditionFilter] = useState('');
 
     useEffect(() => {
@@ -25,7 +28,8 @@ const CompletedGamesTab = () => {
 
                 const games = await getPods({ confirmation_status: 'complete' });
                 setCompletedGames(games);
-                setFilteredGames(games.filter(game =>
+                // Admins see all games by default, others see only their games
+                setFilteredGames(isAdmin ? games : games.filter(game =>
                     game.participants?.some(p => p.player_id === userProfile.user.id)
                 ));
             } catch (err) {

@@ -3,6 +3,7 @@ import { getPods, logPodResult } from '../../api/podsApi';
 import { getUserProfile } from '../../api/usersApi';
 import { useToast } from '../context/ToastContext';
 import { useWebSocket } from '../context/WebSocketProvider';
+import { usePermissions } from '../context/PermissionsProvider';
 import { getResultBadge, getConfirmationBadge } from '../../utils/badgeHelpers';
 
 const ConfirmGamesTab = () => {
@@ -12,6 +13,8 @@ const ConfirmGamesTab = () => {
     const [error, setError] = useState(null);
     const { showToast } = useToast();
     const { socket, connected, joinLeague, leaveLeague } = useWebSocket();
+    const { permissions } = usePermissions();
+    const isAdmin = permissions.some((perm) => perm.name === 'admin_pod_update');
 
     useEffect(() => {
         const fetchGamesWaitingConfirmation = async () => {
@@ -21,8 +24,8 @@ const ConfirmGamesTab = () => {
 
                 // Fetch pending pods using getPods with a filter
                 const pods = await getPods({ confirmation_status: 'pending' });
-                // Filter to only show pods where current user is a participant
-                const userPods = pods.filter(pod =>
+                // Filter to only show pods where current user is a participant (unless admin)
+                const userPods = isAdmin ? pods : pods.filter(pod =>
                     pod.participants?.some(p => p.player_id === userProfile.user.id)
                 );
                 setGamesWaitingConfirmation(userPods);
