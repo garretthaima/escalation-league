@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Health Monitor every 5 minutes
+Requires=monitor-health.service
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=5min
+AccuracySec=1min
+
+[Install]
+WantedBy=timers.target

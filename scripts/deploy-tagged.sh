@@ -85,10 +85,27 @@ if ./scripts/smoke-test.sh "$ENVIRONMENT"; then
     
     # Save current tag for rollback reference
     echo "$BUILD_TAG" > "/tmp/escalation-league-${ENVIRONMENT}-current-tag"
+    
+    # Log successful deployment
+    ALERT_FILE="/tmp/escalation-league-${ENVIRONMENT}-alerts.log"
+    echo "[$(date -u +"%Y-%m-%d %H:%M:%S UTC")] [INFO] Deployment successful: $BUILD_TAG" >> "$ALERT_FILE"
 else
     echo ""
     echo "=== Smoke Tests Failed ==="
     echo "Deployment completed but verification failed."
     echo "To rollback: ./scripts/rollback.sh $ENVIRONMENT"
+    
+    # Alert on failure
+    ALERT_FILE="/tmp/escalation-league-${ENVIRONMENT}-alerts.log"
+    echo "[$(date -u +"%Y-%m-%d %H:%M:%S UTC")] [ERROR] Deployment failed: $BUILD_TAG smoke tests failed" >> "$ALERT_FILE"
+    
+    # Send webhook alert if configured
+    if [ -n "${MONITORING_WEBHOOK_URL:-}" ]; then
+        curl -X POST "$MONITORING_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d "{\"content\":\"[$ENVIRONMENT] DEPLOYMENT FAILED: Tag $BUILD_TAG smoke tests failed\"}" \
+            --silent --max-time 5 || true
+    fi
+    
     exit 1
 fi
