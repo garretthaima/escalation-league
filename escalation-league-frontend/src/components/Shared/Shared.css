@@ -183,3 +183,47 @@ body.dark-mode .privacy-policy li {
     color: #b8941f;
     text-decoration: underline;
 }
+/* Mobile optimizations for hero section */
+@media (max-width: 768px) {
+    .hero-section {
+        height: 60vh;
+        min-height: 400px;
+    }
+    
+    .hero-content h1 {
+        font-size: 1.75rem;
+    }
+    
+    .hero-content p {
+        font-size: 0.95rem;
+    }
+    
+    .quick-links {
+        flex-direction: column;
+        gap: 1rem;
+        padding: 0 1rem;
+    }
+    
+    .quick-links .homepage-card {
+        width: 100%;
+    }
+}
+
+/* Mobile optimizations for page headers */
+@media (max-width: 768px) {
+    h1 {
+        font-size: 1.5rem !important;
+    }
+    
+    h2 {
+        font-size: 1.25rem !important;
+    }
+    
+    h3 {
+        font-size: 1.1rem !important;
+    }
+    
+    .card-header h5 {
+        font-size: 1rem !important;
+    }
+}

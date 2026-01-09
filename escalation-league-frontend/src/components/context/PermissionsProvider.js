@@ -11,12 +11,17 @@ export const PermissionsProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
     const [darkMode, setDarkMode] = useState(true); // Default to dark mode
     const [activeLeague, setActiveLeague] = useState(null); // Add activeLeague state
+    const [refreshKey, setRefreshKey] = useState(0); // Add refresh mechanism
     const navigate = useNavigate();
 
     useEffect(() => {
         const fetchPermissionsAndUser = async () => {
             const token = localStorage.getItem('token');
             if (!token) {
+                // Clear all state if no token
+                setPermissions([]);
+                setUser(null);
+                setActiveLeague(null);
                 setLoading(false);
                 return;
             }
@@ -43,13 +48,22 @@ export const PermissionsProvider = ({ children }) => {
                 }
             } catch (err) {
                 console.error('Failed to fetch permissions, user profile, or settings:', err);
+                // Clear state on error
+                setPermissions([]);
+                setUser(null);
+                setActiveLeague(null);
             } finally {
                 setLoading(false);
             }
         };
 
         fetchPermissionsAndUser();
-    }, []); // Runs only once when the provider mounts
+    }, [refreshKey]); // Re-run when refreshKey changes
+
+    // Function to force refresh user data
+    const refreshUserData = () => {
+        setRefreshKey(prev => prev + 1);
+    };
 
     // Update dark mode setting in the backend
     const toggleDarkMode = async () => {
@@ -83,6 +97,7 @@ export const PermissionsProvider = ({ children }) => {
                 loading,
                 darkMode,
                 toggleDarkMode, // Expose toggle function
+                refreshUserData, // Expose refresh function
             }}
         >
             {children}

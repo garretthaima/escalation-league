@@ -5,11 +5,29 @@ import ProfileSection from './ProfileSection';
 import { isUserInLeague } from '../../api/userLeaguesApi';
 import navbarLinks from './navbarLinks';
 import './Navbar.css';
+import './Navbar-mobile.css'; // Mobile-specific overrides
 
 const Navbar = ({ handleLogout }) => {
     const { permissions, user, darkMode, toggleDarkMode } = usePermissions(); // Use darkMode and toggleDarkMode from PermissionsProvider
     const [activeSection, setActiveSection] = useState('');
     const [inLeague, setInLeague] = useState(false); // Track if the user is in a league
+
+    // Collapse navbar on mobile when link is clicked
+    const collapseNavbar = () => {
+        const navbarCollapse = document.getElementById('navbarNav');
+        const bsCollapse = window.bootstrap?.Collapse?.getInstance(navbarCollapse);
+        if (bsCollapse) {
+            bsCollapse.hide();
+        } else if (navbarCollapse?.classList.contains('show')) {
+            // Fallback if Bootstrap instance not found
+            navbarCollapse.classList.remove('show');
+        }
+    };
+
+    const handleLinkClick = (section) => {
+        setActiveSection(section.toLowerCase());
+        collapseNavbar();
+    };
 
     useEffect(() => {
         const fetchLeagueStatus = async () => {
@@ -44,26 +62,28 @@ const Navbar = ({ handleLogout }) => {
     return (
         <nav className={`navbar navbar-expand-lg navbar-dark`} style={{ backgroundColor: '#2d1b4e' }}>
             <div className="container-fluid">
-                <a className="navbar-brand d-flex align-items-center" href="/">
-                    <img src="/logo.png" alt="Escalation League Logo" style={{ height: '32px', marginRight: '10px' }} />
-                    Escalation League
-                    {process.env.REACT_APP_ENV === 'development' && (
-                        <span className="badge bg-warning text-dark ms-2" style={{ fontSize: '0.7rem', verticalAlign: 'middle' }}>
-                            DEV
-                        </span>
-                    )}
-                </a>
-                <button
-                    className="navbar-toggler"
-                    type="button"
-                    data-bs-toggle="collapse"
-                    data-bs-target="#navbarNav"
-                    aria-controls="navbarNav"
-                    aria-expanded="false"
-                    aria-label="Toggle navigation"
-                >
-                    <span className="navbar-toggler-icon"></span>
-                </button>
+                <div className="d-flex align-items-center">
+                    <a className="navbar-brand d-flex align-items-center" href="/">
+                        <img src="/logo.png" alt="Escalation League Logo" style={{ height: '32px', marginRight: '10px' }} />
+                        <span className="navbar-brand-text">Escalation League</span>
+                        {process.env.REACT_APP_ENV === 'development' && (
+                            <span className="badge bg-warning text-dark ms-2" style={{ fontSize: '0.7rem', verticalAlign: 'middle' }}>
+                                DEV
+                            </span>
+                        )}
+                    </a>
+                    <button
+                        className="navbar-toggler"
+                        type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#navbarNav"
+                        aria-controls="navbarNav"
+                        aria-expanded="false"
+                        aria-label="Toggle navigation"
+                    >
+                        <span className="navbar-toggler-icon"></span>
+                    </button>
+                </div>
                 <div className="collapse navbar-collapse" id="navbarNav">
                     <ul className="navbar-nav me-auto mb-2 mb-lg-0">
                         {sortedLinks.map((link) => {
@@ -74,7 +94,7 @@ const Navbar = ({ handleLogout }) => {
                                         <Link
                                             className={`nav-link ${activeSection === link.label.toLowerCase() ? 'active' : ''}`}
                                             to={link.path}
-                                            onClick={() => setActiveSection(link.label.toLowerCase())}
+                                            onClick={() => handleLinkClick(link.label)}
                                         >
                                             {link.label}
                                         </Link>
@@ -91,7 +111,7 @@ const Navbar = ({ handleLogout }) => {
                                             role="button"
                                             data-bs-toggle="dropdown"
                                             aria-expanded="false"
-                                            onClick={() => setActiveSection(link.label.toLowerCase())}
+                                            onClick={() => handleLinkClick(link.label)}
                                         >
                                             {link.label}
                                         </Link>
@@ -104,7 +124,7 @@ const Navbar = ({ handleLogout }) => {
                                                             <Link
                                                                 className="dropdown-item"
                                                                 to={child.path}
-                                                                onClick={() => setActiveSection(child.label.toLowerCase())}
+                                                                onClick={() => handleLinkClick(child.label)}
                                                             >
                                                                 <i className={`fas ${child.icon}`}></i> {child.label}
                                                             </Link>
@@ -119,16 +139,31 @@ const Navbar = ({ handleLogout }) => {
                             return null;
                         })}
                     </ul>
-                    <div className="d-flex align-items-center gap-2">
-                        <button
-                            className={`btn ${darkMode ? 'btn-outline-light' : 'btn-outline-dark'}`}
-                            onClick={toggleDarkMode}
-                            title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-                        >
-                            <i className={`fas ${darkMode ? 'fa-sun' : 'fa-moon'}`}></i>
-                        </button>
-                        <ProfileSection user={user} handleLogout={handleLogout} darkMode={darkMode} />
-                    </div>
+                    {/* Mobile-only profile links */}
+                    <ul className="navbar-nav d-lg-none">
+                        {user && (
+                            <>
+                                <li className="nav-item">
+                                    <Link className="nav-link" to="/profile" onClick={() => collapseNavbar()}>
+                                        <i className="fas fa-user"></i> Profile
+                                    </Link>
+                                </li>
+                                <li className="nav-item">
+                                    <button className="nav-link btn btn-link w-100 text-start" onClick={() => { toggleDarkMode(); collapseNavbar(); }}>
+                                        <i className={`fas ${darkMode ? 'fa-sun' : 'fa-moon'}`}></i> {darkMode ? 'Light Mode' : 'Dark Mode'}
+                                    </button>
+                                </li>
+                                <li className="nav-item">
+                                    <button className="nav-link btn btn-link w-100 text-start" onClick={handleLogout}>
+                                        <i className="fas fa-sign-out-alt"></i> Logout
+                                    </button>
+                                </li>
+                            </>
+                        )}
+                    </ul>
+                </div>
+                <div className="navbar-right-buttons">
+                    <ProfileSection user={user} handleLogout={handleLogout} darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
                 </div>
             </div>
         </nav>

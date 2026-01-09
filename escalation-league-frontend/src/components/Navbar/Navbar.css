@@ -68,40 +68,39 @@
     margin-right: 10px;
 }
 
-@media (max-width: 576px) {
-    .navbar-brand img {
-        height: 28px;
-        margin-right: 8px;
+/* Desktop only - hide mobile overrides */
+@media (min-width: 992px) {
+    .navbar-brand-text {
+        display: inline !important;
     }
 
-    .navbar-brand {
-        font-size: 1.1rem;
-    }
-}
-
-/* Mobile collapsed menu improvements */
-@media (max-width: 991px) {
-    .navbar-collapse {
-        background-color: rgba(45, 27, 78, 0.98);
-        padding: 1rem;
-        margin-top: 0.5rem;
-        border-radius: 0.5rem;
+    /* Profile dropdown container */
+    .navbar-right-buttons .dropdown {
+        position: relative;
     }
 
-    .navbar-nav {
-        margin-bottom: 1rem;
+    /* Profile dropdown styling */
+    .navbar-right-buttons .dropdown-toggle {
+        padding: 0 !important;
+        background: transparent !important;
+        border: none !important;
     }
 
-    .navbar .d-flex {
-        flex-direction: column;
-        width: 100%;
-        gap: 0.5rem !important;
+    .navbar-right-buttons .dropdown-toggle::after {
+        display: none !important;
     }
 
-    .navbar .d-flex button,
-    .navbar .d-flex .dropdown {
-        width: 100%;
+    .navbar-right-buttons .dropdown-toggle:focus {
+        box-shadow: none !important;
     }
+
+    .navbar-right-buttons img.rounded-circle {
+        width: 40px !important;
+        height: 40px !important;
+        object-fit: cover !important;
+    }
+
+    /* Dropdown styles moved to ProfileSection.js inline styles */
 }
 
 .container-fluid {

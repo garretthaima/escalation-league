@@ -60,9 +60,9 @@ describe('User-League Routes', () => {
             expect(res.status).toBe(404);
         });
 
-        // TODO: Test signup with league code
-        // TODO: Test max players limit
-        // TODO: Test league start date restriction
+        // See issue #13
+        // See issue #13
+        // See issue #13
     });
 
     describe('GET /api/user-leagues/my-leagues', () => {
@@ -103,8 +103,8 @@ describe('User-League Routes', () => {
             expect(res.body[0]).toHaveProperty('total_points', 15);
         });
 
-        // TODO: Test filter by active/completed
-        // TODO: Test include user rank in league
+        // See issue #13
+        // See issue #13
     });
 
     describe('GET /api/user-leagues/:leagueId/participants', () => {
@@ -127,7 +127,7 @@ describe('User-League Routes', () => {
             expect(res.body.length).toBeGreaterThanOrEqual(2);
         });
 
-        // TODO: Test participants sorted by rank
+        // See issue #13
         // TODO: Test include current deck/commander
         // TODO: Test pagination for large leagues
     });

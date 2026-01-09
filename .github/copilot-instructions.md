@@ -248,34 +248,15 @@ expect(res.body.is_deleted).toBe(0); // Not false
 
 ---
 
-## TODO: Future Features
+## Feature Tracking
 
-### Real-time Updates / Auto-refresh
-- [ ] Implement polling for ActiveGamesPage (60s interval)
-  - Auto-refresh open pods (check for new games to join)
-  - Auto-refresh active pods (detect winner declarations)
-  - Optional: Add visual indicator when data refreshes
-- [ ] Implement polling for ConfirmGamesPage (60s interval)
-  - Auto-refresh pending confirmations
-  - Detect when games move to completed status
-- [ ] Implement polling for CompletedGamesPage (60s interval)
-  - See newly completed games without manual refresh
-- [ ] Consider WebSocket implementation for true real-time updates (future enhancement)
+All features, bugs, and improvements are now tracked in GitHub Issues:
+- **Epics:** Issues tagged with `epic` label
+- **Test Coverage:** See issue #10 and related sub-issues (#11-21)
+- **Deployment Improvements:** See issue #23 and related sub-issues (#24-28)
+- **WebSocket Lag:** See issue #22
 
-### Test Coverage
-- [ ] Test password validation (complexity, length)
-- [ ] Test email format validation
-- [ ] Test SQL injection attempts
-- [ ] Test rate limiting on failed logins
-- [ ] Test banned/inactive user authentication
-- [ ] Test token expiration
-- [ ] Mock OAuth2Client for Google auth tests
-- [ ] Test RBAC permission inheritance (role_hierarchy)
-- [ ] Test pagination for list endpoints
-- [ ] Test league filtering/search
-- [ ] Add game pod tests
-- [ ] Add deck management tests
-- [ ] Add user profile tests
+View all issues: https://github.com/garretthaima/escalation-league/issues
 
 ---
 

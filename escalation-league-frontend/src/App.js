@@ -45,9 +45,14 @@ const App = () => {
     }, []);
 
     const handleLogout = () => {
-        localStorage.removeItem('token'); // Clear token from local storage
-        setUser(null); // Clear user state
-        window.location.href = '/signin'; // Redirect to sign-in page
+        // Clear ALL localStorage items to prevent data leakage
+        localStorage.clear();
+
+        // Clear user state
+        setUser(null);
+
+        // Force page reload to clear all React state
+        window.location.href = '/signin';
     };
 
     return (

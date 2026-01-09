@@ -1,0 +1,47 @@
+/* Profile dropdown specific styles */
+.profile-dropdown {
+    position: relative;
+}
+
+.profile-dropdown .dropdown-toggle::after {
+    display: none !important;
+}
+
+.profile-dropdown .dropdown-toggle:focus {
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+.profile-dropdown .dropdown-menu {
+    display: none;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.profile-dropdown .dropdown-menu.show {
+    display: block !important;
+}
+
+.profile-dropdown .dropdown-menu li {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.profile-dropdown .dropdown-item {
+    display: block !important;
+    width: 100%;
+}
+
+.profile-dropdown .dropdown-item:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: white !important;
+}
+
+.profile-dropdown .dropdown-divider {
+    height: 0;
+    margin: 0.5rem 0;
+    overflow: hidden;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+}

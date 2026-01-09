@@ -11,7 +11,7 @@ const SignIn = () => {
     const [formData, setFormData] = useState({ email: '', password: '', firstname: '', lastname: '' });
     const [error, setError] = useState('');
     const navigate = useNavigate();
-    const { setUser, setPermissions } = usePermissions();
+    const { setUser, setPermissions, refreshUserData } = usePermissions();
     const { showToast } = useToast();
 
     const handleChange = (e) => {
@@ -29,15 +29,8 @@ const SignIn = () => {
                 const data = await loginUser({ email: formData.email, password: formData.password });
                 localStorage.setItem('token', data.token);
 
-                const tokenPayload = JSON.parse(atob(data.token.split('.')[1]));
-                setUser({
-                    id: tokenPayload.id,
-                    email: tokenPayload.email,
-                    role_id: tokenPayload.role_id,
-                });
-
-                const permissionsData = await getUserPermissions();
-                setPermissions(permissionsData.permissions);
+                // Force refresh user data from backend
+                refreshUserData();
 
                 navigate('/profile');
             }
@@ -52,15 +45,8 @@ const SignIn = () => {
             const data = await googleAuth(credential);
             localStorage.setItem('token', data.token);
 
-            const tokenPayload = JSON.parse(atob(data.token.split('.')[1]));
-            setUser({
-                id: tokenPayload.id,
-                email: tokenPayload.email,
-                role_id: tokenPayload.role_id,
-            });
-
-            const permissionsData = await getUserPermissions();
-            setPermissions(permissionsData.permissions);
+            // Force refresh user data from backend
+            refreshUserData();
 
             navigate('/profile');
         } catch (err) {

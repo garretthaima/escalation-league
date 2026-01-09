@@ -98,12 +98,16 @@ network:
 # BUILD COMMANDS (rebuild images after code changes)
 # ============================================================================
 
-build-prod:
+generate-build-info:
+	@echo "📝 Generating build info..."
+	@./scripts/generate-build-info.sh
+
+build-prod: generate-build-info
 	@echo "🔨 Building production images..."
 	@$(DOCKER_COMPOSE) --env-file $(PROD_ENV) -f $(PROD_COMPOSE) build
 	@echo "✅ Production images built"
 
-build-dev:
+build-dev: generate-build-info
 	@echo "🔨 Building development images..."
 	@$(DOCKER_COMPOSE) --env-file $(DEV_ENV) -f $(DEV_COMPOSE) build
 	@echo "✅ Development images built"
