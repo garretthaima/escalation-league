@@ -186,15 +186,23 @@ cards: network
 # ============================================================================
 
 deploy-prod: build-prod
-	@echo "� Deploying production..."
+	@echo "Deploying production..."
 	@$(DOCKER_COMPOSE) --env-file $(PROD_ENV) -f $(PROD_COMPOSE) up -d --force-recreate
-	@echo "✅ Production deployed"
+	@echo "Waiting for services to be healthy..."
+	@sleep 15
+	@echo "Running smoke tests..."
+	@./scripts/smoke-test.sh prod || (echo "Smoke tests failed! Check deployment." && exit 1)
+	@echo "✅ Production deployed and verified"
 
 deploy-dev: build-dev
 	@echo "🚀 Deploying development..."
 	@make docker-preclean
 	@$(DOCKER_COMPOSE) --env-file $(DEV_ENV) -f $(DEV_COMPOSE) up -d --force-recreate
-	@echo "✅ Development deployed"
+	@echo "Waiting for services to be healthy..."
+	@sleep 15
+	@echo "Running smoke tests..."
+	@./scripts/smoke-test.sh dev || (echo "Smoke tests failed! Check deployment." && exit 1)
+	@echo "✅ Development deployed and verified"
 
 deploy-edge: build-edge
 	@echo "� Deploying edge proxy..."
