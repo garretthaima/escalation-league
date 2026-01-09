@@ -85,7 +85,16 @@ services:
     container_name: escalation-league-redis-dev
     ports:
       - "6380:6379"
-    command: [ "redis-server", "--appendonly", "yes" ]
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --maxmemory
+      - "256mb"
+      - --maxmemory-policy
+      - allkeys-lru
+      - --activedefrag
+      - "yes"
     volumes:
       - compose_redis_dev_data:/data
     restart: unless-stopped

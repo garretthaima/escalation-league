@@ -97,8 +97,13 @@ app.use('/api', apiLimiter);
       methods: ['GET', 'POST']
     },
     path: '/socket.io/',
-    transports: ['polling', 'websocket'], // Match frontend: polling first
-    allowEIO3: true // Support older clients
+    transports: ['websocket', 'polling'], // WebSocket first for lower latency
+    allowEIO3: true, // Support older clients
+    pingTimeout: 5000,        // Faster timeout detection
+    pingInterval: 10000,      // More frequent keepalive pings
+    upgradeTimeout: 3000,     // Faster upgrade from polling to websocket
+    maxHttpBufferSize: 1e6,   // 1MB message size limit
+    perMessageDeflate: false  // Disable compression for lower latency
   });
 
   // Configure Redis adapter for horizontal scaling (production)
