@@ -76,6 +76,15 @@ app.use('/api', apiLimiter);
 
   console.log(`Serving profile pictures from ${profilePicturesPath}`);
 
+  // Health check endpoint (before routes, no auth required)
+  app.get('/api/health', (req, res) => {
+    res.status(200).json({ 
+      status: 'ok', 
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime()
+    });
+  });
+
   // Routes
   const routes = require('./routes');
   app.use('/api', routes);
