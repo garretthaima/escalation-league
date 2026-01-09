@@ -149,16 +149,23 @@ const CompletedGamesTab = () => {
                 <tbody>
                     {filteredGames.map((game) => {
                         const userParticipant = game.participants.find(p => p.player_id === userId);
-                        const userResult = userParticipant?.result || 'Unknown';
+                        const userResult = userParticipant?.result || 'Not Played';
+                        const isUserInGame = !!userParticipant;
 
                         return (
                             <tr key={game.id}>
                                 <td>#{game.id}</td>
                                 <td>{new Date(game.created_at).toLocaleDateString()}</td>
                                 <td>
-                                    <span className={`badge ${userResult === 'win' ? 'bg-success' : userResult === 'loss' ? 'bg-danger' : 'bg-secondary'}`}>
-                                        {userResult}
-                                    </span>
+                                    {isUserInGame ? (
+                                        <span className={`badge ${userResult === 'win' ? 'bg-success' : userResult === 'loss' ? 'bg-danger' : 'bg-secondary'}`}>
+                                            {userResult}
+                                        </span>
+                                    ) : (
+                                        <span className="badge bg-secondary text-muted">
+                                            <i className="fas fa-eye me-1"></i>Spectator
+                                        </span>
+                                    )}
                                 </td>
                                 <td>{game.win_condition?.name || 'None'}</td>
                                 <td>

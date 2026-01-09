@@ -1,5 +1,7 @@
 const db = require('../models/db'); // Knex instance
-const settingsCache = {}; // In-memory cache for settings
+const settingsCache = {}; // In-memory cache for settings with TTL
+
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 /**
  * Fetch a setting from the database or cache
@@ -7,8 +9,12 @@ const settingsCache = {}; // In-memory cache for settings
  * @returns {Promise<string>} - The value of the setting
  */
 const getSetting = async (key) => {
-    if (settingsCache[key]) {
-        return settingsCache[key]; // Return cached value if available
+    const now = Date.now();
+    const cached = settingsCache[key];
+
+    // Return cached value if it exists and hasn't expired
+    if (cached && cached.expiresAt > now) {
+        return cached.value;
     }
 
     const setting = await db('settings').where({ key_name: key }).first();
@@ -16,7 +22,12 @@ const getSetting = async (key) => {
         throw new Error(`Setting "${key}" not found in the database.`);
     }
 
-    settingsCache[key] = setting.value; // Cache the value
+    // Cache the value with expiration time
+    settingsCache[key] = {
+        value: setting.value,
+        expiresAt: now + CACHE_TTL
+    };
+
     return setting.value;
 };
 
@@ -31,7 +42,12 @@ const updateSetting = async (key, value) => {
     if (updatedRows === 0) {
         throw new Error(`Setting "${key}" not found in the database.`);
     }
-    settingsCache[key] = value; // Update the cache
+
+    // Update the cache with new expiration time
+    settingsCache[key] = {
+        value: value,
+        expiresAt: Date.now() + CACHE_TTL
+    };
 };
 
 /**

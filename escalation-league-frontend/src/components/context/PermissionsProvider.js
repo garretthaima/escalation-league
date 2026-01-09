@@ -14,22 +14,10 @@ export const PermissionsProvider = ({ children }) => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        const checkTokenExpiration = () => {
-            const token = localStorage.getItem('token');
-            if (token) {
-                const { exp } = JSON.parse(atob(token.split('.')[1])); // Decode JWT to get expiration
-                if (Date.now() >= exp * 1000) {
-                    // Token has expired
-                    localStorage.removeItem('token'); // Clear the token
-                    return false; // Stop further execution
-                }
-            }
-            return !!token; // Return true if token exists and is valid
-        };
-
         const fetchPermissionsAndUser = async () => {
-            if (!checkTokenExpiration()) {
-                setLoading(false); // Stop loading if token is invalid
+            const token = localStorage.getItem('token');
+            if (!token) {
+                setLoading(false);
                 return;
             }
 

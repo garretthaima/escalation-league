@@ -22,31 +22,10 @@ let isRedirecting = false; // Flag to prevent multiple redirects
 
 // Add a request interceptor to include the Authorization header
 axiosInstance.interceptors.request.use(
-    async (config) => {
+    (config) => {
         const token = localStorage.getItem('token');
-        const refreshToken = localStorage.getItem('refreshToken'); // Store refresh token if applicable
-
         if (token) {
-            const { exp } = JSON.parse(atob(token.split('.')[1])); // Decode JWT to get expiration
-            if (Date.now() >= exp * 1000 && refreshToken) {
-                // Token has expired, attempt to refresh it
-                try {
-                    const response = await axios.post(`${API_BASE_URL}/auth/refresh`, { refreshToken });
-                    const newToken = response.data.token;
-                    localStorage.setItem('token', newToken); // Update token in localStorage
-                    config.headers.Authorization = `Bearer ${newToken}`;
-                } catch (err) {
-                    console.error('Failed to refresh token:', err);
-                    localStorage.removeItem('token');
-                    localStorage.removeItem('refreshToken');
-                    if (!isRedirecting) {
-                        isRedirecting = true;
-                        window.location.href = '/signin'; // Redirect to sign-in page
-                    }
-                }
-            } else {
-                config.headers.Authorization = `Bearer ${token}`;
-            }
+            config.headers.Authorization = `Bearer ${token}`;
         }
         return config;
     },
@@ -59,14 +38,17 @@ axiosInstance.interceptors.response.use(
     (error) => {
         if (error.response && error.response.status === 401) {
             // Token is invalid or expired
-            console.warn('401 Unauthorized response intercepted:', error.response);
+            console.warn('Session expired. Redirecting to sign-in...');
 
             // Clear the token and redirect to the sign-in page
             localStorage.removeItem('token');
             localStorage.removeItem('refreshToken');
             if (!isRedirecting) {
                 isRedirecting = true;
-                window.location.href = '/signin'; // Redirect to sign-in page
+                // Use setTimeout to allow any pending UI updates to complete
+                setTimeout(() => {
+                    window.location.href = '/signin';
+                }, 100);
             }
         }
         return Promise.reject(error); // Pass the error back to the calling code
