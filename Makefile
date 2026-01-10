@@ -198,6 +198,11 @@ deploy-dev:
 rollback-prod:
 	@echo "🔄 Rolling back production..."
 	@./scripts/rollback.sh prod
+	@echo "Waiting for services to be healthy..."
+	@sleep 15
+	@echo "Running smoke tests..."
+	@./scripts/smoke-test.sh prod || (echo "⚠️  Smoke tests failed! Check deployment." && exit 1)
+	@echo "✅ Production rolled back and verified"
 
 rollback-dev:
 	@echo "🔄 Rolling back development..."
@@ -205,8 +210,8 @@ rollback-dev:
 	@echo "Waiting for services to be healthy..."
 	@sleep 15
 	@echo "Running smoke tests..."
-	@./scripts/smoke-test.sh dev || (echo "Smoke tests failed! Check deployment." && exit 1)
-	@echo "✅ Development deployed and verified"
+	@./scripts/smoke-test.sh dev || (echo "⚠️  Smoke tests failed! Check deployment." && exit 1)
+	@echo "✅ Development rolled back and verified"
 
 deploy-edge: build-edge
 	@echo "� Deploying edge proxy..."
