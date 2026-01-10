@@ -4,7 +4,6 @@ async function createTestPod(leagueId, creatorId, overrides = {}) {
     const [podId] = await db('game_pods').insert({
         league_id: leagueId,
         creator_id: creatorId,
-        status: overrides.status || 'active',
         confirmation_status: overrides.confirmation_status || 'open',
         result: overrides.result || null,
         win_condition_id: overrides.win_condition_id || null,
@@ -69,7 +68,6 @@ async function completePod(podId) {
     return await db('game_pods')
         .where('id', podId)
         .update({
-            status: 'completed',
             confirmation_status: 'complete'
         });
 }

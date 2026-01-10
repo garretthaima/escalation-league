@@ -3,6 +3,7 @@ const { db, clearDatabase } = require('./helpers/dbHelper');
 jest.mock('../utils/redisClient', () => ({
     get: jest.fn(),
     set: jest.fn(),
+    setex: jest.fn(),
     del: jest.fn(),
     quit: jest.fn()
 }));
