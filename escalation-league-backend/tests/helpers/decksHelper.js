@@ -1,11 +1,10 @@
-const { db } = require('./testDb');
+const db = require('./testDb');
 
 async function createTestDeck(userId, overrides = {}) {
     const deckId = overrides.id || `deck-${Date.now()}-${Math.random()}`;
 
     await db('decks').insert({
         id: deckId,
-        user_id: userId,
         decklist_url: overrides.decklistUrl || `https://archidekt.com/decks/${deckId}`,
         platform: overrides.platform || 'archidekt',
         name: overrides.name || 'Test Deck',
@@ -17,6 +16,8 @@ async function createTestDeck(userId, overrides = {}) {
         ...overrides
     });
 
+    // Note: The decks table doesn't have a user_id column
+    // Ownership is tracked through deck usage in leagues/pods
     return deckId;
 }
 
