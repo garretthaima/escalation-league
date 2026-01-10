@@ -145,6 +145,14 @@ const logPodResult = async (req, res) => {
             return res.status(404).json({ error: 'Player is not part of this pod.' });
         }
 
+        // Prevent double-confirmation (race condition protection)
+        if (participant.confirmed === 1) {
+            return res.status(200).json({ 
+                message: 'Result already confirmed',
+                alreadyConfirmed: true 
+            });
+        }
+
         // If declaring a win, check if someone else already won
         if (result === 'win') {
             const existingWinner = await db('game_players')
