@@ -6,6 +6,7 @@ const helmet = require('helmet');
 const path = require('path');
 const logger = require('./utils/logger');
 const requestLogger = require('./middlewares/requestLogger');
+const discordBot = require('./services/discordBot');
 
 const app = express();
 const server = http.createServer(app);
@@ -167,7 +168,7 @@ app.use('/api', apiLimiter);
   // Start the server
   if (process.env.NODE_ENV !== 'test' && require.main === module) {
     const PORT = process.env.PORT || 4000;
-    server.listen(PORT, () => {
+    server.listen(PORT, async () => {
       logger.info('Server started', {
         port: PORT,
         environment: process.env.NODE_ENV || 'development',
@@ -175,6 +176,14 @@ app.use('/api', apiLimiter);
       });
       console.log(`Server is running on http://localhost:${PORT}`);
       console.log(`WebSocket server is ready`);
+
+      // Start Discord bot (non-blocking, logs its own status)
+      try {
+        await discordBot.startBot();
+      } catch (error) {
+        console.error('[Discord Bot] Failed to start:', error.message);
+        // Don't crash the server if Discord fails
+      }
     });
   }
 })();
