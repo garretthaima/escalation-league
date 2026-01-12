@@ -3,6 +3,8 @@ const getLeagueLinks = (inLeague) => {
         return [
             { label: 'Current League', path: '/leagues/current', order: 1, icon: 'fa-trophy' },
             { label: 'Leaderboard', path: '/leagues/leaderboard', order: 2, icon: 'fa-chart-line' },
+            { label: 'Attendance', path: '/attendance', order: 3, icon: 'fa-clipboard-check' },
+            { label: 'Matchup Matrix', path: '/attendance/matchup-matrix', order: 4, icon: 'fa-th' },
         ];
     } else {
         return [
@@ -15,8 +17,6 @@ const getPodsLinks = () => [
     { label: 'Active Pods', path: '/pods/active', order: 1, icon: 'fa-list' },
     { label: 'Pending Pods', path: '/pods/pending', order: 2, icon: 'fa-plus-circle' },
     { label: 'Completed Pods', path: '/pods/complete', order: 3, icon: 'fa-info-circle' },
-    { label: 'Attendance', path: '/attendance', order: 4, icon: 'fa-clipboard-check' },
-    { label: 'Matchup Matrix', path: '/attendance/matchup-matrix', order: 5, icon: 'fa-th' },
 ];
 
 const navbarLinks = (inLeague) => [
