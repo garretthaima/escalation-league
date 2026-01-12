@@ -70,3 +70,9 @@ export const updateParticipantStatus = async (leagueId, userId, updates) => {
     const response = await axiosInstance.put(`/user-leagues/${leagueId}/participants/${userId}`, updates);
     return response.data;
 };
+
+// Get opponent matchup stats (nemesis/victim) for a participant
+export const getOpponentMatchups = async (leagueId, userId) => {
+    const response = await axiosInstance.get(`/user-leagues/${leagueId}/participants/${userId}/matchups`);
+    return response.data;
+};

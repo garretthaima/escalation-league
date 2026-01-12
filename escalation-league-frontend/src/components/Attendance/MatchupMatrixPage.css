@@ -1,0 +1,85 @@
+.matrix-container {
+    overflow-x: auto;
+    max-width: 100%;
+}
+
+.matrix-table {
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+
+.matrix-table th,
+.matrix-table td {
+    text-align: center;
+    vertical-align: middle;
+    min-width: 45px;
+    height: 45px;
+}
+
+.player-header {
+    height: 100px !important;
+    position: relative;
+}
+
+.player-name-vertical {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    white-space: nowrap;
+}
+
+.player-row-header {
+    text-align: left !important;
+    padding-left: 10px !important;
+    min-width: 120px !important;
+}
+
+.sticky-col {
+    position: sticky;
+    left: 0;
+    background: white;
+    z-index: 1;
+}
+
+.matrix-cell {
+    font-weight: bold;
+    cursor: default;
+}
+
+.cell-self {
+    background-color: #e9ecef;
+    color: #6c757d;
+}
+
+.cell-zero {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.cell-one {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.cell-two {
+    background-color: #ffe0b2;
+    color: #e65100;
+}
+
+.cell-many {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.legend-item {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.85rem;
+}
+
+.legend-box {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    margin-right: 4px;
+    border: 1px solid #ccc;
+}

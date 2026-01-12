@@ -1,0 +1,7 @@
+.card.border-success {
+    border-width: 2px;
+}
+
+.card-body .btn-sm {
+    padding: 0.25rem 0.5rem;
+}

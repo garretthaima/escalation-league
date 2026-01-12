@@ -3,6 +3,7 @@ const getLeagueLinks = (inLeague) => {
         return [
             { label: 'Current League', path: '/leagues/current', order: 1, icon: 'fa-trophy' },
             { label: 'Leaderboard', path: '/leagues/leaderboard', order: 2, icon: 'fa-chart-line' },
+            { label: 'Attendance', path: '/attendance', order: 3, icon: 'fa-clipboard-check' },
         ];
     } else {
         return [
@@ -45,6 +46,7 @@ const navbarLinks = (inLeague) => [
             { label: 'League Management', path: '/admin/leagues', order: 1 },
             { label: 'Pods', path: '/admin/pods', order: 2 },
             { label: 'User Roles', path: '/admin/users', order: 3 },
+            { label: 'Matchup Matrix', path: '/admin/matchup-matrix', order: 4, icon: 'fa-th' },
         ],
     },
 ];

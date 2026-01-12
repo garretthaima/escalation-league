@@ -138,4 +138,15 @@ try {
     console.error('Error loading metagameRoutes:', err.message);
 }
 
+/**
+ * Mounts attendance-related routes at `/attendance`.
+ * @module routes/attendance
+ */
+try {
+    const attendanceRoutes = require('./attendance');
+    router.use('/attendance', attendanceRoutes); // Attendance and session routes
+} catch (err) {
+    console.error('Error loading attendanceRoutes:', err.message);
+}
+
 module.exports = router;
