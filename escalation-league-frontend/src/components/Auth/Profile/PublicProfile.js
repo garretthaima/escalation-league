@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { getLeagueParticipantsDetails } from '../../../api/userLeaguesApi';
+import { getLeagueParticipantsDetails, getOpponentMatchups } from '../../../api/userLeaguesApi';
 import { getLeagueDetails } from '../../../api/leaguesApi';
 
 const PublicProfile = () => {
     const { userId, leagueId } = useParams();
     const [leagueDetails, setLeagueDetails] = useState(null);
     const [leagueInfo, setLeagueInfo] = useState(null);
+    const [matchups, setMatchups] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -26,6 +27,15 @@ const PublicProfile = () => {
                 // Fetch league-specific participant details
                 const leagueData = await getLeagueParticipantsDetails(leagueId, userId);
                 setLeagueDetails(leagueData);
+
+                // Fetch opponent matchup stats (nemesis/victim)
+                try {
+                    const matchupData = await getOpponentMatchups(leagueId, userId);
+                    setMatchups(matchupData);
+                } catch (matchupErr) {
+                    console.error('Error fetching matchups:', matchupErr);
+                    // Don't fail the whole page if matchups fail
+                }
             } catch (err) {
                 console.error('Error fetching profile data:', err);
                 setError('Failed to fetch profile data.');
@@ -116,6 +126,51 @@ const PublicProfile = () => {
                     )}
                 </div>
             </div>
+
+            {/* Nemesis & Victim Section */}
+            {matchups && (matchups.nemesis || matchups.victim) && (
+                <div className="card mb-4">
+                    <div className="card-header">
+                        <h5 className="mb-0">Rivalries</h5>
+                    </div>
+                    <div className="card-body">
+                        <div className="row">
+                            {matchups.nemesis && (
+                                <div className="col-md-6">
+                                    <div className="d-flex align-items-center">
+                                        <i className="fas fa-skull text-danger me-2" style={{ fontSize: '1.5rem' }}></i>
+                                        <div>
+                                            <strong>Nemesis</strong>
+                                            <p className="mb-0">
+                                                {matchups.nemesis.firstname} {matchups.nemesis.lastname}
+                                                <span className="text-muted ms-2">
+                                                    ({matchups.nemesis.losses}L - {matchups.nemesis.wins}W)
+                                                </span>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                            {matchups.victim && (
+                                <div className="col-md-6">
+                                    <div className="d-flex align-items-center">
+                                        <i className="fas fa-trophy text-success me-2" style={{ fontSize: '1.5rem' }}></i>
+                                        <div>
+                                            <strong>Favorite Victim</strong>
+                                            <p className="mb-0">
+                                                {matchups.victim.firstname} {matchups.victim.lastname}
+                                                <span className="text-muted ms-2">
+                                                    ({matchups.victim.wins}W - {matchups.victim.losses}L)
+                                                </span>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

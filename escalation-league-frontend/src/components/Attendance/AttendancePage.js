@@ -159,7 +159,7 @@ const AttendancePage = () => {
                 <div className="card-body">
                     <div className="row">
                         <div className="col-md-4">
-                            <strong>Date:</strong> {session?.session_date ? new Date(session.session_date + 'T00:00:00').toLocaleDateString() : ''}
+                            <strong>Date:</strong> {session?.session_date ? new Date(session.session_date).toLocaleDateString('en-US', { timeZone: 'UTC' }) : ''}
                         </div>
                         <div className="col-md-4">
                             <strong>League:</strong> {activeLeague?.league_name || activeLeague?.name}
