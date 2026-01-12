@@ -112,9 +112,87 @@ function addCalculatedWeek(league) {
     };
 }
 
+/**
+ * Get the Thursday game night date for the current week of a league
+ * @param {Date|string} startDate - League start date
+ * @returns {Date} The Thursday date for the current game week
+ */
+function getCurrentThursday(startDate) {
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+    const now = new Date();
+
+    const leagueStartDay = start.getDay();
+
+    // If league hasn't started, return the first Thursday
+    if (now < start) {
+        const firstThursday = getThursdayCutoff(start, leagueStartDay);
+        firstThursday.setHours(0, 0, 0, 0);
+        return firstThursday;
+    }
+
+    // Find the current week's Thursday
+    let weekStart = new Date(start);
+    let currentThursday = getThursdayCutoff(weekStart, leagueStartDay);
+
+    while (true) {
+        const nextWeekStart = new Date(weekStart);
+        nextWeekStart.setDate(nextWeekStart.getDate() + 7);
+        const nextThursday = getThursdayCutoff(nextWeekStart, leagueStartDay);
+
+        // If we're past this Thursday's cutoff but before next Thursday's cutoff
+        // then next Thursday is our game night
+        if (now >= currentThursday && now < nextThursday) {
+            // Return the upcoming Thursday if we're past this week's game time
+            // Otherwise return this week's Thursday
+            const todayDate = now.toISOString().split('T')[0];
+            const currentThursdayDate = currentThursday.toISOString().split('T')[0];
+
+            if (todayDate === currentThursdayDate || now < currentThursday) {
+                currentThursday.setHours(0, 0, 0, 0);
+                return currentThursday;
+            } else {
+                nextThursday.setHours(0, 0, 0, 0);
+                return nextThursday;
+            }
+        }
+
+        weekStart = nextWeekStart;
+        currentThursday = nextThursday;
+
+        // Safety: don't loop forever
+        if (weekStart > new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000)) break;
+    }
+
+    currentThursday.setHours(0, 0, 0, 0);
+    return currentThursday;
+}
+
+/**
+ * Get the session date for a league (the Thursday of the current game week)
+ * Returns today's date if it's Thursday, otherwise the next Thursday
+ * @param {Date|string} startDate - League start date
+ * @returns {string} Date string in YYYY-MM-DD format
+ */
+function getGameNightDate(startDate) {
+    const now = new Date();
+    const today = now.getDay(); // 0=Sun, 4=Thu
+
+    // If today is Thursday, use today
+    if (today === 4) {
+        return now.toISOString().split('T')[0];
+    }
+
+    // Otherwise use the league's calculated Thursday
+    const thursday = getCurrentThursday(startDate);
+    return thursday.toISOString().split('T')[0];
+}
+
 module.exports = {
     calculateCurrentWeek,
     calculateMaxWeek,
     areAddsLocked,
-    addCalculatedWeek
+    addCalculatedWeek,
+    getCurrentThursday,
+    getGameNightDate
 };

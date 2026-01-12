@@ -1,5 +1,6 @@
 const db = require('../models/db');
 const { getLeagueMatchupMatrix, suggestPods } = require('../services/gameService');
+const { getGameNightDate, calculateCurrentWeek } = require('../utils/leagueUtils');
 
 // Create a new game session
 const createSession = async (req, res) => {
@@ -271,20 +272,31 @@ const getActiveAttendees = async (req, res) => {
     }
 };
 
-// Get or create today's session for a league
+// Get or create the current game night session for a league
+// Uses the league's Thursday game night schedule
 const getTodaySession = async (req, res) => {
     const { league_id } = req.params;
-    const today = new Date().toISOString().split('T')[0];
 
     try {
+        // Get league to determine game night date
+        const league = await db('leagues').where({ id: league_id }).first();
+        if (!league) {
+            return res.status(404).json({ error: 'League not found.' });
+        }
+
+        // Get the game night date (Thursday) based on league schedule
+        const gameNightDate = getGameNightDate(league.start_date);
+        const currentWeek = calculateCurrentWeek(league.start_date, league.end_date);
+
         let session = await db('game_sessions')
-            .where({ league_id, session_date: today })
+            .where({ league_id, session_date: gameNightDate })
             .first();
 
         if (!session) {
             const [id] = await db('game_sessions').insert({
                 league_id,
-                session_date: today,
+                session_date: gameNightDate,
+                name: `Week ${currentWeek} Game Night`,
                 status: 'active',
                 created_by: req.user.id
             });
@@ -303,7 +315,7 @@ const getTodaySession = async (req, res) => {
                 'sa.is_active'
             );
 
-        res.status(200).json({ ...session, attendance });
+        res.status(200).json({ ...session, attendance, current_week: currentWeek });
     } catch (err) {
         console.error('Error getting today session:', err.message);
         res.status(500).json({ error: 'Failed to get today session.' });
