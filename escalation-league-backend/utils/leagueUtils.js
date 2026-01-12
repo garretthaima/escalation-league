@@ -113,6 +113,18 @@ function addCalculatedWeek(league) {
 }
 
 /**
+ * Format a date as YYYY-MM-DD in local timezone
+ * @param {Date} date - Date to format
+ * @returns {string} Date string in YYYY-MM-DD format
+ */
+function formatLocalDate(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+/**
  * Get the Thursday game night date for the current week of a league
  * @param {Date|string} startDate - League start date
  * @returns {Date} The Thursday date for the current game week
@@ -145,8 +157,8 @@ function getCurrentThursday(startDate) {
         if (now >= currentThursday && now < nextThursday) {
             // Return the upcoming Thursday if we're past this week's game time
             // Otherwise return this week's Thursday
-            const todayDate = now.toISOString().split('T')[0];
-            const currentThursdayDate = currentThursday.toISOString().split('T')[0];
+            const todayDate = formatLocalDate(now);
+            const currentThursdayDate = formatLocalDate(currentThursday);
 
             if (todayDate === currentThursdayDate || now < currentThursday) {
                 currentThursday.setHours(0, 0, 0, 0);
@@ -172,20 +184,20 @@ function getCurrentThursday(startDate) {
  * Get the session date for a league (the Thursday of the current game week)
  * Returns today's date if it's Thursday, otherwise the next Thursday
  * @param {Date|string} startDate - League start date
- * @returns {string} Date string in YYYY-MM-DD format
+ * @returns {string} Date string in YYYY-MM-DD format (local timezone)
  */
 function getGameNightDate(startDate) {
     const now = new Date();
     const today = now.getDay(); // 0=Sun, 4=Thu
 
-    // If today is Thursday, use today
+    // If today is Thursday, use today (in local timezone)
     if (today === 4) {
-        return now.toISOString().split('T')[0];
+        return formatLocalDate(now);
     }
 
     // Otherwise use the league's calculated Thursday
     const thursday = getCurrentThursday(startDate);
-    return thursday.toISOString().split('T')[0];
+    return formatLocalDate(thursday);
 }
 
 module.exports = {
