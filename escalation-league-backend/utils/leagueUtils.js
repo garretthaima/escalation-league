@@ -1,33 +1,74 @@
 /**
+ * Get the Thursday 6pm cutoff time for a given week start date
+ * @param {Date} weekStart - The start of the week (league start day)
+ * @param {number} leagueStartDay - Day of week the league started (0=Sun, 1=Mon, etc.)
+ * @returns {Date} Thursday 6pm of that week
+ */
+function getThursdayCutoff(weekStart, leagueStartDay) {
+    // Calculate days from week start to Thursday
+    let thursdayOffset = (4 - leagueStartDay + 7) % 7;
+
+    // If league starts on Friday/Saturday/Sunday, Thursday is later in the week
+    if (leagueStartDay === 0) thursdayOffset = 4; // Sunday -> Thursday is 4 days
+    else if (leagueStartDay === 5) thursdayOffset = 6; // Friday -> Thursday is 6 days
+    else if (leagueStartDay === 6) thursdayOffset = 5; // Saturday -> Thursday is 5 days
+
+    const thursday6pm = new Date(weekStart);
+    thursday6pm.setDate(weekStart.getDate() + thursdayOffset);
+    thursday6pm.setHours(18, 0, 0, 0);
+
+    return thursday6pm;
+}
+
+/**
  * Calculate the current week of a league based on start_date
+ * Week advances on Thursday at 6pm, not on the calendar week boundary
  * @param {Date|string} startDate - League start date
  * @param {Date|string} endDate - League end date (optional, for bounds checking)
  * @returns {number} Current week number (1-based)
  */
 function calculateCurrentWeek(startDate, endDate = null) {
     const start = new Date(startDate);
-    const today = new Date();
+    start.setHours(0, 0, 0, 0);
+    const now = new Date();
 
     // If league hasn't started yet, return week 1
-    if (today < start) {
+    if (now < start) {
         return 1;
     }
 
-    // Calculate days since start
-    const daysDiff = Math.floor((today - start) / (1000 * 60 * 60 * 24));
-    const week = Math.floor(daysDiff / 7) + 1;
+    const leagueStartDay = start.getDay();
 
-    // If end_date provided and league has ended, cap at final week
-    if (endDate) {
-        const end = new Date(endDate);
-        if (today > end) {
-            const totalDays = Math.floor((end - start) / (1000 * 60 * 60 * 24));
-            const maxWeek = Math.floor(totalDays / 7) + 1;
-            return Math.max(1, maxWeek);
+    // Find which week we're in by checking Thursday 6pm boundaries
+    // Week 1 ends at the first Thursday 6pm after start
+    // Week 2 ends at the second Thursday 6pm, etc.
+
+    let week = 1;
+    let weekStart = new Date(start);
+
+    while (true) {
+        const thursdayCutoff = getThursdayCutoff(weekStart, leagueStartDay);
+
+        if (now < thursdayCutoff) {
+            // We're before this week's Thursday 6pm cutoff
+            break;
         }
+
+        // Move to next week
+        week++;
+        weekStart.setDate(weekStart.getDate() + 7);
+
+        // Safety: don't loop forever (max 52 weeks)
+        if (week > 52) break;
     }
 
-    return Math.max(1, week);
+    // Cap at max week if league has ended
+    if (endDate) {
+        const maxWeek = calculateMaxWeek(startDate, endDate);
+        return Math.min(week, maxWeek);
+    }
+
+    return week;
 }
 
 /**
@@ -45,44 +86,16 @@ function calculateMaxWeek(startDate, endDate) {
 
 /**
  * Check if card adds are currently locked for the league
- * Adds are locked after Thursday 6pm each week, except during the final week
+ * With the Thursday 6pm week boundary, adds are NEVER locked
+ * (the week simply advances when Thursday 6pm arrives)
  * @param {Date|string} startDate - League start date
  * @param {Date|string} endDate - League end date
- * @returns {boolean} True if adds are locked
+ * @returns {boolean} Always returns false - adds are never locked
  */
 function areAddsLocked(startDate, endDate) {
-    const start = new Date(startDate);
-
-    // Get current time in EST (UTC-5)
-    const now = new Date();
-    const estOffset = -5 * 60; // EST is UTC-5 in minutes
-    const nowEST = new Date(now.getTime() + (now.getTimezoneOffset() + estOffset) * 60000);
-
-    // Calculate current week and max week
-    const currentWeek = calculateCurrentWeek(startDate, endDate);
-    const maxWeek = calculateMaxWeek(startDate, endDate);
-
-    // Final week: adds never locked
-    if (currentWeek >= maxWeek) {
-        return false;
-    }
-
-    // Calculate the start of the current week
-    const daysSinceStart = Math.floor((nowEST - start) / (1000 * 60 * 60 * 24));
-    const daysIntoCurrentWeek = daysSinceStart % 7;
-    const currentWeekStart = new Date(start);
-    currentWeekStart.setDate(start.getDate() + (daysSinceStart - daysIntoCurrentWeek));
-
-    // Calculate Thursday 6pm EST of current week
-    const leagueStartDay = start.getDay(); // 0 = Sunday, 1 = Monday, etc.
-    const thursdayOffset = (4 - leagueStartDay + 7) % 7; // Days until Thursday from league start day
-
-    const thursday6pmEST = new Date(currentWeekStart);
-    thursday6pmEST.setDate(currentWeekStart.getDate() + thursdayOffset);
-    thursday6pmEST.setHours(18, 0, 0, 0); // 6pm EST
-
-    // Adds are locked if we're past Thursday 6pm EST
-    return nowEST >= thursday6pmEST;
+    // With Thursday 6pm as the week boundary, adds are never locked
+    // The week simply advances and new budget becomes available
+    return false;
 }
 
 /**

@@ -20,6 +20,30 @@ const BudgetsController = {
                 return res.status(404).json({ error: 'Budget not found for this league.' });
             }
 
+            // Get league to calculate current week's available budget
+            const league = await db('leagues')
+                .where({ id: leagueId })
+                .first();
+
+            if (!league) {
+                return res.status(404).json({ error: 'League not found.' });
+            }
+
+            // Recalculate budget_available based on current week
+            const currentWeek = calculateCurrentWeek(league.start_date, league.end_date);
+            const calculatedBudgetAvailable = parseFloat(league.weekly_budget) * currentWeek;
+
+            // Update budget_available if it has changed (week transition)
+            if (parseFloat(budget.budget_available) !== calculatedBudgetAvailable) {
+                await db('user_budgets')
+                    .where({ id: budget.id })
+                    .update({
+                        budget_available: calculatedBudgetAvailable,
+                        updated_at: db.raw('NOW()')
+                    });
+                budget.budget_available = calculatedBudgetAvailable;
+            }
+
             // Get total cards count
             const cardCount = await db('budget_cards')
                 .where({ user_budget_id: budget.id })
@@ -28,6 +52,7 @@ const BudgetsController = {
 
             res.status(200).json({
                 ...budget,
+                budget_available: calculatedBudgetAvailable, // Use calculated value
                 total_cards: parseInt(cardCount.total) || 0
             });
         } catch (error) {
