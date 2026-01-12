@@ -196,20 +196,59 @@ const getLeagueMatchupMatrix = async (leagueId) => {
 };
 
 /**
+ * Calculate optimal distribution of pod sizes to minimize leftover players
+ * Pods can be 3 or 4 players (Commander format)
+ * @param {number} totalPlayers - Total number of players
+ * @returns {Object} { podsOf4, podsOf3, leftover }
+ */
+const calculatePodDistribution = (totalPlayers) => {
+    // Try to minimize leftover players using combinations of 3 and 4 player pods
+    // Priority: prefer 4-player pods when possible, fall back to 3-player pods
+    let bestDistribution = { podsOf4: 0, podsOf3: 0, leftover: totalPlayers };
+
+    // Maximum possible pods of 4
+    const maxPodsOf4 = Math.floor(totalPlayers / 4);
+
+    for (let podsOf4 = maxPodsOf4; podsOf4 >= 0; podsOf4--) {
+        const remainingAfter4s = totalPlayers - (podsOf4 * 4);
+        const podsOf3 = Math.floor(remainingAfter4s / 3);
+        const leftover = remainingAfter4s - (podsOf3 * 3);
+
+        if (leftover < bestDistribution.leftover) {
+            bestDistribution = { podsOf4, podsOf3, leftover };
+        }
+
+        // Perfect fit found (0 leftover)
+        if (leftover === 0) break;
+    }
+
+    return bestDistribution;
+};
+
+/**
  * Suggest optimal pod compositions based on who hasn't played each other
+ * Supports flexible pod sizes (3-4 players) to minimize leftover players
  * @param {Array} attendeeIds - Array of user IDs who are checked in
  * @param {number} leagueId - The league ID
- * @param {number} podSize - Desired pod size (default 4)
  * @returns {Array} Suggested pod groupings
  */
-const suggestPods = async (attendeeIds, leagueId, podSize = 4) => {
-    if (attendeeIds.length < podSize) {
+const suggestPods = async (attendeeIds, leagueId) => {
+    const totalPlayers = attendeeIds.length;
+
+    if (totalPlayers < 3) {
         return {
             pods: [],
             leftover: attendeeIds,
-            message: `Not enough players for a pod (need ${podSize}, have ${attendeeIds.length})`
+            message: `Not enough players for a pod (need at least 3, have ${totalPlayers})`
         };
     }
+
+    // Calculate optimal pod distribution
+    const distribution = calculatePodDistribution(totalPlayers);
+    const podSizes = [
+        ...Array(distribution.podsOf4).fill(4),
+        ...Array(distribution.podsOf3).fill(3)
+    ];
 
     // Get matchup matrix for the league
     const { matrix } = await getLeagueMatchupMatrix(leagueId);
@@ -243,7 +282,10 @@ const suggestPods = async (attendeeIds, leagueId, podSize = 4) => {
     const remaining = [...attendeeIds];
     const suggestedPods = [];
 
-    while (remaining.length >= podSize) {
+    // Build each pod with its designated size
+    for (const targetSize of podSizes) {
+        if (remaining.length < targetSize) break;
+
         let bestPod = null;
         let bestScore = Infinity;
 
@@ -266,7 +308,7 @@ const suggestPods = async (attendeeIds, leagueId, podSize = 4) => {
             const available = remaining.filter(id => !pod.includes(id));
 
             // Add players that minimize the pod score
-            while (pod.length < podSize && available.length > 0) {
+            while (pod.length < targetSize && available.length > 0) {
                 let bestAddition = null;
                 let bestAdditionScore = Infinity;
 
@@ -298,6 +340,7 @@ const suggestPods = async (attendeeIds, leagueId, podSize = 4) => {
                     id,
                     ...playerMap[id]
                 })),
+                size: targetSize,
                 score: bestScore,
                 pairings: bestPod.flatMap((p1, i) =>
                     bestPod.slice(i + 1).map(p2 => ({
@@ -323,8 +366,12 @@ const suggestPods = async (attendeeIds, leagueId, podSize = 4) => {
             id,
             ...playerMap[id]
         })),
-        totalPlayers: attendeeIds.length,
-        podSize
+        totalPlayers,
+        distribution: {
+            podsOf4: distribution.podsOf4,
+            podsOf3: distribution.podsOf3,
+            expectedLeftover: distribution.leftover
+        }
     };
 };
 
