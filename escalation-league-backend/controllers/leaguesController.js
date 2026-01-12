@@ -1,6 +1,7 @@
 const db = require('../models/db');
 const logger = require('../utils/logger');
 const { emitSignupRequest, emitSignupResponse } = require('../utils/socketEmitter');
+const { calculateCurrentWeek, addCalculatedWeek } = require('../utils/leagueUtils');
 
 // Create a league
 const createLeague = async (req, res) => {
@@ -132,7 +133,11 @@ const updateLeague = async (req, res) => {
 const getLeagues = async (req, res) => {
     try {
         const leagues = await db('leagues').select('*').orderBy('start_date', 'desc');
-        res.status(200).json(leagues);
+
+        // Add calculated current_week to each league
+        const leaguesWithWeeks = leagues.map(league => addCalculatedWeek(league));
+
+        res.status(200).json(leaguesWithWeeks);
     } catch (err) {
         console.error('Error fetching leagues:', err.message);
         res.status(500).json({ error: 'Failed to fetch leagues.' });
@@ -148,7 +153,10 @@ const getActiveLeague = async (req, res) => {
             return res.status(404).json({ error: 'No active league found.' });
         }
 
-        res.status(200).json(league);
+        // Add calculated current_week to the league object
+        const leagueWithWeek = addCalculatedWeek(league);
+
+        res.status(200).json(leagueWithWeek);
     } catch (err) {
         console.error('Error fetching active league:', err.message);
         res.status(500).json({ error: 'Failed to fetch active league.' });
@@ -166,7 +174,10 @@ const getLeagueDetails = async (req, res) => {
             return res.status(404).json({ error: 'League not found.' });
         }
 
-        res.status(200).json(league);
+        // Add calculated current_week to the league object
+        const leagueWithWeek = addCalculatedWeek(league);
+
+        res.status(200).json(leagueWithWeek);
     } catch (err) {
         console.error('Error fetching league details:', err.message);
         res.status(500).json({ error: 'Failed to fetch league details.' });
