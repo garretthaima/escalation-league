@@ -4,11 +4,25 @@
  * - attendance_polls table to track poll messages for reaction monitoring
  */
 exports.up = async function(knex) {
-    // Add discord_id to users table (if it doesn't exist)
+    // Add discord columns to users table (if they don't exist)
     const hasDiscordId = await knex.schema.hasColumn('users', 'discord_id');
     if (!hasDiscordId) {
         await knex.schema.alterTable('users', (table) => {
             table.string('discord_id', 255).nullable().unique();
+        });
+    }
+
+    const hasDiscordUsername = await knex.schema.hasColumn('users', 'discord_username');
+    if (!hasDiscordUsername) {
+        await knex.schema.alterTable('users', (table) => {
+            table.string('discord_username', 255).nullable();
+        });
+    }
+
+    const hasDiscordAvatar = await knex.schema.hasColumn('users', 'discord_avatar');
+    if (!hasDiscordAvatar) {
+        await knex.schema.alterTable('users', (table) => {
+            table.string('discord_avatar', 255).nullable();
         });
     }
 
@@ -53,7 +67,21 @@ exports.down = async function(knex) {
     // Drop attendance_polls table
     await knex.schema.dropTableIfExists('attendance_polls');
 
-    // Remove discord_id from users
+    // Remove discord columns from users
+    const hasDiscordAvatar = await knex.schema.hasColumn('users', 'discord_avatar');
+    if (hasDiscordAvatar) {
+        await knex.schema.alterTable('users', (table) => {
+            table.dropColumn('discord_avatar');
+        });
+    }
+
+    const hasDiscordUsername = await knex.schema.hasColumn('users', 'discord_username');
+    if (hasDiscordUsername) {
+        await knex.schema.alterTable('users', (table) => {
+            table.dropColumn('discord_username');
+        });
+    }
+
     const hasDiscordId = await knex.schema.hasColumn('users', 'discord_id');
     if (hasDiscordId) {
         await knex.schema.alterTable('users', (table) => {

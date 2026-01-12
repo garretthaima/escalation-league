@@ -103,3 +103,38 @@ export const updateUserSetting = async (key_name, value) => {
         throw error; // Re-throw the error to be handled by the calling code
     }
 };
+
+// Discord Integration APIs
+
+// Get Discord OAuth URL for linking account
+export const getDiscordAuthUrl = async () => {
+    try {
+        const response = await axiosInstance.get('/auth/discord/url');
+        return response.data; // Returns { url: 'discord oauth url' }
+    } catch (error) {
+        console.error('Error getting Discord auth URL:', error);
+        throw error;
+    }
+};
+
+// Get Discord link status
+export const getDiscordStatus = async () => {
+    try {
+        const response = await axiosInstance.get('/auth/discord/status');
+        return response.data; // Returns { linked, discord_username, discord_avatar }
+    } catch (error) {
+        console.error('Error getting Discord status:', error);
+        throw error;
+    }
+};
+
+// Unlink Discord account
+export const unlinkDiscord = async () => {
+    try {
+        const response = await axiosInstance.delete('/auth/discord/unlink');
+        return response.data; // Returns { success, message }
+    } catch (error) {
+        console.error('Error unlinking Discord:', error);
+        throw error;
+    }
+};
