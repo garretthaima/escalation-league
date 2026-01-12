@@ -17,26 +17,32 @@ const AttendancePage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
-    const isAdmin = permissions?.includes('pod_manage');
+    const leagueId = activeLeague?.league_id || activeLeague?.id;
+    const isAdmin = permissions?.some(p => p.name === 'pod_manage' || p === 'pod_manage');
     const isCheckedIn = attendance.some(a => a.user_id === user?.id && a.is_active);
 
     const fetchData = async () => {
-        if (!activeLeague?.id) return;
+        if (!leagueId) {
+            setLoading(false);
+            return;
+        }
 
         setLoading(true);
         setError('');
         try {
-            const sessionData = await getTodaySession(activeLeague.id);
+            const sessionData = await getTodaySession(leagueId);
             setSession(sessionData);
             setAttendance(sessionData.attendance || []);
 
-            if (isAdmin) {
-                const participants = await getLeagueParticipants(activeLeague.id);
+            // Check admin after we have permissions loaded
+            const hasAdminPerm = permissions?.some(p => p.name === 'pod_manage' || p === 'pod_manage');
+            if (hasAdminPerm) {
+                const participants = await getLeagueParticipants(leagueId);
                 setAllParticipants(participants);
             }
         } catch (err) {
             console.error('Error fetching session:', err);
-            setError('Failed to load attendance data.');
+            setError('Failed to load attendance data. The database tables may not exist yet.');
         } finally {
             setLoading(false);
         }
@@ -44,7 +50,7 @@ const AttendancePage = () => {
 
     useEffect(() => {
         fetchData();
-    }, [activeLeague?.id]);
+    }, [leagueId, permissions]);
 
     const handleCheckIn = async () => {
         try {
@@ -156,7 +162,7 @@ const AttendancePage = () => {
                             <strong>Date:</strong> {new Date(session?.session_date).toLocaleDateString()}
                         </div>
                         <div className="col-md-4">
-                            <strong>League:</strong> {activeLeague?.name}
+                            <strong>League:</strong> {activeLeague?.league_name || activeLeague?.name}
                         </div>
                         <div className="col-md-4">
                             <strong>Checked In:</strong> {activeAttendees.length} players

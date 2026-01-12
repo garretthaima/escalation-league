@@ -12,18 +12,23 @@ const MatchupMatrixPage = () => {
     const [error, setError] = useState('');
     const [sortBy, setSortBy] = useState('name');
 
+    const leagueId = activeLeague?.league_id || activeLeague?.id;
+
     const fetchMatrix = async () => {
-        if (!activeLeague?.id) return;
+        if (!leagueId) {
+            setLoading(false);
+            return;
+        }
 
         setLoading(true);
         setError('');
         try {
-            const data = await getMatchupMatrix(activeLeague.id);
+            const data = await getMatchupMatrix(leagueId);
             setPlayers(data.players || []);
             setMatrix(data.matrix || {});
         } catch (err) {
             console.error('Error fetching matchup matrix:', err);
-            setError('Failed to load matchup matrix.');
+            setError('Failed to load matchup matrix. The database tables may not exist yet.');
         } finally {
             setLoading(false);
         }
@@ -31,7 +36,7 @@ const MatchupMatrixPage = () => {
 
     useEffect(() => {
         fetchMatrix();
-    }, [activeLeague?.id]);
+    }, [leagueId]);
 
     const sortedPlayers = [...players].sort((a, b) => {
         if (sortBy === 'name') {
@@ -94,7 +99,7 @@ const MatchupMatrixPage = () => {
         <div className="container-fluid mt-4">
             <h2 className="mb-4">
                 <i className="fas fa-th me-2"></i>
-                Matchup Matrix - {activeLeague?.name}
+                Matchup Matrix - {activeLeague?.league_name || activeLeague?.name}
             </h2>
 
             {error && <div className="alert alert-danger">{error}</div>}
