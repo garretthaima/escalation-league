@@ -145,14 +145,6 @@ const logPodResult = async (req, res) => {
             return res.status(404).json({ error: 'Player is not part of this pod.' });
         }
 
-        // Prevent double-confirmation (race condition protection)
-        if (participant.confirmed === 1) {
-            return res.status(200).json({ 
-                message: 'Result already confirmed',
-                alreadyConfirmed: true 
-            });
-        }
-
         // If declaring a win, check if someone else already won
         if (result === 'win') {
             const existingWinner = await db('game_players')
@@ -165,7 +157,7 @@ const logPodResult = async (req, res) => {
             }
         }
 
-        // Update the player's confirmation status and optionally their result
+        // Build update data
         const updateData = { confirmed: 1, confirmation_time: db.fn.now() };
         if (result !== undefined) {
             updateData.result = result;
@@ -181,9 +173,20 @@ const logPodResult = async (req, res) => {
             }
         }
 
-        await db('game_players')
-            .where({ pod_id: podId, player_id: playerId })
+        // ATOMIC update - only updates if confirmed = 0 (prevents race condition)
+        // This ensures that even if two requests arrive simultaneously,
+        // only one will successfully update and proceed with stats
+        const rowsUpdated = await db('game_players')
+            .where({ pod_id: podId, player_id: playerId, confirmed: 0 })
             .update(updateData);
+
+        // If no rows updated, the player was already confirmed (race condition caught)
+        if (rowsUpdated === 0) {
+            return res.status(200).json({
+                message: 'Result already confirmed',
+                alreadyConfirmed: true
+            });
+        }
 
         // Get pod details for WebSocket events
         const pod = await db('game_pods').where({ id: podId }).first();
