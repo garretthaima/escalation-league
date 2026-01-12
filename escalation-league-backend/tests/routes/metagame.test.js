@@ -50,10 +50,10 @@ describe('Metagame API', () => {
         await addUserToLeague(userId, leagueId);
     });
 
-    describe('GET /api/metagame/leagues/:leagueId/metagame', () => {
+    describe('GET /api/leagues/:leagueId/metagame/analysis', () => {
         it('should return empty metagame stats for league with no decks', async () => {
             const res = await request(app)
-                .get(`/api/metagame/leagues/${leagueId}/metagame`)
+                .get(`/api/leagues/${leagueId}/metagame/analysis`)
                 .set('Authorization', `Bearer ${token}`);
 
             expect(res.status).toBe(200);
@@ -63,7 +63,7 @@ describe('Metagame API', () => {
 
         it('should return 401 without authentication', async () => {
             const res = await request(app)
-                .get(`/api/metagame/leagues/${leagueId}/metagame`);
+                .get(`/api/leagues/${leagueId}/metagame/analysis`);
 
             expect(res.status).toBe(401);
         });
@@ -73,7 +73,7 @@ describe('Metagame API', () => {
             const { token: unauthorizedToken } = await getAuthTokenWithRole('user', []);
 
             const res = await request(app)
-                .get(`/api/metagame/leagues/${leagueId}/metagame`)
+                .get(`/api/leagues/${leagueId}/metagame/analysis`)
                 .set('Authorization', `Bearer ${unauthorizedToken}`);
 
             expect(res.status).toBe(403);
@@ -105,7 +105,7 @@ describe('Metagame API', () => {
                 .update({ deck_id: deckId });
 
             const res = await request(app)
-                .get(`/api/metagame/leagues/${leagueId}/metagame`)
+                .get(`/api/leagues/${leagueId}/metagame/analysis`)
                 .set('Authorization', `Bearer ${token}`);
 
             expect(res.status).toBe(200);
@@ -169,7 +169,7 @@ describe('Metagame API', () => {
                 .update({ deck_id: deckId });
 
             const res = await request(app)
-                .get(`/api/metagame/leagues/${leagueId}/metagame`)
+                .get(`/api/leagues/${leagueId}/metagame/analysis`)
                 .set('Authorization', `Bearer ${token}`);
 
             expect(res.status).toBe(200);
@@ -196,7 +196,7 @@ describe('Metagame API', () => {
                 .update({ deck_id: deckId });
 
             const res = await request(app)
-                .get(`/api/metagame/leagues/${leagueId}/metagame`)
+                .get(`/api/leagues/${leagueId}/metagame/analysis`)
                 .set('Authorization', `Bearer ${token}`);
 
             expect(res.status).toBe(200);
@@ -247,7 +247,7 @@ describe('Metagame API', () => {
                 .update({ deck_id: deck2 });
 
             const res = await request(app)
-                .get(`/api/metagame/leagues/${leagueId}/metagame`)
+                .get(`/api/leagues/${leagueId}/metagame/analysis`)
                 .set('Authorization', `Bearer ${token}`);
 
             expect(res.status).toBe(200);
@@ -281,7 +281,7 @@ describe('Metagame API', () => {
                 .update({ deck_id: deckId });
 
             const res = await request(app)
-                .get(`/api/metagame/leagues/${leagueId}/metagame`)
+                .get(`/api/leagues/${leagueId}/metagame/analysis`)
                 .set('Authorization', `Bearer ${token}`);
 
             expect(res.status).toBe(200);
@@ -318,7 +318,7 @@ describe('Metagame API', () => {
                 .update({ deck_id: deckId });
 
             const res = await request(app)
-                .get(`/api/metagame/leagues/${leagueId}/metagame`)
+                .get(`/api/leagues/${leagueId}/metagame/analysis`)
                 .set('Authorization', `Bearer ${token}`);
 
             expect(res.status).toBe(200);
@@ -336,7 +336,7 @@ describe('Metagame API', () => {
         });
     });
 
-    describe('GET /api/metagame/leagues/:leagueId/metagame/card/:cardName', () => {
+    describe('GET /api/leagues/:leagueId/metagame/card/:cardName', () => {
         it('should return card statistics', async () => {
             const deckId = 'test-deck';
             await db('decks').insert({
@@ -356,7 +356,7 @@ describe('Metagame API', () => {
                 .update({ deck_id: deckId });
 
             const res = await request(app)
-                .get(`/api/metagame/leagues/${leagueId}/metagame/card/Sol Ring`)
+                .get(`/api/leagues/${leagueId}/metagame/card/Sol Ring`)
                 .set('Authorization', `Bearer ${token}`);
 
             expect(res.status).toBe(200);
@@ -370,7 +370,7 @@ describe('Metagame API', () => {
 
         it('should return 401 without authentication', async () => {
             const res = await request(app)
-                .get(`/api/metagame/leagues/${leagueId}/metagame/card/Sol Ring`);
+                .get(`/api/leagues/${leagueId}/metagame/card/Sol Ring`);
 
             expect(res.status).toBe(401);
         });
@@ -379,7 +379,7 @@ describe('Metagame API', () => {
             const { token: unauthorizedToken } = await getAuthTokenWithRole('user', []);
 
             const res = await request(app)
-                .get(`/api/metagame/leagues/${leagueId}/metagame/card/Sol Ring`)
+                .get(`/api/leagues/${leagueId}/metagame/card/Sol Ring`)
                 .set('Authorization', `Bearer ${unauthorizedToken}`);
 
             expect(res.status).toBe(403);
