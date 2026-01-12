@@ -23,6 +23,7 @@ import { ToastProvider } from './components/context/ToastContext';
 import { WebSocketProvider } from './components/context/WebSocketProvider';
 import { BudgetDashboard } from './components/Budget';
 import { MetagameDashboard } from './components/Metagame';
+import { AttendancePage, PodSuggestionsPage, MatchupMatrixPage } from './components/Attendance';
 
 const App = () => {
     const [user, setUser] = useState(null);
@@ -94,6 +95,11 @@ const App = () => {
 
                             {/* Profile Section */}
                             <Route path="/leagues/:leagueId/profile/:userId" element={<PublicProfile />} />
+
+                            {/* Attendance Section */}
+                            <Route path="/attendance" element={<AttendancePage />} />
+                            <Route path="/attendance/suggest-pods/:sessionId" element={<PodSuggestionsPage />} />
+                            <Route path="/attendance/matchup-matrix" element={<MatchupMatrixPage />} />
 
                             {/* Admin Section */}
                             <Route path="/admin/leagues" element={<LeagueAdminPage />} />
