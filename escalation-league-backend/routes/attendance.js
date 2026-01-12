@@ -10,7 +10,9 @@ const {
     adminCheckIn,
     adminCheckOut,
     getActiveAttendees,
-    getTodaySession
+    getTodaySession,
+    getPodSuggestions,
+    getMatchupMatrix
 } = require('../controllers/attendanceController');
 const authenticateToken = require('../middlewares/authentication');
 const authorizePermission = require('../middlewares/authorizePermission');
@@ -91,6 +93,22 @@ router.get(
     authenticateToken,
     authorizePermission(['league_read']),
     getActiveAttendees
+);
+
+// Get pod suggestions based on active attendees
+router.get(
+    '/sessions/:session_id/suggest-pods',
+    authenticateToken,
+    authorizePermission(['pod_manage']),
+    getPodSuggestions
+);
+
+// Get matchup matrix for a league (who has played whom)
+router.get(
+    '/leagues/:league_id/matchup-matrix',
+    authenticateToken,
+    authorizePermission(['league_read']),
+    getMatchupMatrix
 );
 
 module.exports = router;

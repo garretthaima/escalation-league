@@ -129,10 +129,211 @@ const getOpponentMatchups = async (playerId, leagueId) => {
     };
 };
 
+/**
+ * Get the matchup matrix for all players in a league
+ * Returns how many times each pair of players has faced each other
+ * @param {number} leagueId - The league ID
+ * @returns {Object} Matrix of player matchups
+ */
+const getLeagueMatchupMatrix = async (leagueId) => {
+    // Get all completed pods in this league
+    const pods = await db('game_pods')
+        .where('league_id', leagueId)
+        .where('confirmation_status', 'complete')
+        .whereNull('deleted_at')
+        .select('id');
+
+    if (pods.length === 0) {
+        return { players: [], matrix: {} };
+    }
+
+    const podIds = pods.map(p => p.id);
+
+    // Get all players who participated in these pods
+    const allPlayers = await db('game_players as gp')
+        .join('users as u', 'gp.player_id', 'u.id')
+        .whereIn('gp.pod_id', podIds)
+        .select('gp.player_id', 'u.firstname', 'u.lastname')
+        .groupBy('gp.player_id', 'u.firstname', 'u.lastname');
+
+    // Build matchup counts
+    const matrix = {};
+    for (const p of allPlayers) {
+        matrix[p.player_id] = {};
+    }
+
+    // For each pod, increment matchup count for all pairs
+    for (const pod of pods) {
+        const players = await db('game_players')
+            .where('pod_id', pod.id)
+            .select('player_id');
+
+        const playerIds = players.map(p => p.player_id);
+
+        // For each pair in this pod
+        for (let i = 0; i < playerIds.length; i++) {
+            for (let j = i + 1; j < playerIds.length; j++) {
+                const p1 = playerIds[i];
+                const p2 = playerIds[j];
+
+                if (!matrix[p1]) matrix[p1] = {};
+                if (!matrix[p2]) matrix[p2] = {};
+
+                matrix[p1][p2] = (matrix[p1][p2] || 0) + 1;
+                matrix[p2][p1] = (matrix[p2][p1] || 0) + 1;
+            }
+        }
+    }
+
+    return {
+        players: allPlayers.map(p => ({
+            id: p.player_id,
+            firstname: p.firstname,
+            lastname: p.lastname
+        })),
+        matrix
+    };
+};
+
+/**
+ * Suggest optimal pod compositions based on who hasn't played each other
+ * @param {Array} attendeeIds - Array of user IDs who are checked in
+ * @param {number} leagueId - The league ID
+ * @param {number} podSize - Desired pod size (default 4)
+ * @returns {Array} Suggested pod groupings
+ */
+const suggestPods = async (attendeeIds, leagueId, podSize = 4) => {
+    if (attendeeIds.length < podSize) {
+        return {
+            pods: [],
+            leftover: attendeeIds,
+            message: `Not enough players for a pod (need ${podSize}, have ${attendeeIds.length})`
+        };
+    }
+
+    // Get matchup matrix for the league
+    const { matrix } = await getLeagueMatchupMatrix(leagueId);
+
+    // Get player info
+    const players = await db('users')
+        .whereIn('id', attendeeIds)
+        .select('id', 'firstname', 'lastname');
+
+    const playerMap = {};
+    players.forEach(p => { playerMap[p.id] = p; });
+
+    // Calculate "freshness" score for each pair (lower = played more often)
+    const getPairScore = (p1, p2) => {
+        const games = (matrix[p1] && matrix[p1][p2]) || 0;
+        return games;
+    };
+
+    // Calculate pod score (sum of all pair matchups - lower is better/fresher)
+    const getPodScore = (podPlayerIds) => {
+        let score = 0;
+        for (let i = 0; i < podPlayerIds.length; i++) {
+            for (let j = i + 1; j < podPlayerIds.length; j++) {
+                score += getPairScore(podPlayerIds[i], podPlayerIds[j]);
+            }
+        }
+        return score;
+    };
+
+    // Greedy algorithm: build pods by minimizing matchup overlap
+    const remaining = [...attendeeIds];
+    const suggestedPods = [];
+
+    while (remaining.length >= podSize) {
+        let bestPod = null;
+        let bestScore = Infinity;
+
+        // Try different combinations to find the best pod
+        // For efficiency, use a greedy approach starting with least-played pairs
+        const pairs = [];
+        for (let i = 0; i < remaining.length; i++) {
+            for (let j = i + 1; j < remaining.length; j++) {
+                pairs.push({
+                    players: [remaining[i], remaining[j]],
+                    score: getPairScore(remaining[i], remaining[j])
+                });
+            }
+        }
+        pairs.sort((a, b) => a.score - b.score);
+
+        // Start with the freshest pair and build a pod
+        for (const startPair of pairs.slice(0, Math.min(10, pairs.length))) {
+            const pod = [...startPair.players];
+            const available = remaining.filter(id => !pod.includes(id));
+
+            // Add players that minimize the pod score
+            while (pod.length < podSize && available.length > 0) {
+                let bestAddition = null;
+                let bestAdditionScore = Infinity;
+
+                for (const candidate of available) {
+                    const testPod = [...pod, candidate];
+                    const score = getPodScore(testPod);
+                    if (score < bestAdditionScore) {
+                        bestAdditionScore = score;
+                        bestAddition = candidate;
+                    }
+                }
+
+                if (bestAddition !== null) {
+                    pod.push(bestAddition);
+                    available.splice(available.indexOf(bestAddition), 1);
+                }
+            }
+
+            const podScore = getPodScore(pod);
+            if (podScore < bestScore) {
+                bestScore = podScore;
+                bestPod = pod;
+            }
+        }
+
+        if (bestPod) {
+            suggestedPods.push({
+                players: bestPod.map(id => ({
+                    id,
+                    ...playerMap[id]
+                })),
+                score: bestScore,
+                pairings: bestPod.flatMap((p1, i) =>
+                    bestPod.slice(i + 1).map(p2 => ({
+                        player1: p1,
+                        player2: p2,
+                        previousGames: getPairScore(p1, p2)
+                    }))
+                )
+            });
+
+            // Remove these players from remaining
+            for (const id of bestPod) {
+                remaining.splice(remaining.indexOf(id), 1);
+            }
+        } else {
+            break;
+        }
+    }
+
+    return {
+        pods: suggestedPods,
+        leftover: remaining.map(id => ({
+            id,
+            ...playerMap[id]
+        })),
+        totalPlayers: attendeeIds.length,
+        podSize
+    };
+};
+
 module.exports = {
     getById,
     getParticipants,
     updateById,
     deleteById,
     getOpponentMatchups,
+    getLeagueMatchupMatrix,
+    suggestPods,
 };

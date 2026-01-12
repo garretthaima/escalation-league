@@ -1,4 +1,5 @@
 const db = require('../models/db');
+const { getLeagueMatchupMatrix, suggestPods } = require('../services/gameService');
 
 // Create a new game session
 const createSession = async (req, res) => {
@@ -309,6 +310,55 @@ const getTodaySession = async (req, res) => {
     }
 };
 
+// Get pod suggestions for a session
+const getPodSuggestions = async (req, res) => {
+    const { session_id } = req.params;
+    const { pod_size } = req.query;
+    const podSize = parseInt(pod_size, 10) || 4;
+
+    try {
+        // Get session to find league
+        const session = await db('game_sessions').where({ id: session_id }).first();
+        if (!session) {
+            return res.status(404).json({ error: 'Session not found.' });
+        }
+
+        // Get active attendees
+        const attendees = await db('session_attendance')
+            .where({ session_id, is_active: true })
+            .select('user_id');
+
+        const attendeeIds = attendees.map(a => a.user_id);
+
+        if (attendeeIds.length === 0) {
+            return res.status(200).json({
+                pods: [],
+                leftover: [],
+                message: 'No active attendees'
+            });
+        }
+
+        const suggestions = await suggestPods(attendeeIds, session.league_id, podSize);
+        res.status(200).json(suggestions);
+    } catch (err) {
+        console.error('Error getting pod suggestions:', err.message);
+        res.status(500).json({ error: 'Failed to get pod suggestions.' });
+    }
+};
+
+// Get matchup matrix for a league
+const getMatchupMatrix = async (req, res) => {
+    const { league_id } = req.params;
+
+    try {
+        const matrix = await getLeagueMatchupMatrix(parseInt(league_id, 10));
+        res.status(200).json(matrix);
+    } catch (err) {
+        console.error('Error getting matchup matrix:', err.message);
+        res.status(500).json({ error: 'Failed to get matchup matrix.' });
+    }
+};
+
 module.exports = {
     createSession,
     getLeagueSessions,
@@ -319,5 +369,7 @@ module.exports = {
     adminCheckIn,
     adminCheckOut,
     getActiveAttendees,
-    getTodaySession
+    getTodaySession,
+    getPodSuggestions,
+    getMatchupMatrix
 };
