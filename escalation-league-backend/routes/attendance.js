@@ -103,11 +103,11 @@ router.get(
     getPodSuggestions
 );
 
-// Get matchup matrix for a league (who has played whom)
+// Get matchup matrix for a league (who has played whom) - Admin only
 router.get(
     '/leagues/:league_id/matchup-matrix',
     authenticateToken,
-    authorizePermission(['league_read']),
+    authorizePermission(['pod_manage']),
     getMatchupMatrix
 );
 

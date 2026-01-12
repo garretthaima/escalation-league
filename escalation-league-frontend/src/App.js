@@ -99,7 +99,6 @@ const App = () => {
                             {/* Attendance Section */}
                             <Route path="/attendance" element={<AttendancePage />} />
                             <Route path="/attendance/suggest-pods/:sessionId" element={<PodSuggestionsPage />} />
-                            <Route path="/attendance/matchup-matrix" element={<MatchupMatrixPage />} />
 
                             {/* Admin Section */}
                             <Route path="/admin/leagues" element={<LeagueAdminPage />} />
@@ -107,6 +106,7 @@ const App = () => {
                             <Route path="/admin/pods/:podId" element={<EditPodPage />} />
                             <Route path="/admin/leagues/create" element={<CreateLeaguePage />} />
                             <Route path="/admin/users" element={<UserRoleManagementPage />} />
+                            <Route path="/admin/matchup-matrix" element={<MatchupMatrixPage />} />
 
 
                             {/* Not Authorized Page */}
