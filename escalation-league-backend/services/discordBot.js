@@ -415,10 +415,46 @@ const handleAttendanceReaction = async (reaction, user, poll, isAdd) => {
                         updated_via: 'discord',
                     });
                 console.log(`[Discord Bot] User ${appUser.firstname} ${appUser.lastname} checked out via "Can't make it" for session ${poll.session_id}`);
+            } else {
+                // User clicked "Can't make it" without being checked in first
+                // Create a record with is_active: false so they appear in "Can't Make It"
+                await db('session_attendance').insert({
+                    session_id: poll.session_id,
+                    user_id: appUser.id,
+                    is_active: false,
+                    checked_out_at: db.fn.now(),
+                    updated_via: 'discord',
+                });
+                console.log(`[Discord Bot] User ${appUser.firstname} ${appUser.lastname} marked "Can't make it" for session ${poll.session_id}`);
+            }
+
+            // Emit WebSocket event
+            emitAttendanceUpdated(poll.session_id, poll.league_id, {
+                action: 'check_out',
+                user: {
+                    id: appUser.id,
+                    firstname: appUser.firstname,
+                    lastname: appUser.lastname
+                },
+                source: 'discord'
+            });
+        } else {
+            // User removed the "Can't make it" reaction - delete their record
+            // This returns them to "no response" state
+            const deleted = await db('session_attendance')
+                .where({
+                    session_id: poll.session_id,
+                    user_id: appUser.id,
+                    is_active: false
+                })
+                .del();
+
+            if (deleted) {
+                console.log(`[Discord Bot] User ${appUser.firstname} ${appUser.lastname} removed "Can't make it" (no response) for session ${poll.session_id}`);
 
                 // Emit WebSocket event
                 emitAttendanceUpdated(poll.session_id, poll.league_id, {
-                    action: 'check_out',
+                    action: 'removed',
                     user: {
                         id: appUser.id,
                         firstname: appUser.firstname,
@@ -426,12 +462,8 @@ const handleAttendanceReaction = async (reaction, user, poll, isAdd) => {
                     },
                     source: 'discord'
                 });
-            } else {
-                console.log(`[Discord Bot] User ${appUser.firstname} ${appUser.lastname} marked "Can't make it" for session ${poll.session_id}`);
             }
         }
-        // For remove of NOT_ATTENDING, we don't automatically check them back in
-        // They need to add a YES reaction to check in
         await updatePollMessage(poll.session_id);
         return;
     }
@@ -499,30 +531,25 @@ const handleAttendanceReaction = async (reaction, user, poll, isAdd) => {
             return;
         }
 
-        // User removed their only attending reaction - check them out
-        const existing = await db('session_attendance')
+        // User removed their only attending reaction - delete their attendance record
+        // This returns them to "no response" state (not "Can't Make It")
+        // "Can't Make It" is only for users who explicitly click the X reaction
+        const deleted = await db('session_attendance')
             .where({
                 session_id: poll.session_id,
                 user_id: appUser.id,
             })
-            .first();
+            .del();
 
-        if (existing) {
-            await db('session_attendance')
-                .where({ id: existing.id })
-                .update({
-                    is_active: false,
-                    checked_out_at: db.fn.now(),
-                    updated_via: 'discord',
-                });
-            console.log(`[Discord Bot] User ${appUser.firstname} ${appUser.lastname} checked out via Discord for session ${poll.session_id}`);
+        if (deleted) {
+            console.log(`[Discord Bot] User ${appUser.firstname} ${appUser.lastname} removed attendance (no response) for session ${poll.session_id}`);
 
             // Update the poll message to remove the attendee
             await updatePollMessage(poll.session_id);
 
             // Emit WebSocket event for real-time frontend updates
             emitAttendanceUpdated(poll.session_id, poll.league_id, {
-                action: 'check_out',
+                action: 'removed',
                 user: {
                     id: appUser.id,
                     firstname: appUser.firstname,
