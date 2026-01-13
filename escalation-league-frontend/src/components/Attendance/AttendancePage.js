@@ -1,27 +1,25 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { getTodaySession, checkIn, checkOut, adminCheckIn, adminCheckOut } from '../../api/attendanceApi';
-import { getLeagueParticipants } from '../../api/userLeaguesApi';
+import React, { useEffect, useState, useCallback } from 'react';
+import { getActivePollSession, getTodaySession, checkIn, checkOut } from '../../api/attendanceApi';
 import { usePermissions } from '../context/PermissionsProvider';
 import { useToast } from '../context/ToastContext';
+import { useWebSocket } from '../context/WebSocketProvider';
 import './AttendancePage.css';
 
 const AttendancePage = () => {
-    const navigate = useNavigate();
-    const { activeLeague, user, permissions } = usePermissions();
+    const { activeLeague, user } = usePermissions();
     const { showToast } = useToast();
+    const { socket, connected, joinSession, leaveSession, joinLeague, leaveLeague } = useWebSocket();
 
     const [session, setSession] = useState(null);
     const [attendance, setAttendance] = useState([]);
-    const [allParticipants, setAllParticipants] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [hasActivePoll, setHasActivePoll] = useState(false);
 
     const leagueId = activeLeague?.league_id || activeLeague?.id;
-    const isAdmin = permissions?.some(p => p.name === 'pod_manage' || p === 'pod_manage');
-    const isCheckedIn = attendance.some(a => a.user_id === user?.id && a.is_active);
+    const isAttending = attendance.some(a => a.user_id === user?.id && a.is_active);
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         if (!leagueId) {
             setLoading(false);
             return;
@@ -30,79 +28,102 @@ const AttendancePage = () => {
         setLoading(true);
         setError('');
         try {
-            const sessionData = await getTodaySession(leagueId);
+            // First try to get the active poll session (if there's a Discord poll open)
+            let sessionData = null;
+            const pollResponse = await getActivePollSession(leagueId);
+
+            if (pollResponse.session) {
+                // There's an active poll
+                sessionData = pollResponse.session;
+                setHasActivePoll(true);
+            } else {
+                // No active poll - fall back to today's session
+                sessionData = await getTodaySession(leagueId);
+                setHasActivePoll(false);
+            }
+
             setSession(sessionData);
             setAttendance(sessionData.attendance || []);
-
-            // Check admin after we have permissions loaded
-            const hasAdminPerm = permissions?.some(p => p.name === 'pod_manage' || p === 'pod_manage');
-            if (hasAdminPerm) {
-                const participants = await getLeagueParticipants(leagueId);
-                setAllParticipants(participants);
-            }
         } catch (err) {
             console.error('Error fetching session:', err);
             setError('Failed to load attendance data. The database tables may not exist yet.');
         } finally {
             setLoading(false);
         }
-    };
+    }, [leagueId]);
 
     useEffect(() => {
         fetchData();
-    }, [leagueId, permissions]);
+    }, [fetchData]);
 
-    const handleCheckIn = async () => {
+    // Join WebSocket rooms for real-time updates
+    useEffect(() => {
+        if (connected && session?.id) {
+            joinSession(session.id);
+            if (leagueId) {
+                joinLeague(leagueId);
+            }
+        }
+
+        return () => {
+            if (session?.id) {
+                leaveSession(session.id);
+            }
+            if (leagueId) {
+                leaveLeague(leagueId);
+            }
+        };
+    }, [connected, session?.id, leagueId, joinSession, leaveSession, joinLeague, leaveLeague]);
+
+    // Listen for attendance updates via WebSocket
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleAttendanceUpdated = (data) => {
+            // Only process if it's for our session
+            if (data.sessionId !== session?.id) return;
+
+            // Refresh attendance data when someone RSVPs via Discord
+            if (data.source === 'discord') {
+                fetchData();
+                showToast(
+                    `${data.user.firstname} ${data.user.lastname} ${data.action === 'check_in' ? 'is attending' : "can't make it"} (via Discord)`,
+                    'info'
+                );
+            }
+        };
+
+        socket.on('attendance:updated', handleAttendanceUpdated);
+
+        return () => {
+            socket.off('attendance:updated', handleAttendanceUpdated);
+        };
+    }, [socket, session?.id, fetchData, showToast]);
+
+    const handleAttend = async () => {
         try {
             await checkIn(session.id);
-            showToast('Checked in successfully!', 'success');
+            showToast("You're attending!", 'success');
             fetchData();
         } catch (err) {
-            console.error('Error checking in:', err);
-            showToast('Failed to check in.', 'error');
+            console.error('Error updating attendance:', err);
+            showToast('Failed to update attendance.', 'error');
         }
     };
 
-    const handleCheckOut = async () => {
+    const handleCantMakeIt = async () => {
         try {
             await checkOut(session.id);
-            showToast('Checked out successfully!', 'success');
+            showToast("Marked as can't make it", 'success');
             fetchData();
         } catch (err) {
-            console.error('Error checking out:', err);
-            showToast('Failed to check out.', 'error');
+            console.error('Error updating attendance:', err);
+            showToast('Failed to update attendance.', 'error');
         }
     };
 
-    const handleAdminCheckIn = async (userId) => {
-        try {
-            await adminCheckIn(session.id, userId);
-            showToast('Player checked in.', 'success');
-            fetchData();
-        } catch (err) {
-            console.error('Error admin check in:', err);
-            showToast('Failed to check in player.', 'error');
-        }
-    };
-
-    const handleAdminCheckOut = async (userId) => {
-        try {
-            await adminCheckOut(session.id, userId);
-            showToast('Player checked out.', 'success');
-            fetchData();
-        } catch (err) {
-            console.error('Error admin check out:', err);
-            showToast('Failed to check out player.', 'error');
-        }
-    };
-
-    const activeAttendees = attendance.filter(a => a.is_active);
-    const checkedOutAttendees = attendance.filter(a => !a.is_active);
-
-    // Get participants not yet checked in (for admin to add)
-    const notCheckedIn = allParticipants.filter(
-        p => !attendance.some(a => a.user_id === p.user_id)
-    );
+    const attending = attendance.filter(a => a.is_active);
+    const notAttending = attendance.filter(a => !a.is_active);
 
     if (!activeLeague) {
         return (
@@ -132,97 +153,125 @@ const AttendancePage = () => {
                     <i className="fas fa-clipboard-check me-2"></i>
                     Game Night Attendance
                 </h2>
-                {isAdmin && activeAttendees.length >= 4 && (
-                    <button
-                        className="btn btn-primary"
-                        onClick={() => navigate(`/attendance/suggest-pods/${session.id}`)}
-                    >
-                        <i className="fas fa-magic me-2"></i>
-                        Suggest Pods
-                    </button>
-                )}
             </div>
 
             {error && <div className="alert alert-danger">{error}</div>}
+
+            {/* Active Poll Banner */}
+            {hasActivePoll && (
+                <div className="alert alert-info d-flex align-items-center mb-4">
+                    <i className="fab fa-discord fa-lg me-3"></i>
+                    <div>
+                        <strong>Discord Poll Active!</strong>
+                        <span className="ms-2">RSVP via Discord or check in below.</span>
+                    </div>
+                </div>
+            )}
 
             {/* Session Info */}
             <div className="card mb-4">
                 <div className="card-header d-flex justify-content-between align-items-center">
                     <span>
                         <i className="fas fa-calendar-day me-2"></i>
-                        {session?.name || 'Today\'s Session'}
+                        {session?.name || (session?.session_date ? new Date(session.session_date).toLocaleDateString('en-US', {
+                            weekday: 'long',
+                            month: 'long',
+                            day: 'numeric',
+                            timeZone: 'UTC'
+                        }) : 'Game Night')}
                     </span>
-                    <span className={`badge ${session?.status === 'active' ? 'bg-success' : 'bg-secondary'}`}>
-                        {session?.status}
-                    </span>
+                    <div>
+                        {hasActivePoll && (
+                            <span className="badge bg-info me-2">
+                                <i className="fab fa-discord me-1"></i>
+                                Poll Open
+                            </span>
+                        )}
+                        <span className={`badge ${session?.status === 'active' ? 'bg-success' : session?.status === 'locked' ? 'bg-warning' : 'bg-secondary'}`}>
+                            {session?.status === 'locked' && <i className="fas fa-lock me-1"></i>}
+                            {session?.status}
+                        </span>
+                    </div>
                 </div>
                 <div className="card-body">
                     <div className="row">
                         <div className="col-md-4">
-                            <strong>Date:</strong> {session?.session_date ? new Date(session.session_date).toLocaleDateString('en-US', { timeZone: 'UTC' }) : ''}
+                            <strong>Date:</strong> {session?.session_date ? new Date(session.session_date).toLocaleDateString('en-US', {
+                                weekday: 'short',
+                                month: 'short',
+                                day: 'numeric',
+                                timeZone: 'UTC'
+                            }) : ''}
                         </div>
                         <div className="col-md-4">
                             <strong>League:</strong> {activeLeague?.league_name || activeLeague?.name}
                         </div>
                         <div className="col-md-4">
-                            <strong>Checked In:</strong> {activeAttendees.length} players
+                            <strong>Attending:</strong> {attending.length} players
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* User Check-in/out */}
+            {/* User RSVP */}
             <div className="card mb-4">
                 <div className="card-body text-center">
-                    {isCheckedIn ? (
+                    {session?.status === 'locked' || session?.status === 'completed' ? (
+                        <div>
+                            {isAttending ? (
+                                <span className="badge bg-success fs-5">
+                                    <i className="fas fa-check-circle me-2"></i>
+                                    You're attending
+                                </span>
+                            ) : (
+                                <span className="badge bg-secondary fs-5">
+                                    <i className="fas fa-times-circle me-2"></i>
+                                    Not attending
+                                </span>
+                            )}
+                            <p className="text-muted mt-3 mb-0">
+                                <i className="fas fa-lock me-2"></i>
+                                This session is {session?.status}. Contact an admin if you need changes.
+                            </p>
+                        </div>
+                    ) : isAttending ? (
                         <div>
                             <span className="badge bg-success fs-5 mb-3">
                                 <i className="fas fa-check-circle me-2"></i>
-                                You are checked in
+                                You're attending
                             </span>
                             <br />
-                            <button className="btn btn-outline-danger" onClick={handleCheckOut}>
-                                <i className="fas fa-sign-out-alt me-2"></i>
-                                Check Out
+                            <button className="btn btn-outline-danger" onClick={handleCantMakeIt}>
+                                <i className="fas fa-times me-2"></i>
+                                Can't Make It
                             </button>
                         </div>
                     ) : (
-                        <button className="btn btn-success btn-lg" onClick={handleCheckIn}>
-                            <i className="fas fa-sign-in-alt me-2"></i>
-                            Check In
+                        <button className="btn btn-success btn-lg" onClick={handleAttend}>
+                            <i className="fas fa-check me-2"></i>
+                            I'm Attending
                         </button>
                     )}
                 </div>
             </div>
 
-            {/* Active Attendees */}
+            {/* Attending */}
             <div className="card mb-4">
-                <div className="card-header">
-                    <i className="fas fa-users me-2"></i>
-                    Checked In ({activeAttendees.length})
+                <div className="card-header bg-success text-white">
+                    <i className="fas fa-check-circle me-2"></i>
+                    Attending ({attending.length})
                 </div>
                 <div className="card-body">
-                    {activeAttendees.length === 0 ? (
-                        <p className="text-muted mb-0">No players checked in yet.</p>
+                    {attending.length === 0 ? (
+                        <p className="text-muted mb-0">No one has confirmed yet.</p>
                     ) : (
                         <div className="row">
-                            {activeAttendees.map(a => (
+                            {attending.map(a => (
                                 <div key={a.user_id} className="col-md-3 col-sm-6 mb-3">
                                     <div className="card h-100 border-success">
-                                        <div className="card-body d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <i className="fas fa-user-check text-success me-2"></i>
-                                                {a.firstname} {a.lastname}
-                                            </div>
-                                            {isAdmin && a.user_id !== user?.id && (
-                                                <button
-                                                    className="btn btn-sm btn-outline-danger"
-                                                    onClick={() => handleAdminCheckOut(a.user_id)}
-                                                    title="Remove"
-                                                >
-                                                    <i className="fas fa-times"></i>
-                                                </button>
-                                            )}
+                                        <div className="card-body d-flex align-items-center">
+                                            <i className="fas fa-user-check text-success me-2"></i>
+                                            {a.firstname} {a.lastname}
                                         </div>
                                     </div>
                                 </div>
@@ -232,60 +281,23 @@ const AttendancePage = () => {
                 </div>
             </div>
 
-            {/* Admin: Add Players */}
-            {isAdmin && notCheckedIn.length > 0 && (
+            {/* Not Attending */}
+            {notAttending.length > 0 && (
                 <div className="card mb-4">
-                    <div className="card-header">
-                        <i className="fas fa-user-plus me-2"></i>
-                        Add Players ({notCheckedIn.length} available)
+                    <div className="card-header bg-secondary text-white">
+                        <i className="fas fa-times-circle me-2"></i>
+                        Can't Make It ({notAttending.length})
                     </div>
                     <div className="card-body">
                         <div className="row">
-                            {notCheckedIn.map(p => (
-                                <div key={p.user_id} className="col-md-3 col-sm-6 mb-3">
-                                    <div className="card h-100">
-                                        <div className="card-body d-flex justify-content-between align-items-center">
-                                            <span>{p.firstname} {p.lastname}</span>
-                                            <button
-                                                className="btn btn-sm btn-success"
-                                                onClick={() => handleAdminCheckIn(p.user_id)}
-                                                title="Check In"
-                                            >
-                                                <i className="fas fa-plus"></i>
-                                            </button>
+                            {notAttending.map(a => (
+                                <div key={a.user_id} className="col-md-3 col-sm-6 mb-3">
+                                    <div className="card h-100 border-secondary">
+                                        <div className="card-body d-flex align-items-center">
+                                            <i className="fas fa-user-times text-secondary me-2"></i>
+                                            {a.firstname} {a.lastname}
                                         </div>
                                     </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Checked Out */}
-            {checkedOutAttendees.length > 0 && (
-                <div className="card mb-4">
-                    <div className="card-header text-muted">
-                        <i className="fas fa-user-minus me-2"></i>
-                        Previously Checked Out ({checkedOutAttendees.length})
-                    </div>
-                    <div className="card-body">
-                        <div className="row">
-                            {checkedOutAttendees.map(a => (
-                                <div key={a.user_id} className="col-md-3 col-sm-6 mb-2">
-                                    <span className="text-muted">
-                                        <i className="fas fa-user-times me-2"></i>
-                                        {a.firstname} {a.lastname}
-                                    </span>
-                                    {isAdmin && (
-                                        <button
-                                            className="btn btn-sm btn-outline-success ms-2"
-                                            onClick={() => handleAdminCheckIn(a.user_id)}
-                                            title="Re-check in"
-                                        >
-                                            <i className="fas fa-undo"></i>
-                                        </button>
-                                    )}
                                 </div>
                             ))}
                         </div>

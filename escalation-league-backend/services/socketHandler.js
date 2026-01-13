@@ -54,8 +54,15 @@ module.exports = (io) => {
         // Join user's personal room (for notifications)
         socket.join(`user:${socket.userId}`);
 
+        // Helper to validate room IDs (prevent injection)
+        const isValidRoomId = (id) => {
+            return id !== undefined && id !== null &&
+                   (typeof id === 'number' || (typeof id === 'string' && /^\d+$/.test(id)));
+        };
+
         // Join league room when requested
         socket.on('join:league', (leagueId) => {
+            if (!isValidRoomId(leagueId)) return;
             socket.join(`league:${leagueId}`);
             logger.info('User joined league room', {
                 userId: socket.userId,
@@ -66,6 +73,7 @@ module.exports = (io) => {
 
         // Leave league room when requested
         socket.on('leave:league', (leagueId) => {
+            if (!isValidRoomId(leagueId)) return;
             socket.leave(`league:${leagueId}`);
             logger.info('User left league room', {
                 userId: socket.userId,
@@ -76,6 +84,7 @@ module.exports = (io) => {
 
         // Join pod room when viewing/participating
         socket.on('join:pod', (podId) => {
+            if (!isValidRoomId(podId)) return;
             socket.join(`pod:${podId}`);
             logger.info('User joined pod room', {
                 userId: socket.userId,
@@ -86,10 +95,33 @@ module.exports = (io) => {
 
         // Leave pod room
         socket.on('leave:pod', (podId) => {
+            if (!isValidRoomId(podId)) return;
             socket.leave(`pod:${podId}`);
             logger.info('User left pod room', {
                 userId: socket.userId,
                 podId,
+                socketId: socket.id
+            });
+        });
+
+        // Join session room for attendance updates
+        socket.on('join:session', (sessionId) => {
+            if (!isValidRoomId(sessionId)) return;
+            socket.join(`session:${sessionId}`);
+            logger.info('User joined session room', {
+                userId: socket.userId,
+                sessionId,
+                socketId: socket.id
+            });
+        });
+
+        // Leave session room
+        socket.on('leave:session', (sessionId) => {
+            if (!isValidRoomId(sessionId)) return;
+            socket.leave(`session:${sessionId}`);
+            logger.info('User left session room', {
+                userId: socket.userId,
+                sessionId,
                 socketId: socket.id
             });
         });

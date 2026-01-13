@@ -7,6 +7,7 @@ const path = require('path');
 const logger = require('./utils/logger');
 const requestLogger = require('./middlewares/requestLogger');
 const discordBot = require('./services/discordBot');
+const { setIo } = require('./utils/socketEmitter');
 
 const app = express();
 const server = http.createServer(app);
@@ -126,40 +127,43 @@ app.use('/api', apiLimiter);
     });
   }
 
-  console.log('[DEBUG] Socket.IO server created with transports:', ['polling', 'websocket']);
-  console.log('[DEBUG] Allowed origins:', allowedOrigins);
+  const isDev = process.env.NODE_ENV !== 'production';
 
-  // Log all Socket.IO engine events
+  if (isDev) {
+    console.log('[DEBUG] Socket.IO server created with transports:', ['websocket', 'polling']);
+    console.log('[DEBUG] Allowed origins:', allowedOrigins);
+  }
+
+  // Log connection errors (useful in all environments)
   io.engine.on("connection_error", (err) => {
-    console.log('[DEBUG] Socket.IO connection error:', {
+    logger.error('Socket.IO connection error', {
       code: err.code,
-      message: err.message,
-      context: err.context
+      message: err.message
     });
   });
 
-  io.engine.on("connection", (rawSocket) => {
-    console.log('[DEBUG] Socket.IO engine connection established:', {
-      id: rawSocket.id,
-      transport: rawSocket.transport.name
+  // Debug logging only in development
+  if (isDev) {
+    io.engine.on("connection", (rawSocket) => {
+      console.log('[DEBUG] Socket.IO engine connection:', {
+        id: rawSocket.id,
+        transport: rawSocket.transport.name
+      });
     });
-  });
-
-  io.engine.on("initial_headers", (headers, req) => {
-    console.log('[DEBUG] Socket.IO initial headers from:', req.url);
-  });
-
-  io.engine.on("headers", (headers, req) => {
-    console.log('[DEBUG] Socket.IO headers for:', req.url);
-  });
+  }
 
   // Make io accessible to controllers
   app.set('io', io);
 
-  // ADD TEST: Log when ANY connection reaches Socket.IO level
-  io.on('connection', (socket) => {
-    console.log('[DEBUG] !!!!! SOCKET.IO CONNECTION SUCCESSFUL !!!!!', socket.id);
-  });
+  // Also set global io for non-Express contexts (Discord bot, etc.)
+  setIo(io);
+
+  // Debug: Log successful connections in development
+  if (isDev) {
+    io.on('connection', (socket) => {
+      console.log('[DEBUG] Socket.IO connection successful:', socket.id);
+    });
+  }
 
   // Socket.IO connection handling
   const socketHandler = require('./services/socketHandler');

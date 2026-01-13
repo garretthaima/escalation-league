@@ -96,6 +96,7 @@ const Navbar = ({ handleLogout }) => {
                                             to={link.path}
                                             onClick={() => handleLinkClick(link.label)}
                                         >
+                                            {link.icon && <i className={`fas ${link.icon} me-1`}></i>}
                                             {link.label}
                                         </Link>
                                     </li>
@@ -116,24 +117,22 @@ const Navbar = ({ handleLogout }) => {
                                                 // Let Bootstrap handle the dropdown toggle
                                             }}
                                         >
+                                            {link.icon && <i className={`fas ${link.icon} me-1`}></i>}
                                             {link.label}
                                         </a>
                                         <ul className="dropdown-menu" aria-labelledby={`${link.label.toLowerCase()}Dropdown`}>
                                             {link.children
                                                 .sort((a, b) => a.order - b.order)
-                                                .map((child, index) => (
-                                                    <React.Fragment key={child.path}>
-                                                        <li>
-                                                            <Link
-                                                                className="dropdown-item"
-                                                                to={child.path}
-                                                                onClick={() => handleLinkClick(child.label)}
-                                                            >
-                                                                <i className={`fas ${child.icon}`}></i> {child.label}
-                                                            </Link>
-                                                        </li>
-                                                        {index === 1 && index < link.children.length - 1 && <hr className="dropdown-divider" />}
-                                                    </React.Fragment>
+                                                .map((child) => (
+                                                    <li key={child.path}>
+                                                        <Link
+                                                            className="dropdown-item"
+                                                            to={child.path}
+                                                            onClick={() => handleLinkClick(child.label)}
+                                                        >
+                                                            <i className={`fas ${child.icon}`}></i> {child.label}
+                                                        </Link>
+                                                    </li>
                                                 ))}
                                         </ul>
                                     </li>

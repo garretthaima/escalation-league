@@ -1,18 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const {
-    createSession,
     getLeagueSessions,
     getSession,
-    updateSessionStatus,
     checkIn,
     checkOut,
-    adminCheckIn,
-    adminCheckOut,
     getActiveAttendees,
     getTodaySession,
-    getPodSuggestions,
-    getMatchupMatrix
+    getActivePollSession
 } = require('../controllers/attendanceController');
 const authenticateToken = require('../middlewares/authentication');
 const authorizePermission = require('../middlewares/authorizePermission');
@@ -33,28 +28,12 @@ router.get(
     getLeagueSessions
 );
 
-// Create a new session (admin)
-router.post(
-    '/sessions',
-    authenticateToken,
-    authorizePermission(['pod_manage']),
-    createSession
-);
-
 // Get a specific session with attendance
 router.get(
     '/sessions/:session_id',
     authenticateToken,
     authorizePermission(['league_read']),
     getSession
-);
-
-// Update session status (admin)
-router.patch(
-    '/sessions/:session_id/status',
-    authenticateToken,
-    authorizePermission(['pod_manage']),
-    updateSessionStatus
 );
 
 // User check-in to a session
@@ -71,22 +50,6 @@ router.post(
     checkOut
 );
 
-// Admin: Check in a user
-router.post(
-    '/sessions/:session_id/admin/check-in',
-    authenticateToken,
-    authorizePermission(['pod_manage']),
-    adminCheckIn
-);
-
-// Admin: Check out a user
-router.post(
-    '/sessions/:session_id/admin/check-out',
-    authenticateToken,
-    authorizePermission(['pod_manage']),
-    adminCheckOut
-);
-
 // Get active attendees for pod building
 router.get(
     '/sessions/:session_id/active',
@@ -95,20 +58,12 @@ router.get(
     getActiveAttendees
 );
 
-// Get pod suggestions based on active attendees
+// Get the active poll session for a league (one poll per league at a time)
 router.get(
-    '/sessions/:session_id/suggest-pods',
+    '/leagues/:league_id/active-poll',
     authenticateToken,
-    authorizePermission(['pod_manage']),
-    getPodSuggestions
-);
-
-// Get matchup matrix for a league (who has played whom) - Admin only
-router.get(
-    '/leagues/:league_id/matchup-matrix',
-    authenticateToken,
-    authorizePermission(['pod_manage']),
-    getMatchupMatrix
+    authorizePermission(['league_read']),
+    getActivePollSession
 );
 
 module.exports = router;

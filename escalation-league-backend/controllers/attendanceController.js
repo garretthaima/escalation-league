@@ -1,35 +1,6 @@
 const db = require('../models/db');
-const { getLeagueMatchupMatrix, suggestPods } = require('../services/gameService');
 const { getGameNightDate, calculateCurrentWeek } = require('../utils/leagueUtils');
-
-// Create a new game session
-const createSession = async (req, res) => {
-    const { league_id, session_date, name } = req.body;
-    const created_by = req.user.id;
-
-    if (!league_id || !session_date) {
-        return res.status(400).json({ error: 'League ID and session date are required.' });
-    }
-
-    try {
-        const [id] = await db('game_sessions').insert({
-            league_id,
-            session_date,
-            name: name || null,
-            status: 'scheduled',
-            created_by
-        });
-
-        const session = await db('game_sessions').where({ id }).first();
-        res.status(201).json(session);
-    } catch (err) {
-        if (err.code === 'ER_DUP_ENTRY') {
-            return res.status(400).json({ error: 'A session already exists for this league on this date.' });
-        }
-        console.error('Error creating session:', err.message);
-        res.status(500).json({ error: 'Failed to create session.' });
-    }
-};
+const { updatePollMessage } = require('../services/discordBot');
 
 // Get all sessions for a league
 const getLeagueSessions = async (req, res) => {
@@ -68,38 +39,24 @@ const getSession = async (req, res) => {
                 'u.lastname',
                 'sa.checked_in_at',
                 'sa.checked_out_at',
-                'sa.is_active'
+                'sa.is_active',
+                'sa.updated_via'
             );
 
-        res.status(200).json({ ...session, attendance });
+        // Check if there's an active poll for this session
+        const poll = await db('attendance_polls')
+            .where({ session_id })
+            .first();
+
+        res.status(200).json({
+            ...session,
+            attendance,
+            has_active_poll: !!poll,
+            poll_message_id: poll?.discord_message_id || null
+        });
     } catch (err) {
         console.error('Error fetching session:', err.message);
         res.status(500).json({ error: 'Failed to fetch session.' });
-    }
-};
-
-// Update session status
-const updateSessionStatus = async (req, res) => {
-    const { session_id } = req.params;
-    const { status } = req.body;
-
-    if (!['scheduled', 'active', 'completed'].includes(status)) {
-        return res.status(400).json({ error: 'Invalid status. Must be scheduled, active, or completed.' });
-    }
-
-    try {
-        const result = await db('game_sessions')
-            .where({ id: session_id })
-            .update({ status, updated_at: db.fn.now() });
-
-        if (result === 0) {
-            return res.status(404).json({ error: 'Session not found.' });
-        }
-
-        res.status(200).json({ message: 'Session status updated.' });
-    } catch (err) {
-        console.error('Error updating session:', err.message);
-        res.status(500).json({ error: 'Failed to update session.' });
     }
 };
 
@@ -117,6 +74,9 @@ const checkIn = async (req, res) => {
         if (session.status === 'completed') {
             return res.status(400).json({ error: 'Cannot check in to a completed session.' });
         }
+        if (session.status === 'locked') {
+            return res.status(400).json({ error: 'Session is locked. Check-ins are closed.' });
+        }
 
         // Check if already checked in
         const existing = await db('session_attendance')
@@ -128,7 +88,11 @@ const checkIn = async (req, res) => {
             if (!existing.is_active) {
                 await db('session_attendance')
                     .where({ id: existing.id })
-                    .update({ is_active: true, checked_out_at: null });
+                    .update({ is_active: true, checked_out_at: null, updated_via: 'web' });
+
+                // Update Discord poll message
+                updatePollMessage(session_id).catch(err => console.error('Error updating poll:', err));
+
                 return res.status(200).json({ message: 'Checked back in.' });
             }
             return res.status(200).json({ message: 'Already checked in.' });
@@ -137,8 +101,12 @@ const checkIn = async (req, res) => {
         await db('session_attendance').insert({
             session_id,
             user_id,
-            is_active: true
+            is_active: true,
+            updated_via: 'web'
         });
+
+        // Update Discord poll message
+        updatePollMessage(session_id).catch(err => console.error('Error updating poll:', err));
 
         res.status(201).json({ message: 'Checked in successfully.' });
     } catch (err) {
@@ -153,91 +121,37 @@ const checkOut = async (req, res) => {
     const user_id = req.user.id;
 
     try {
+        // Check if session is locked
+        const session = await db('game_sessions').where({ id: session_id }).first();
+        if (!session) {
+            return res.status(404).json({ error: 'Session not found.' });
+        }
+        if (session.status === 'locked') {
+            return res.status(400).json({ error: 'Session is locked. Check-outs are closed.' });
+        }
+        if (session.status === 'completed') {
+            return res.status(400).json({ error: 'Cannot check out of a completed session.' });
+        }
+
         const result = await db('session_attendance')
             .where({ session_id, user_id })
             .update({
                 is_active: false,
-                checked_out_at: db.fn.now()
+                checked_out_at: db.fn.now(),
+                updated_via: 'web'
             });
 
         if (result === 0) {
             return res.status(404).json({ error: 'Not checked in to this session.' });
         }
 
+        // Update Discord poll message
+        updatePollMessage(session_id).catch(err => console.error('Error updating poll:', err));
+
         res.status(200).json({ message: 'Checked out successfully.' });
     } catch (err) {
         console.error('Error checking out:', err.message);
         res.status(500).json({ error: 'Failed to check out.' });
-    }
-};
-
-// Admin: Add a user to attendance
-const adminCheckIn = async (req, res) => {
-    const { session_id } = req.params;
-    const { user_id } = req.body;
-
-    if (!user_id) {
-        return res.status(400).json({ error: 'User ID is required.' });
-    }
-
-    try {
-        const session = await db('game_sessions').where({ id: session_id }).first();
-        if (!session) {
-            return res.status(404).json({ error: 'Session not found.' });
-        }
-
-        const existing = await db('session_attendance')
-            .where({ session_id, user_id })
-            .first();
-
-        if (existing) {
-            if (!existing.is_active) {
-                await db('session_attendance')
-                    .where({ id: existing.id })
-                    .update({ is_active: true, checked_out_at: null });
-                return res.status(200).json({ message: 'User re-activated.' });
-            }
-            return res.status(200).json({ message: 'User already checked in.' });
-        }
-
-        await db('session_attendance').insert({
-            session_id,
-            user_id,
-            is_active: true
-        });
-
-        res.status(201).json({ message: 'User checked in successfully.' });
-    } catch (err) {
-        console.error('Error admin check in:', err.message);
-        res.status(500).json({ error: 'Failed to check in user.' });
-    }
-};
-
-// Admin: Remove a user from attendance
-const adminCheckOut = async (req, res) => {
-    const { session_id } = req.params;
-    const { user_id } = req.body;
-
-    if (!user_id) {
-        return res.status(400).json({ error: 'User ID is required.' });
-    }
-
-    try {
-        const result = await db('session_attendance')
-            .where({ session_id, user_id })
-            .update({
-                is_active: false,
-                checked_out_at: db.fn.now()
-            });
-
-        if (result === 0) {
-            return res.status(404).json({ error: 'User not checked in to this session.' });
-        }
-
-        res.status(200).json({ message: 'User checked out successfully.' });
-    } catch (err) {
-        console.error('Error admin check out:', err.message);
-        res.status(500).json({ error: 'Failed to check out user.' });
     }
 };
 
@@ -315,73 +229,73 @@ const getTodaySession = async (req, res) => {
                 'sa.is_active'
             );
 
-        res.status(200).json({ ...session, attendance, current_week: currentWeek });
+        // Check if Discord poll exists for this session
+        const discordPoll = await db('attendance_polls')
+            .where({ session_id: session.id })
+            .first();
+
+        res.status(200).json({
+            ...session,
+            attendance,
+            current_week: currentWeek,
+            discord_poll_posted: !!discordPoll
+        });
     } catch (err) {
         console.error('Error getting today session:', err.message);
         res.status(500).json({ error: 'Failed to get today session.' });
     }
 };
 
-// Get pod suggestions for a session
-const getPodSuggestions = async (req, res) => {
-    const { session_id } = req.params;
-    const { pod_size } = req.query;
-    const podSize = parseInt(pod_size, 10) || 4;
-
-    try {
-        // Get session to find league
-        const session = await db('game_sessions').where({ id: session_id }).first();
-        if (!session) {
-            return res.status(404).json({ error: 'Session not found.' });
-        }
-
-        // Get active attendees
-        const attendees = await db('session_attendance')
-            .where({ session_id, is_active: true })
-            .select('user_id');
-
-        const attendeeIds = attendees.map(a => a.user_id);
-
-        if (attendeeIds.length === 0) {
-            return res.status(200).json({
-                pods: [],
-                leftover: [],
-                message: 'No active attendees'
-            });
-        }
-
-        const suggestions = await suggestPods(attendeeIds, session.league_id, podSize);
-        res.status(200).json(suggestions);
-    } catch (err) {
-        console.error('Error getting pod suggestions:', err.message);
-        res.status(500).json({ error: 'Failed to get pod suggestions.' });
-    }
-};
-
-// Get matchup matrix for a league
-const getMatchupMatrix = async (req, res) => {
+// Get the active poll session for a league (only one active poll per league)
+const getActivePollSession = async (req, res) => {
     const { league_id } = req.params;
 
     try {
-        const matrix = await getLeagueMatchupMatrix(parseInt(league_id, 10));
-        res.status(200).json(matrix);
+        // Find the session with an active poll for this league
+        const activePoll = await db('attendance_polls as ap')
+            .join('game_sessions as gs', 'ap.session_id', 'gs.id')
+            .where('gs.league_id', league_id)
+            .select('gs.*', 'ap.discord_message_id', 'ap.discord_channel_id')
+            .first();
+
+        if (!activePoll) {
+            return res.status(200).json({ session: null, message: 'No active poll for this league.' });
+        }
+
+        // Get attendance for this session
+        const attendance = await db('session_attendance as sa')
+            .join('users as u', 'sa.user_id', 'u.id')
+            .where('sa.session_id', activePoll.id)
+            .select(
+                'sa.id',
+                'sa.user_id',
+                'u.firstname',
+                'u.lastname',
+                'sa.checked_in_at',
+                'sa.checked_out_at',
+                'sa.is_active',
+                'sa.updated_via'
+            );
+
+        res.status(200).json({
+            session: {
+                ...activePoll,
+                attendance,
+                has_active_poll: true
+            }
+        });
     } catch (err) {
-        console.error('Error getting matchup matrix:', err.message);
-        res.status(500).json({ error: 'Failed to get matchup matrix.' });
+        console.error('Error fetching active poll session:', err.message);
+        res.status(500).json({ error: 'Failed to fetch active poll session.' });
     }
 };
 
 module.exports = {
-    createSession,
     getLeagueSessions,
     getSession,
-    updateSessionStatus,
     checkIn,
     checkOut,
-    adminCheckIn,
-    adminCheckOut,
     getActiveAttendees,
     getTodaySession,
-    getPodSuggestions,
-    getMatchupMatrix
+    getActivePollSession
 };

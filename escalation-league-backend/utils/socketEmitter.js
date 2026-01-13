@@ -158,6 +158,48 @@ const emitPodDeleted = (app, leagueId, podId) => {
     }
 };
 
+// Store io instance for non-Express contexts (like Discord bot)
+let globalIo = null;
+
+/**
+ * Set the global Socket.IO instance (called from server.js)
+ */
+const setIo = (io) => {
+    globalIo = io;
+};
+
+/**
+ * Get the global Socket.IO instance
+ */
+const getIo = () => globalIo;
+
+/**
+ * Emit attendance updated event to session room
+ * Used when someone checks in/out via Discord or web
+ */
+const emitAttendanceUpdated = (sessionId, leagueId, attendanceData) => {
+    try {
+        const io = globalIo;
+        if (io) {
+            // Emit to session-specific room
+            io.to(`session:${sessionId}`).emit('attendance:updated', {
+                sessionId,
+                leagueId,
+                ...attendanceData
+            });
+            // Also emit to league room for admin views
+            io.to(`league:${leagueId}`).emit('attendance:updated', {
+                sessionId,
+                leagueId,
+                ...attendanceData
+            });
+            logger.info('WebSocket emitted attendance:updated', { sessionId, leagueId });
+        }
+    } catch (err) {
+        logger.error('Failed to emit attendance:updated', { error: err.message });
+    }
+};
+
 module.exports = {
     emitPodCreated,
     emitPlayerJoined,
@@ -166,5 +208,8 @@ module.exports = {
     emitGameConfirmed,
     emitPodDeleted,
     emitSignupRequest,
-    emitSignupResponse
+    emitSignupResponse,
+    setIo,
+    getIo,
+    emitAttendanceUpdated
 };

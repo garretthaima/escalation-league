@@ -1,5 +1,6 @@
 const { Client, GatewayIntentBits, Partials, Events } = require('discord.js');
 const db = require('../models/db');
+const { emitAttendanceUpdated } = require('../utils/socketEmitter');
 
 // Discord client instance
 let client = null;
@@ -13,9 +14,9 @@ const config = {
 
 // Reaction emojis for attendance
 const REACTIONS = {
-    ATTENDING: '✅',
-    NOT_ATTENDING: '❌',
-    MAYBE: '❓',
+    YES_FOOD: '🍕',        // Yes, attending + ordering food
+    YES_NO_FOOD: '✅',     // Yes, attending but no food
+    NOT_ATTENDING: '❌',   // No, can't attend
 };
 
 /**
@@ -124,9 +125,10 @@ const getClient = () => client;
  * @param {number} sessionId - The attendance session ID
  * @param {string} sessionDate - The date of the game night
  * @param {number} leagueId - The league ID
+ * @param {string|null} customMessage - Optional custom message to include in the poll
  * @returns {Promise<Object>} The created message info
  */
-const postAttendancePoll = async (sessionId, sessionDate, leagueId) => {
+const postAttendancePoll = async (sessionId, sessionDate, leagueId, customMessage = null) => {
     if (!client) {
         throw new Error('Discord bot is not initialized');
     }
@@ -143,14 +145,51 @@ const postAttendancePoll = async (sessionId, sessionDate, leagueId) => {
         timeZone: 'UTC',
     });
 
-    const message = await channel.send({
-        content: `**Game Night Attendance - ${dateStr}**\n\nReact to let us know if you're coming!\n\n${REACTIONS.ATTENDING} = I'm in!\n${REACTIONS.NOT_ATTENDING} = Can't make it\n${REACTIONS.MAYBE} = Maybe`,
-    });
+    // Build description with optional custom message
+    let description = `**${dateStr}**\n\nReact to let us know if you're coming!`;
+    if (customMessage && customMessage.trim()) {
+        description = `**${dateStr}**\n\n${customMessage.trim()}\n\nReact to let us know if you're coming!`;
+    }
+
+    // Create a rich embed for the poll
+    const embed = {
+        color: 0x5865F2, // Discord blurple
+        title: `Game Night Attendance`,
+        description,
+        fields: [
+            {
+                name: 'How to respond',
+                value: `${REACTIONS.YES_FOOD} Yes + ordering food\n${REACTIONS.YES_NO_FOOD} Yes, no food\n${REACTIONS.NOT_ATTENDING} Can't make it`,
+                inline: false
+            },
+            {
+                name: `${REACTIONS.YES_FOOD} Attending w/ Food (0)`,
+                value: '*No one yet*',
+                inline: true
+            },
+            {
+                name: `${REACTIONS.YES_NO_FOOD} Attending (0)`,
+                value: '*No one yet*',
+                inline: true
+            },
+            {
+                name: `${REACTIONS.NOT_ATTENDING} Can't Make It (0)`,
+                value: '*None*',
+                inline: true
+            }
+        ],
+        footer: {
+            text: 'Need 4 more for a pod'
+        },
+        timestamp: new Date().toISOString()
+    };
+
+    const message = await channel.send({ embeds: [embed] });
 
     // Add the reaction options
-    await message.react(REACTIONS.ATTENDING);
+    await message.react(REACTIONS.YES_FOOD);
+    await message.react(REACTIONS.YES_NO_FOOD);
     await message.react(REACTIONS.NOT_ATTENDING);
-    await message.react(REACTIONS.MAYBE);
 
     // Store the poll message ID in the database
     await db('attendance_polls').insert({
@@ -181,7 +220,158 @@ const getAttendancePollByMessageId = async (messageId) => {
 };
 
 /**
+ * Get an attendance poll by session ID
+ * @param {number} sessionId - The session ID
+ * @returns {Promise<Object|null>}
+ */
+const getAttendancePollBySessionId = async (sessionId) => {
+    return db('attendance_polls')
+        .where('session_id', sessionId)
+        .first();
+};
+
+/**
+ * Update the Discord poll message with current attendance list
+ * Shows three columns: those who want food, those who don't, and those who can't make it
+ * Also includes admin-checked-in users who may not have reacted on Discord
+ * @param {number} sessionId - The session ID
+ */
+const updatePollMessage = async (sessionId) => {
+    if (!client) {
+        console.log('[Discord Bot] Bot not initialized, skipping poll update');
+        return;
+    }
+
+    try {
+        const poll = await getAttendancePollBySessionId(sessionId);
+        if (!poll) {
+            console.log(`[Discord Bot] No poll found for session ${sessionId}`);
+            return;
+        }
+
+        // Get the session date
+        const session = await db('game_sessions').where('id', sessionId).first();
+        if (!session) return;
+
+        const dateStr = new Date(session.session_date).toLocaleDateString('en-US', {
+            weekday: 'long',
+            month: 'long',
+            day: 'numeric',
+            timeZone: 'UTC',
+        });
+
+        // Fetch the Discord message to get reaction data
+        const channel = await client.channels.fetch(poll.discord_channel_id);
+        const message = await channel.messages.fetch(poll.discord_message_id);
+
+        // Get users who reacted with each emoji
+        const foodReaction = message.reactions.cache.get(REACTIONS.YES_FOOD);
+        const noFoodReaction = message.reactions.cache.get(REACTIONS.YES_NO_FOOD);
+        const notAttendingReaction = message.reactions.cache.get(REACTIONS.NOT_ATTENDING);
+
+        // Fetch users for each reaction (excluding bot)
+        let foodUsers = [];
+        let noFoodUsers = [];
+        let notAttendingUsers = [];
+        let foodDiscordIds = [];
+        let noFoodDiscordIds = [];
+
+        if (foodReaction) {
+            const users = await foodReaction.users.fetch();
+            foodUsers = users.filter(u => !u.bot).map(u => `<@${u.id}>`);
+            foodDiscordIds = users.filter(u => !u.bot).map(u => u.id);
+        }
+
+        if (noFoodReaction) {
+            const users = await noFoodReaction.users.fetch();
+            noFoodUsers = users.filter(u => !u.bot).map(u => `<@${u.id}>`);
+            noFoodDiscordIds = users.filter(u => !u.bot).map(u => u.id);
+        }
+
+        if (notAttendingReaction) {
+            const users = await notAttendingReaction.users.fetch();
+            notAttendingUsers = users.filter(u => !u.bot).map(u => `<@${u.id}>`);
+        }
+
+        // Get admin-checked-in users who haven't reacted on Discord
+        // These are users with is_active=true and updated_via='admin' or 'web'
+        const adminCheckedIn = await db('session_attendance as sa')
+            .join('users as u', 'sa.user_id', 'u.id')
+            .where('sa.session_id', sessionId)
+            .where('sa.is_active', true)
+            .whereIn('sa.updated_via', ['admin', 'web'])
+            .select('u.discord_id', 'u.firstname', 'u.lastname');
+
+        // Add admin-checked-in users to noFoodUsers if they don't already have a reaction
+        for (const user of adminCheckedIn) {
+            if (user.discord_id) {
+                // User has Discord linked - check if they already reacted
+                if (!foodDiscordIds.includes(user.discord_id) && !noFoodDiscordIds.includes(user.discord_id)) {
+                    // They're checked in but haven't reacted - add to no-food list
+                    noFoodUsers.push(`<@${user.discord_id}>`);
+                }
+            } else {
+                // User doesn't have Discord linked - show their name instead
+                noFoodUsers.push(`${user.firstname} ${user.lastname} *(manual)*`);
+            }
+        }
+
+        const totalAttending = foodUsers.length + noFoodUsers.length;
+
+        // Determine embed color based on attendance
+        let embedColor = 0x5865F2; // Discord blurple (default)
+        if (totalAttending >= 4) {
+            embedColor = 0x57F287; // Green - enough for a pod!
+        } else if (totalAttending > 0) {
+            embedColor = 0xFEE75C; // Yellow - some people
+        }
+
+        // Build the updated embed
+        const embed = {
+            color: embedColor,
+            title: `Game Night Attendance`,
+            description: `**${dateStr}**\n\nReact to let us know if you're coming!`,
+            fields: [
+                {
+                    name: 'How to respond',
+                    value: `${REACTIONS.YES_FOOD} Yes + ordering food\n${REACTIONS.YES_NO_FOOD} Yes, no food\n${REACTIONS.NOT_ATTENDING} Can't make it`,
+                    inline: false
+                },
+                {
+                    name: `${REACTIONS.YES_FOOD} Attending w/ Food (${foodUsers.length})`,
+                    value: foodUsers.length > 0 ? foodUsers.join('\n') : '*No one yet*',
+                    inline: true
+                },
+                {
+                    name: `${REACTIONS.YES_NO_FOOD} Attending (${noFoodUsers.length})`,
+                    value: noFoodUsers.length > 0 ? noFoodUsers.join('\n') : '*No one yet*',
+                    inline: true
+                },
+                {
+                    name: `${REACTIONS.NOT_ATTENDING} Can't Make It (${notAttendingUsers.length})`,
+                    value: notAttendingUsers.length > 0 ? notAttendingUsers.join('\n') : '*None*',
+                    inline: true
+                }
+            ],
+            footer: {
+                text: totalAttending >= 4
+                    ? `We have enough for a pod!`
+                    : `Need ${4 - totalAttending} more for a pod`
+            },
+            timestamp: new Date().toISOString()
+        };
+
+        await message.edit({ embeds: [embed] });
+
+        console.log(`[Discord Bot] Updated poll message for session ${sessionId} with ${totalAttending} attendees (${foodUsers.length} food, ${noFoodUsers.length} no food, ${notAttendingUsers.length} can't make it)`);
+    } catch (error) {
+        console.error('[Discord Bot] Error updating poll message:', error);
+    }
+};
+
+/**
  * Handle an attendance reaction (add or remove)
+ * Both YES_FOOD (🍕) and YES_NO_FOOD (✅) count as check-in
  * @param {MessageReaction} reaction - The reaction object
  * @param {User} user - The Discord user
  * @param {Object} poll - The poll record from database
@@ -200,20 +390,54 @@ const handleAttendanceReaction = async (reaction, user, poll, isAdd) => {
         return;
     }
 
-    // Determine the attendance status based on the emoji
-    let status = null;
-    if (emoji === REACTIONS.ATTENDING) {
-        status = isAdd ? 'checked_in' : null;
-    } else if (emoji === REACTIONS.NOT_ATTENDING) {
-        status = isAdd ? 'not_attending' : null;
-    } else if (emoji === REACTIONS.MAYBE) {
-        status = isAdd ? 'maybe' : null;
-    } else {
-        return; // Ignore other reactions
+    // Both YES_FOOD and YES_NO_FOOD count as attending
+    const isAttendingReaction = emoji === REACTIONS.YES_FOOD || emoji === REACTIONS.YES_NO_FOOD;
+    const isNotAttendingReaction = emoji === REACTIONS.NOT_ATTENDING;
+
+    // Handle NOT_ATTENDING reaction - this should check out the user if they were checked in
+    if (isNotAttendingReaction) {
+        if (isAdd) {
+            // User clicked "Can't make it" - check them out if they were checked in
+            const existing = await db('session_attendance')
+                .where({
+                    session_id: poll.session_id,
+                    user_id: appUser.id,
+                    is_active: true
+                })
+                .first();
+
+            if (existing) {
+                await db('session_attendance')
+                    .where({ id: existing.id })
+                    .update({
+                        is_active: false,
+                        checked_out_at: db.fn.now(),
+                        updated_via: 'discord',
+                    });
+                console.log(`[Discord Bot] User ${appUser.firstname} ${appUser.lastname} checked out via "Can't make it" for session ${poll.session_id}`);
+
+                // Emit WebSocket event
+                emitAttendanceUpdated(poll.session_id, poll.league_id, {
+                    action: 'check_out',
+                    user: {
+                        id: appUser.id,
+                        firstname: appUser.firstname,
+                        lastname: appUser.lastname
+                    },
+                    source: 'discord'
+                });
+            } else {
+                console.log(`[Discord Bot] User ${appUser.firstname} ${appUser.lastname} marked "Can't make it" for session ${poll.session_id}`);
+            }
+        }
+        // For remove of NOT_ATTENDING, we don't automatically check them back in
+        // They need to add a YES reaction to check in
+        await updatePollMessage(poll.session_id);
+        return;
     }
 
-    if (isAdd && status) {
-        // Upsert attendance record
+    if (isAdd) {
+        // Check in: upsert attendance record with is_active = true
         const existing = await db('session_attendance')
             .where({
                 session_id: poll.session_id,
@@ -225,25 +449,88 @@ const handleAttendanceReaction = async (reaction, user, poll, isAdd) => {
             await db('session_attendance')
                 .where({ id: existing.id })
                 .update({
-                    status,
-                    updated_at: db.fn.now(),
+                    is_active: true,
+                    checked_out_at: null,
                     updated_via: 'discord',
                 });
         } else {
             await db('session_attendance').insert({
                 session_id: poll.session_id,
                 user_id: appUser.id,
-                status,
-                created_at: db.fn.now(),
+                is_active: true,
+                checked_in_at: db.fn.now(),
                 updated_via: 'discord',
             });
         }
 
-        console.log(`[Discord Bot] User ${appUser.firstname} ${appUser.lastname} marked as ${status} for session ${poll.session_id}`);
-    } else if (!isAdd) {
-        // User removed their reaction - could clear their status or leave it
-        // For now, we'll leave their status as-is (they can re-react to change)
-        console.log(`[Discord Bot] User ${appUser.firstname} ${appUser.lastname} removed ${emoji} reaction for session ${poll.session_id}`);
+        const foodLabel = emoji === REACTIONS.YES_FOOD ? ' (with food)' : ' (no food)';
+        console.log(`[Discord Bot] User ${appUser.firstname} ${appUser.lastname} checked in via Discord${foodLabel} for session ${poll.session_id}`);
+
+        // Update the poll message to show the new attendee
+        await updatePollMessage(poll.session_id);
+
+        // Emit WebSocket event for real-time frontend updates
+        emitAttendanceUpdated(poll.session_id, poll.league_id, {
+            action: 'check_in',
+            user: {
+                id: appUser.id,
+                firstname: appUser.firstname,
+                lastname: appUser.lastname
+            },
+            source: 'discord'
+        });
+    } else {
+        // User removed their attending reaction
+        // Only check them out if they don't have the OTHER attending reaction
+        const message = reaction.message;
+        const otherEmoji = emoji === REACTIONS.YES_FOOD ? REACTIONS.YES_NO_FOOD : REACTIONS.YES_FOOD;
+        const otherReaction = message.reactions.cache.get(otherEmoji);
+
+        let hasOtherReaction = false;
+        if (otherReaction) {
+            const otherUsers = await otherReaction.users.fetch();
+            hasOtherReaction = otherUsers.has(user.id);
+        }
+
+        if (hasOtherReaction) {
+            // User still has the other attending reaction, just update the poll display
+            console.log(`[Discord Bot] User ${appUser.firstname} ${appUser.lastname} switched food preference for session ${poll.session_id}`);
+            await updatePollMessage(poll.session_id);
+            return;
+        }
+
+        // User removed their only attending reaction - check them out
+        const existing = await db('session_attendance')
+            .where({
+                session_id: poll.session_id,
+                user_id: appUser.id,
+            })
+            .first();
+
+        if (existing) {
+            await db('session_attendance')
+                .where({ id: existing.id })
+                .update({
+                    is_active: false,
+                    checked_out_at: db.fn.now(),
+                    updated_via: 'discord',
+                });
+            console.log(`[Discord Bot] User ${appUser.firstname} ${appUser.lastname} checked out via Discord for session ${poll.session_id}`);
+
+            // Update the poll message to remove the attendee
+            await updatePollMessage(poll.session_id);
+
+            // Emit WebSocket event for real-time frontend updates
+            emitAttendanceUpdated(poll.session_id, poll.league_id, {
+                action: 'check_out',
+                user: {
+                    id: appUser.id,
+                    firstname: appUser.firstname,
+                    lastname: appUser.lastname
+                },
+                source: 'discord'
+            });
+        }
     }
 };
 
@@ -282,13 +569,111 @@ const unlinkDiscordUser = async (userId) => {
         .update({ discord_id: null });
 };
 
+/**
+ * Close a poll - edits the Discord message to show it's closed
+ * @param {number} sessionId - The session ID
+ */
+const closePoll = async (sessionId) => {
+    if (!client) {
+        console.log('[Discord Bot] Bot not initialized, skipping poll close');
+        return;
+    }
+
+    try {
+        const poll = await getAttendancePollBySessionId(sessionId);
+        if (!poll) {
+            console.log(`[Discord Bot] No poll found for session ${sessionId}`);
+            return;
+        }
+
+        // Get the session date for display
+        const session = await db('game_sessions').where('id', sessionId).first();
+        const dateStr = session ? new Date(session.session_date).toLocaleDateString('en-US', {
+            weekday: 'long',
+            month: 'long',
+            day: 'numeric',
+            timeZone: 'UTC',
+        }) : 'Game Night';
+
+        // Fetch the Discord message
+        const channel = await client.channels.fetch(poll.discord_channel_id);
+        const message = await channel.messages.fetch(poll.discord_message_id);
+
+        // Get final attendance counts from reactions
+        const foodReaction = message.reactions.cache.get(REACTIONS.YES_FOOD);
+        const noFoodReaction = message.reactions.cache.get(REACTIONS.YES_NO_FOOD);
+        const notAttendingReaction = message.reactions.cache.get(REACTIONS.NOT_ATTENDING);
+
+        let foodUsers = [];
+        let noFoodUsers = [];
+        let notAttendingUsers = [];
+
+        if (foodReaction) {
+            const users = await foodReaction.users.fetch();
+            foodUsers = users.filter(u => !u.bot).map(u => `<@${u.id}>`);
+        }
+
+        if (noFoodReaction) {
+            const users = await noFoodReaction.users.fetch();
+            noFoodUsers = users.filter(u => !u.bot).map(u => `<@${u.id}>`);
+        }
+
+        if (notAttendingReaction) {
+            const users = await notAttendingReaction.users.fetch();
+            notAttendingUsers = users.filter(u => !u.bot).map(u => `<@${u.id}>`);
+        }
+
+        const totalAttending = foodUsers.length + noFoodUsers.length;
+
+        // Edit the message to show it's closed
+        const embed = {
+            color: 0x95A5A6, // Gray - closed
+            title: `Game Night Attendance (Closed)`,
+            description: `**${dateStr}**\n\n~~React to let us know if you're coming!~~\n\n**This poll is now closed.**`,
+            fields: [
+                {
+                    name: `${REACTIONS.YES_FOOD} Attended w/ Food (${foodUsers.length})`,
+                    value: foodUsers.length > 0 ? foodUsers.join('\n') : '*None*',
+                    inline: true
+                },
+                {
+                    name: `${REACTIONS.YES_NO_FOOD} Attended (${noFoodUsers.length})`,
+                    value: noFoodUsers.length > 0 ? noFoodUsers.join('\n') : '*None*',
+                    inline: true
+                },
+                {
+                    name: `${REACTIONS.NOT_ATTENDING} Couldn't Make It (${notAttendingUsers.length})`,
+                    value: notAttendingUsers.length > 0 ? notAttendingUsers.join('\n') : '*None*',
+                    inline: true
+                }
+            ],
+            footer: {
+                text: `Final count: ${totalAttending} attendees`
+            },
+            timestamp: new Date().toISOString()
+        };
+
+        await message.edit({ embeds: [embed] });
+
+        // Remove reaction options so people can't react anymore
+        await message.reactions.removeAll();
+
+        console.log(`[Discord Bot] Closed poll for session ${sessionId}`);
+    } catch (error) {
+        console.error('[Discord Bot] Error closing poll:', error);
+        throw error;
+    }
+};
+
 module.exports = {
     startBot,
     stopBot,
     getClient,
     postAttendancePoll,
+    updatePollMessage,
     sendAttendanceMessage,
     linkDiscordUser,
     unlinkDiscordUser,
+    closePoll,
     REACTIONS,
 };

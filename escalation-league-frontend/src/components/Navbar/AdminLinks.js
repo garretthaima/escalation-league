@@ -4,6 +4,9 @@ import { Link } from 'react-router-dom';
 const AdminLinks = ({ activeSection, setActiveSection, permissions }) => {
     const canAccessLeagueAdmin = permissions.some((perm) => perm.name === 'league_manage_requests');
     const canAccessGames = permissions.some((perm) => perm.name === 'pod_read');
+    const canAccessAttendanceAdmin = permissions.some((perm) =>
+        perm.name === 'admin_attendance_manage' || perm.name === 'admin_discord_poll'
+    );
 
     return (
         <li className="nav-item dropdown">
@@ -37,6 +40,17 @@ const AdminLinks = ({ activeSection, setActiveSection, permissions }) => {
                             onClick={() => setActiveSection('adminPods')}
                         >
                             Pods
+                        </Link>
+                    </li>
+                )}
+                {canAccessAttendanceAdmin && (
+                    <li>
+                        <Link
+                            className="dropdown-item"
+                            to="/admin/attendance"
+                            onClick={() => setActiveSection('adminAttendance')}
+                        >
+                            Attendance
                         </Link>
                     </li>
                 )}
