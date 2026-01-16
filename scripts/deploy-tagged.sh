@@ -13,6 +13,22 @@ if [ "$ENVIRONMENT" != "prod" ] && [ "$ENVIRONMENT" != "dev" ]; then
     exit 1
 fi
 
+# Check that we're on the main branch (production only)
+if [ "$ENVIRONMENT" = "prod" ]; then
+    CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+    if [ "$CURRENT_BRANCH" != "main" ]; then
+        echo "❌ Error: Production deployments must be done from the 'main' branch."
+        echo "   Current branch: $CURRENT_BRANCH"
+        echo ""
+        echo "   To switch to main: git checkout main"
+        echo "   To bypass this check (not recommended): SKIP_BRANCH_CHECK=1 make deploy-prod"
+        if [ "${SKIP_BRANCH_CHECK:-}" != "1" ]; then
+            exit 1
+        fi
+        echo "   ⚠️  SKIP_BRANCH_CHECK is set, proceeding anyway..."
+    fi
+fi
+
 echo "=== Tagged Deployment ==="
 echo "Environment: $ENVIRONMENT"
 echo "Build tag: $BUILD_TAG"

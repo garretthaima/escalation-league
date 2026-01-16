@@ -16,13 +16,14 @@ import Rules from './components/Static/Rules';
 import Awards from './components/Static/Awards';
 import NotAuthorized from './components/Auth/NotAuthorized';
 import PublicProfile from './components/Auth/Profile/PublicProfile';
-import { LeagueAdminPage, PodAdminPage, UserRoleManagementPage } from './components/Admin';
+import { LeagueAdminPage, PodAdminPage, UserRoleManagementPage, AttendanceAdminPage } from './components/Admin';
 import EditPodPage from './components/Admin/EditPodPage';
 import { HomePage, Footer, Contact } from './components/Shared/';
 import { ToastProvider } from './components/context/ToastContext';
 import { WebSocketProvider } from './components/context/WebSocketProvider';
 import { BudgetDashboard } from './components/Budget';
 import { MetagameDashboard } from './components/Metagame';
+import { AttendancePage, PodSuggestionsPage, MatchupMatrixPage } from './components/Attendance';
 
 const App = () => {
     const [user, setUser] = useState(null);
@@ -95,12 +96,18 @@ const App = () => {
                             {/* Profile Section */}
                             <Route path="/leagues/:leagueId/profile/:userId" element={<PublicProfile />} />
 
+                            {/* Attendance Section */}
+                            <Route path="/attendance" element={<AttendancePage />} />
+                            <Route path="/attendance/suggest-pods/:sessionId" element={<PodSuggestionsPage />} />
+
                             {/* Admin Section */}
                             <Route path="/admin/leagues" element={<LeagueAdminPage />} />
                             <Route path="/admin/pods" element={<PodAdminPage />} />
                             <Route path="/admin/pods/:podId" element={<EditPodPage />} />
                             <Route path="/admin/leagues/create" element={<CreateLeaguePage />} />
                             <Route path="/admin/users" element={<UserRoleManagementPage />} />
+                            <Route path="/admin/attendance" element={<AttendanceAdminPage />} />
+                            <Route path="/admin/matchup-matrix" element={<MatchupMatrixPage />} />
 
 
                             {/* Not Authorized Page */}

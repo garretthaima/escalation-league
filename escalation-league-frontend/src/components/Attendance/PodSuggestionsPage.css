@@ -1,0 +1,21 @@
+.pod-suggestion-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.pod-suggestion-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.pairings-list {
+    font-size: 0.9rem;
+}
+
+.pairing-row {
+    padding: 0.25rem 0;
+    border-bottom: 1px solid #eee;
+}
+
+.pairing-row:last-child {
+    border-bottom: none;
+}

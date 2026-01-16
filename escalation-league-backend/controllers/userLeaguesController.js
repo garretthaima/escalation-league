@@ -2,6 +2,7 @@ const db = require('../models/db');
 const redis = require('../utils/redisClient'); // Import the Redis client
 const { updateStats } = require('../utils/statsUtils');
 const logger = require('../utils/logger');
+const { getOpponentMatchups } = require('../services/gameService');
 
 
 // Sign up for a league
@@ -448,6 +449,29 @@ const updateParticipantStatus = async (req, res) => {
     }
 };
 
+// Get opponent matchup stats for a participant
+const getParticipantMatchups = async (req, res) => {
+    const { league_id, user_id } = req.params;
+
+    try {
+        // Verify the participant exists in this league
+        const participant = await db('user_leagues')
+            .where({ user_id, league_id })
+            .first();
+
+        if (!participant) {
+            return res.status(404).json({ error: 'Participant not found in this league.' });
+        }
+
+        const matchups = await getOpponentMatchups(parseInt(user_id, 10), parseInt(league_id, 10));
+
+        res.status(200).json(matchups);
+    } catch (err) {
+        console.error('Error fetching participant matchups:', err.message);
+        res.status(500).json({ error: 'Failed to fetch participant matchups.' });
+    }
+};
+
 module.exports = {
     signUpForLeague,
     getUserLeagueStats,
@@ -459,5 +483,6 @@ module.exports = {
     getUserPendingSignupRequests,
     isUserInLeague,
     getLeagueParticipantDetails,
-    updateParticipantStatus
+    updateParticipantStatus,
+    getParticipantMatchups
 };
