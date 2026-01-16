@@ -26,6 +26,21 @@ const ActiveGamesTab = () => {
     const canUpdatePods = permissions.some((perm) => perm.name === 'pod_update');
     const isAdmin = permissions.some((perm) => perm.name === 'admin_pod_update');
 
+    // Fetch league ID early for WebSocket connection (don't wait for pods)
+    useEffect(() => {
+        const fetchLeagueId = async () => {
+            try {
+                const response = await isUserInLeague();
+                if (response.inLeague && response.league?.league_id) {
+                    setLeagueId(response.league.league_id);
+                }
+            } catch (err) {
+                console.error('Error fetching league ID:', err);
+            }
+        };
+        fetchLeagueId();
+    }, []);
+
     useEffect(() => {
         const fetchPods = async () => {
             try {
@@ -51,13 +66,6 @@ const ActiveGamesTab = () => {
 
                 setOpenPods(openPodsData || []);
                 setActivePods(userActivePods || []);
-
-                // Set league ID from first pod for WebSocket room
-                if (openPodsData?.length > 0 && openPodsData[0].league_id) {
-                    setLeagueId(openPodsData[0].league_id);
-                } else if (activePodsData?.length > 0 && activePodsData[0].league_id) {
-                    setLeagueId(activePodsData[0].league_id);
-                }
             } catch (err) {
                 console.error('Error fetching pods:', err);
                 setError('Failed to fetch pods.');
