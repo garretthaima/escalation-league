@@ -1,6 +1,6 @@
 const db = require('../models/db');
 const { getLeagueMatchupMatrix, suggestPods } = require('../services/gameService');
-const { postAttendancePoll, updatePollMessage, getClient, closePoll } = require('../services/discordBot');
+const { postAttendancePoll, updatePollMessage, getClient, closePoll, postSessionRecap } = require('../services/discordBot');
 const { emitPodCreated } = require('../utils/socketEmitter');
 
 // Create a new game session
@@ -13,6 +13,24 @@ const createSession = async (req, res) => {
     }
 
     try {
+        // Check if there's already an active/scheduled session for this league
+        const existingSession = await db('game_sessions')
+            .where({ league_id })
+            .whereIn('status', ['scheduled', 'active'])
+            .first();
+
+        if (existingSession) {
+            const sessionDate = new Date(existingSession.session_date).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                timeZone: 'UTC'
+            });
+            return res.status(400).json({
+                error: `There's already a ${existingSession.status} session for ${existingSession.name || sessionDate}. Complete or cancel it first.`,
+                existing_session_id: existingSession.id
+            });
+        }
+
         const [id] = await db('game_sessions').insert({
             league_id,
             session_date,
@@ -442,6 +460,53 @@ const reopenSession = async (req, res) => {
     }
 };
 
+// Post a session recap to Discord and mark session as completed
+const postRecap = async (req, res) => {
+    const { session_id } = req.params;
+
+    try {
+        // Get session details
+        const session = await db('game_sessions').where({ id: session_id }).first();
+        if (!session) {
+            return res.status(404).json({ error: 'Session not found.' });
+        }
+
+        // Check if recap was already posted
+        if (session.recap_posted_at) {
+            return res.status(400).json({
+                error: 'Recap has already been posted for this session.',
+                recap_posted_at: session.recap_posted_at
+            });
+        }
+
+        // Check if Discord bot is connected
+        if (!getClient()) {
+            return res.status(503).json({ error: 'Discord bot is not connected.' });
+        }
+
+        // Post the recap to Discord
+        const result = await postSessionRecap(session_id);
+
+        // Update session: mark recap as posted and set status to completed
+        await db('game_sessions')
+            .where({ id: session_id })
+            .update({
+                recap_posted_at: db.fn.now(),
+                status: 'completed',
+                updated_at: db.fn.now()
+            });
+
+        res.status(200).json({
+            message: 'Recap posted and session completed.',
+            messageId: result.messageId,
+            channelId: result.channelId
+        });
+    } catch (err) {
+        console.error('Error posting recap:', err.message);
+        res.status(500).json({ error: err.message || 'Failed to post recap.' });
+    }
+};
+
 module.exports = {
     createSession,
     updateSessionStatus,
@@ -453,5 +518,6 @@ module.exports = {
     postDiscordPoll,
     closeDiscordPoll,
     lockSession,
-    reopenSession
+    reopenSession,
+    postRecap
 };

@@ -10,6 +10,7 @@ const config = {
     token: process.env.DISCORD_BOT_TOKEN,
     guildId: process.env.DISCORD_GUILD_ID,
     attendanceChannelId: process.env.DISCORD_ATTENDANCE_CHANNEL_ID,
+    recapChannelId: process.env.DISCORD_RECAP_CHANNEL_ID,
 };
 
 // Reaction emojis for attendance
@@ -66,6 +67,22 @@ const startBot = async () => {
             // Check if this message is an attendance poll (we'll store poll message IDs in DB)
             const poll = await getAttendancePollByMessageId(reaction.message.id);
             if (!poll) return;
+
+            // Auto-remove other reactions to enforce single selection
+            const clickedEmoji = reaction.emoji.name;
+            const allReactions = [REACTIONS.YES_FOOD, REACTIONS.YES_NO_FOOD, REACTIONS.NOT_ATTENDING];
+            const otherReactions = allReactions.filter(r => r !== clickedEmoji);
+
+            for (const otherEmoji of otherReactions) {
+                const otherReaction = reaction.message.reactions.cache.get(otherEmoji);
+                if (otherReaction) {
+                    try {
+                        await otherReaction.users.remove(user.id);
+                    } catch (err) {
+                        // Ignore errors if user didn't have this reaction
+                    }
+                }
+            }
 
             await handleAttendanceReaction(reaction, user, poll, true);
         } catch (error) {
@@ -197,6 +214,7 @@ const postAttendancePoll = async (sessionId, sessionDate, leagueId, customMessag
         league_id: leagueId,
         discord_message_id: message.id,
         discord_channel_id: channel.id,
+        custom_message: customMessage || null,
         created_at: db.fn.now(),
     });
 
@@ -326,11 +344,17 @@ const updatePollMessage = async (sessionId) => {
             embedColor = 0xFEE75C; // Yellow - some people
         }
 
+        // Build description with optional custom message
+        let description = `**${dateStr}**\n\nReact to let us know if you're coming!`;
+        if (poll.custom_message && poll.custom_message.trim()) {
+            description = `**${dateStr}**\n\n${poll.custom_message.trim()}\n\nReact to let us know if you're coming!`;
+        }
+
         // Build the updated embed
         const embed = {
             color: embedColor,
             title: `Game Night Attendance`,
-            description: `**${dateStr}**\n\nReact to let us know if you're coming!`,
+            description,
             fields: [
                 {
                     name: 'How to respond',
@@ -692,6 +716,155 @@ const closePoll = async (sessionId) => {
     }
 };
 
+/**
+ * Post a weekly recap to the recap channel
+ * Shows the leaderboard/results from all pods in a session
+ * @param {number} sessionId - The session ID
+ * @returns {Promise<Object>} The posted message info
+ */
+const postSessionRecap = async (sessionId) => {
+    if (!client) {
+        throw new Error('Discord bot is not initialized');
+    }
+
+    if (!config.recapChannelId) {
+        throw new Error('Recap channel ID not configured');
+    }
+
+    const channel = await client.channels.fetch(config.recapChannelId);
+    if (!channel) {
+        throw new Error('Recap channel not found');
+    }
+
+    // Get session details
+    const session = await db('game_sessions').where({ id: sessionId }).first();
+    if (!session) {
+        throw new Error('Session not found');
+    }
+
+    const dateStr = new Date(session.session_date).toLocaleDateString('en-US', {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        timeZone: 'UTC',
+    });
+
+    // Get all completed pods for this session with their results
+    const pods = await db('game_pods')
+        .where({ session_id: sessionId })
+        .whereIn('confirmation_status', ['complete', 'pending', 'active'])
+        .select('*');
+
+    if (pods.length === 0) {
+        throw new Error('No pods found for this session');
+    }
+
+    // Get players and results for each pod
+    const podResults = [];
+    for (const pod of pods) {
+        const players = await db('game_players as gp')
+            .join('users as u', 'gp.player_id', 'u.id')
+            .where('gp.pod_id', pod.id)
+            .select('u.id', 'u.firstname', 'u.lastname', 'u.discord_id', 'gp.result');
+
+        const winner = players.find(p => p.result === 'win');
+        podResults.push({
+            podId: pod.id,
+            players,
+            winner,
+            status: pod.confirmation_status,
+        });
+    }
+
+    // Build leaderboard - count wins per player this session
+    const winCounts = {};
+    for (const pod of podResults) {
+        if (pod.winner) {
+            const key = pod.winner.id;
+            if (!winCounts[key]) {
+                winCounts[key] = {
+                    id: pod.winner.id,
+                    name: `${pod.winner.firstname} ${pod.winner.lastname}`,
+                    discordId: pod.winner.discord_id,
+                    wins: 0,
+                };
+            }
+            winCounts[key].wins++;
+        }
+    }
+
+    // Sort by wins descending
+    const leaderboard = Object.values(winCounts).sort((a, b) => b.wins - a.wins);
+
+    // Build pod results text
+    const podResultsText = podResults.map((pod, idx) => {
+        if (pod.winner) {
+            const winnerDisplay = pod.winner.discord_id
+                ? `<@${pod.winner.discord_id}>`
+                : `${pod.winner.firstname} ${pod.winner.lastname}`;
+            return `**Pod ${idx + 1}:** ${winnerDisplay} 🏆`;
+        } else {
+            return `**Pod ${idx + 1}:** *(no winner recorded)*`;
+        }
+    }).join('\n');
+
+    // Build leaderboard text
+    let leaderboardText = '';
+    if (leaderboard.length > 0) {
+        leaderboardText = leaderboard.map((player, idx) => {
+            const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : '•';
+            const playerDisplay = player.discordId
+                ? `<@${player.discordId}>`
+                : player.name;
+            return `${medal} ${playerDisplay} - ${player.wins} win${player.wins !== 1 ? 's' : ''}`;
+        }).join('\n');
+    } else {
+        leaderboardText = '*No wins recorded*';
+    }
+
+    // Count total unique players
+    const allPlayerIds = new Set();
+    podResults.forEach(pod => {
+        pod.players.forEach(p => allPlayerIds.add(p.id));
+    });
+
+    const embed = {
+        color: 0x9B59B6, // Purple for recap
+        title: `📊 Game Night Recap`,
+        description: `**${dateStr}**${session.name ? ` - ${session.name}` : ''}`,
+        fields: [
+            {
+                name: '🎮 Pod Results',
+                value: podResultsText,
+                inline: false,
+            },
+            {
+                name: '🏆 Tonight\'s Leaderboard',
+                value: leaderboardText,
+                inline: false,
+            },
+            {
+                name: '📈 Stats',
+                value: `**${pods.length}** pod${pods.length !== 1 ? 's' : ''} played\n**${allPlayerIds.size}** players attended`,
+                inline: false,
+            },
+        ],
+        footer: {
+            text: 'See you next game night!',
+        },
+        timestamp: new Date().toISOString(),
+    };
+
+    const message = await channel.send({ embeds: [embed] });
+
+    console.log(`[Discord Bot] Posted recap for session ${sessionId}, message ID: ${message.id}`);
+
+    return {
+        messageId: message.id,
+        channelId: channel.id,
+    };
+};
+
 module.exports = {
     startBot,
     stopBot,
@@ -702,5 +875,6 @@ module.exports = {
     linkDiscordUser,
     unlinkDiscordUser,
     closePoll,
+    postSessionRecap,
     REACTIONS,
 };

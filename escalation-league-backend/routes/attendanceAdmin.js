@@ -11,7 +11,8 @@ const {
     postDiscordPoll,
     closeDiscordPoll,
     lockSession,
-    reopenSession
+    reopenSession,
+    postRecap
 } = require('../controllers/attendanceAdminController');
 const authenticateToken = require('../middlewares/authentication');
 const authorizePermission = require('../middlewares/authorizePermission');
@@ -102,6 +103,14 @@ router.post(
     authenticateToken,
     authorizePermission(['admin_attendance_manage']),
     reopenSession
+);
+
+// Post session recap to Discord and complete session
+router.post(
+    '/sessions/:session_id/recap',
+    authenticateToken,
+    authorizePermission(['admin_discord_poll']),
+    postRecap
 );
 
 module.exports = router;

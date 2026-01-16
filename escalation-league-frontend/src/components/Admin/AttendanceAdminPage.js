@@ -12,7 +12,8 @@ import {
     reopenSession,
     createPodWithPlayers,
     createSession,
-    updateSessionStatus
+    updateSessionStatus,
+    postSessionRecap
 } from '../../api/attendanceApi';
 import { getLeagueParticipants } from '../../api/userLeaguesApi';
 import { usePermissions } from '../context/PermissionsProvider';
@@ -261,6 +262,26 @@ const AttendanceAdminPage = () => {
         } catch (err) {
             console.error('Error closing Discord poll:', err);
             const message = err.response?.data?.error || 'Failed to close poll.';
+            showToast(message, 'error');
+        } finally {
+            setSessionActionLoading(false);
+        }
+    };
+
+    const handlePostRecap = async () => {
+        if (!selectedSessionId) return;
+
+        if (!window.confirm('Post the recap to Discord and complete this session?')) return;
+
+        setSessionActionLoading(true);
+        try {
+            await postSessionRecap(selectedSessionId);
+            showToast('Recap posted and session completed!', 'success');
+            fetchSessionDetails();
+            fetchSessions();
+        } catch (err) {
+            console.error('Error posting recap:', err);
+            const message = err.response?.data?.error || 'Failed to post recap.';
             showToast(message, 'error');
         } finally {
             setSessionActionLoading(false);
@@ -569,13 +590,23 @@ const AttendanceAdminPage = () => {
                                                     Reopen
                                                 </button>
                                                 <button
-                                                    className="btn btn-secondary"
-                                                    onClick={handleCompleteSession}
-                                                    disabled={sessionActionLoading}
+                                                    className="btn btn-primary"
+                                                    onClick={handlePostRecap}
+                                                    disabled={sessionActionLoading || session?.recap_posted_at}
                                                 >
-                                                    <i className="fas fa-check-circle me-2"></i>
-                                                    Complete
+                                                    <i className="fab fa-discord me-2"></i>
+                                                    Post Recap & Complete
                                                 </button>
+                                                {!session?.recap_posted_at && (
+                                                    <button
+                                                        className="btn btn-secondary"
+                                                        onClick={handleCompleteSession}
+                                                        disabled={sessionActionLoading}
+                                                    >
+                                                        <i className="fas fa-check-circle me-2"></i>
+                                                        Complete (No Recap)
+                                                    </button>
+                                                )}
                                             </>
                                         )}
 

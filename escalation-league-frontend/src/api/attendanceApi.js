@@ -115,3 +115,9 @@ export const getActivePollSession = async (leagueId) => {
     const response = await axiosInstance.get(`/attendance/leagues/${leagueId}/active-poll`);
     return response.data;
 };
+
+// Post session recap to Discord and complete session (admin)
+export const postSessionRecap = async (sessionId) => {
+    const response = await axiosInstance.post(`/admin/attendance/sessions/${sessionId}/recap`);
+    return response.data;
+};
