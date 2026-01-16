@@ -118,6 +118,17 @@ const updateUserProfile = async (req, res) => {
       updates.picture = normalizedPicture; // Save the normalized path
     }
 
+    // Check if email is being updated and if it already exists
+    if (updates.email) {
+      const existingUser = await db('users')
+        .where({ email: updates.email })
+        .whereNot({ id: userId })
+        .first();
+      if (existingUser) {
+        return res.status(400).json({ error: 'Email is already in use.' });
+      }
+    }
+
     // Update the user in the database
     await db('users').where({ id: userId }).update(updates);
 
@@ -131,6 +142,10 @@ const updateUserProfile = async (req, res) => {
     res.status(200).json({ message: 'Profile updated successfully.' });
   } catch (err) {
     console.error('Error updating user profile:', err);
+    // Handle duplicate email constraint error
+    if (err.code === 'ER_DUP_ENTRY') {
+      return res.status(400).json({ error: 'Email is already in use.' });
+    }
     res.status(500).json({ error: 'Failed to update profile.' });
   }
 };

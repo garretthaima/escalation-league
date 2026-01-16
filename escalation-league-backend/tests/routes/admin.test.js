@@ -89,7 +89,8 @@ describe('Admin Routes', () => {
 
             const res = await request(app)
                 .put(`/api/admin/user/ban/${userId}`)
-                .set('Authorization', `Bearer ${token}`);
+                .set('Authorization', `Bearer ${token}`)
+                .send({ ban_reason: 'Test ban reason' });
 
             expect(res.status).toBe(200);
             expect(res.body).toHaveProperty('message');
@@ -251,8 +252,7 @@ describe('Admin Routes', () => {
                 .set('Authorization', `Bearer ${token}`)
                 .send({
                     requestId: 1,
-                    action: 'approve',
-                    newRoleId: 2
+                    status: 'approved'
                 });
 
             // May be 200 or 404 depending on if request exists
@@ -267,7 +267,7 @@ describe('Admin Routes', () => {
                 .set('Authorization', `Bearer ${token}`)
                 .send({
                     requestId: 1,
-                    action: 'reject'
+                    status: 'rejected'
                 });
 
             // May be 200 or 404 depending on if request exists
