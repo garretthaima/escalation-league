@@ -47,13 +47,16 @@ else
     FRONTEND_IMAGE="escalation-league-frontend-dev"
 fi
 
-# Step 1: Build and tag images
-echo "Step 1: Building images..."
+# Step 1: Generate build info and build images
+echo "Step 1: Generating build info..."
+./scripts/generate-build-info.sh
+
+echo "Step 2: Building images..."
 cd "$PROJECT_ROOT"
 docker-compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" build
 
 # Tag the newly built images
-echo "Step 2: Tagging images with $BUILD_TAG..."
+echo "Step 3: Tagging images with $BUILD_TAG..."
 docker tag compose-backend-${ENVIRONMENT} compose-backend-${ENVIRONMENT}:${BUILD_TAG}
 docker tag compose-frontend-${ENVIRONMENT} compose-frontend-${ENVIRONMENT}:${BUILD_TAG}
 docker tag compose-backend-${ENVIRONMENT} compose-backend-${ENVIRONMENT}:latest
@@ -64,12 +67,12 @@ echo "  - compose-backend-${ENVIRONMENT}:${BUILD_TAG}"
 echo "  - compose-frontend-${ENVIRONMENT}:${BUILD_TAG}"
 echo ""
 
-# Step 3: Deploy
-echo "Step 3: Deploying with new images..."
+# Step 4: Deploy
+echo "Step 4: Deploying with new images..."
 docker-compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --force-recreate
 
-# Step 4: Wait and health check
-echo "Step 4: Waiting for services to be healthy..."
+# Step 5: Wait and health check
+echo "Step 5: Waiting for services to be healthy..."
 sleep 20
 
 BACKEND_CONTAINER="${BACKEND_IMAGE}"
@@ -89,9 +92,9 @@ if [ "$FRONTEND_HEALTH" != "healthy" ] && [ "$FRONTEND_HEALTH" != "none" ]; then
     echo "WARNING: Frontend is not healthy!"
 fi
 
-# Step 5: Smoke tests
+# Step 6: Smoke tests
 echo ""
-echo "Step 5: Running smoke tests..."
+echo "Step 6: Running smoke tests..."
 if ./scripts/smoke-test.sh "$ENVIRONMENT"; then
     echo ""
     echo "=== Deployment Successful ==="
