@@ -85,6 +85,42 @@ const CompletedGamesTab = () => {
 
     if (loading) return <div className="text-center mt-4">Loading completed games...</div>;
 
+    // Export filtered games to CSV
+    const exportToCSV = () => {
+        if (filteredGames.length === 0) return;
+
+        const headers = ['Pod #', 'Date', 'Winner', 'Win Condition', 'Participants'];
+        const rows = filteredGames.map(game => {
+            const winner = game.participants.find(p => p.result === 'win');
+            const isDraw = game.participants.some(p => p.result === 'draw');
+            const winnerName = isDraw ? 'Draw' : winner ? `${winner.firstname} ${winner.lastname}` : '-';
+            const participants = game.participants.map(p => `${p.firstname} ${p.lastname}`).join('; ');
+
+            return [
+                game.id,
+                new Date(game.created_at).toLocaleDateString(),
+                winnerName,
+                game.win_condition?.name || 'None',
+                participants
+            ];
+        });
+
+        const csvContent = [
+            headers.join(','),
+            ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `completed-games-${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     const renderCardView = () => (
         <div className="row">
             {filteredGames.map((game) => {
@@ -204,23 +240,35 @@ const CompletedGamesTab = () => {
         <div className="container mt-4">
             <div className="d-flex justify-content-between align-items-center mb-3">
                 <h3>Completed Games</h3>
-                <div className="btn-group" role="group">
+                <div className="d-flex gap-2">
                     <button
                         type="button"
-                        className={`btn ${viewMode === 'cards' ? 'btn-primary' : 'btn-outline-primary'}`}
-                        onClick={() => setViewMode('cards')}
+                        className="btn btn-outline-secondary"
+                        onClick={exportToCSV}
+                        disabled={filteredGames.length === 0}
+                        title="Export filtered games to CSV"
                     >
-                        <i className="fas fa-th-large me-1"></i>
-                        Cards
+                        <i className="fas fa-download me-1"></i>
+                        Export CSV
                     </button>
-                    <button
-                        type="button"
-                        className={`btn ${viewMode === 'table' ? 'btn-primary' : 'btn-outline-primary'}`}
-                        onClick={() => setViewMode('table')}
-                    >
-                        <i className="fas fa-table me-1"></i>
-                        Table
-                    </button>
+                    <div className="btn-group" role="group">
+                        <button
+                            type="button"
+                            className={`btn ${viewMode === 'cards' ? 'btn-primary' : 'btn-outline-primary'}`}
+                            onClick={() => setViewMode('cards')}
+                        >
+                            <i className="fas fa-th-large me-1"></i>
+                            Cards
+                        </button>
+                        <button
+                            type="button"
+                            className={`btn ${viewMode === 'table' ? 'btn-primary' : 'btn-outline-primary'}`}
+                            onClick={() => setViewMode('table')}
+                        >
+                            <i className="fas fa-table me-1"></i>
+                            Table
+                        </button>
+                    </div>
                 </div>
             </div>
 
