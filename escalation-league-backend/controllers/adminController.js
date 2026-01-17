@@ -1,5 +1,6 @@
 const db = require('../models/db');
 const redis = require('../utils/redisClient');
+const bcrypt = require('bcrypt');
 
 // Fetch All Users (Admin Only)
 const getAllUsers = async (req, res) => {
@@ -17,7 +18,7 @@ const getAllUsers = async (req, res) => {
                 'users.is_active'
             )
             .whereNot('users.id', 1); // Exclude the admin break-glass account
-        res.status(200).json({ users });
+        res.status(200).json(users);
     } catch (err) {
         console.error('Error fetching all users:', err);
         res.status(500).json({ error: 'Failed to fetch users.' });
@@ -83,30 +84,30 @@ const getUserDetails = async (req, res) => {
 
     try {
         const user = await db('users')
+            .leftJoin('roles', 'users.role_id', 'roles.id')
             .select(
-                'id',
-                'firstname',
-                'lastname',
-                'email',
-                'role',
-                'is_active',
-                'is_banned',
-                'ban_reason',
-                'wins',
-                'losses',
-                'current_commander',
-                'past_commanders',
-                'created_at',
-                'updated_at'
+                'users.id',
+                'users.firstname',
+                'users.lastname',
+                'users.email',
+                'users.role_id',
+                'roles.name as role',
+                'users.is_active',
+                'users.is_banned',
+                'users.ban_reason',
+                'users.wins',
+                'users.losses',
+                'users.current_commander',
+                'users.past_commanders'
             )
-            .where({ id })
+            .where('users.id', id)
             .first();
 
         if (!user) {
             return res.status(404).json({ error: 'User not found.' });
         }
 
-        res.status(200).json({ user });
+        res.status(200).json(user);
     } catch (err) {
         console.error('Error fetching user details:', err);
         res.status(500).json({ error: 'Failed to fetch user details.' });
@@ -177,7 +178,7 @@ const getPendingRoleRequests = async (req, res) => {
             )
             .where('role_requests.status', 'pending');
 
-        res.status(200).json({ requests });
+        res.status(200).json(requests);
     } catch (err) {
         console.error('Error fetching role requests:', err.message);
         res.status(500).json({ error: 'Failed to fetch role requests.' });

@@ -29,10 +29,11 @@ describe('User Routes', () => {
                 .set('Authorization', `Bearer ${token}`);
 
             expect(res.status).toBe(200);
-            expect(res.body).toHaveProperty('id', userId);
-            expect(res.body).toHaveProperty('firstname', 'John');
-            expect(res.body).toHaveProperty('lastname', 'Doe');
-            expect(res.body).not.toHaveProperty('password'); // Should not expose password
+            expect(res.body).toHaveProperty('user');
+            expect(res.body.user).toHaveProperty('id', userId);
+            expect(res.body.user).toHaveProperty('firstname', 'John');
+            expect(res.body.user).toHaveProperty('lastname', 'Doe');
+            expect(res.body.user).not.toHaveProperty('password'); // Should not expose password
         });
 
         it('should reject request without authentication', async () => {
@@ -66,8 +67,8 @@ describe('User Routes', () => {
                 .get('/api/users/profile')
                 .set('Authorization', `Bearer ${token}`);
 
-            expect(profileRes.body.firstname).toBe('Updated');
-            expect(profileRes.body.lastname).toBe('Name');
+            expect(profileRes.body.user.firstname).toBe('Updated');
+            expect(profileRes.body.user.lastname).toBe('Name');
         });
 
         it('should not allow updating email to existing email', async () => {
