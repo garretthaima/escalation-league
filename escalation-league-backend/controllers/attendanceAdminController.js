@@ -231,15 +231,28 @@ const getMatchupMatrix = async (req, res) => {
 // Create a pod with specified players (from pod suggestions)
 const createPodWithPlayers = async (req, res) => {
     const { session_id } = req.params;
-    const { player_ids } = req.body;
+    const { player_ids, turn_order } = req.body;
     const creatorId = req.user.id;
 
     if (!player_ids || !Array.isArray(player_ids) || player_ids.length < 3) {
         return res.status(400).json({ error: 'At least 3 player IDs are required.' });
     }
 
-    if (player_ids.length > 4) {
-        return res.status(400).json({ error: 'Maximum 4 players allowed in a pod.' });
+    if (player_ids.length > 6) {
+        return res.status(400).json({ error: 'Maximum 6 players allowed in a pod.' });
+    }
+
+    // Validate turn_order if provided
+    if (turn_order && Array.isArray(turn_order)) {
+        if (turn_order.length !== player_ids.length) {
+            return res.status(400).json({ error: 'Turn order must have same length as player_ids.' });
+        }
+        // Ensure all player_ids are in turn_order
+        const turnOrderSet = new Set(turn_order);
+        const playerIdSet = new Set(player_ids);
+        if (turn_order.some(id => !playerIdSet.has(id)) || player_ids.some(id => !turnOrderSet.has(id))) {
+            return res.status(400).json({ error: 'Turn order must contain exactly the same player IDs.' });
+        }
     }
 
     try {
@@ -273,10 +286,13 @@ const createPodWithPlayers = async (req, res) => {
             confirmation_status: 'active' // Start as active since admin created with full roster
         });
 
-        // Add all players to the pod
-        const playerInserts = player_ids.map(playerId => ({
+        // Add all players to the pod with turn order
+        // If turn_order is provided, use it; otherwise use player_ids order
+        const orderToUse = turn_order || player_ids;
+        const playerInserts = orderToUse.map((playerId, index) => ({
             pod_id: podId,
-            player_id: playerId
+            player_id: playerId,
+            turn_order: index + 1
         }));
         await db('game_players').insert(playerInserts);
 
@@ -285,7 +301,8 @@ const createPodWithPlayers = async (req, res) => {
         const participants = await db('game_players as gp')
             .join('users as u', 'gp.player_id', 'u.id')
             .where('gp.pod_id', podId)
-            .select('u.id as player_id', 'u.firstname', 'u.lastname', 'u.email', 'gp.result', 'gp.confirmed');
+            .select('u.id as player_id', 'u.firstname', 'u.lastname', 'u.email', 'gp.result', 'gp.confirmed', 'gp.turn_order')
+            .orderBy('gp.turn_order', 'asc');
 
         // Emit WebSocket event
         emitPodCreated(req.app, session.league_id, {

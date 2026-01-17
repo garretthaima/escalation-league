@@ -317,46 +317,83 @@ const ActiveGamesTab = () => {
                 <h3>Active Games</h3>
                 <div className="row">
                     {safeActivePods.length > 0 ? (
-                        safeActivePods.map((pod) => (
-                            <div key={pod.id} className="col-md-6 mb-4">
-                                <div className="card">
-                                    <div className="card-body">
-                                        <h5 className="card-title">Pod #{pod.id}</h5>
-                                        <div className="table-responsive">
-                                            <table className="table table-bordered">
-                                                <tbody>
-                                                    {Array.from({ length: 2 }).map((_, rowIndex) => (
-                                                        <tr key={rowIndex}>
-                                                            {Array.from({ length: 2 }).map((_, colIndex) => {
-                                                                const participantIndex = rowIndex * 2 + colIndex;
-                                                                const participantsArr = Array.isArray(pod.participants) ? pod.participants : [];
-                                                                const participant = participantsArr[participantIndex];
-                                                                return (
-                                                                    <td key={colIndex}>
-                                                                        {participant
-                                                                            ? `${participant.firstname} ${participant.lastname}`
-                                                                            : 'Empty'}
-                                                                    </td>
-                                                                );
-                                                            })}
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
+                        safeActivePods.map((pod) => {
+                            const participantsArr = Array.isArray(pod.participants) ? pod.participants : [];
+                            // Sort by turn_order if available
+                            const sortedParticipants = [...participantsArr].sort((a, b) =>
+                                (a.turn_order || 999) - (b.turn_order || 999)
+                            );
+                            const hasTurnOrder = sortedParticipants.some(p => p.turn_order);
+
+                            return (
+                                <div key={pod.id} className="col-md-6 mb-4">
+                                    <div className="card">
+                                        <div className="card-body">
+                                            <h5 className="card-title">Pod #{pod.id}</h5>
+                                            {hasTurnOrder ? (
+                                                /* Turn Order Display */
+                                                <div className="turn-order-display mb-3">
+                                                    <small className="text-muted d-block mb-2">
+                                                        <i className="fas fa-sort-numeric-down me-1"></i>
+                                                        Turn Order
+                                                    </small>
+                                                    <ol className="list-group list-group-numbered">
+                                                        {sortedParticipants.map((participant, idx) => (
+                                                            <li
+                                                                key={participant.player_id}
+                                                                className={`list-group-item d-flex justify-content-between align-items-center ${idx === 0 ? 'list-group-item-warning' : ''}`}
+                                                            >
+                                                                <span>
+                                                                    {participant.firstname} {participant.lastname}
+                                                                    {idx === 0 && (
+                                                                        <span className="badge bg-warning text-dark ms-2">
+                                                                            <i className="fas fa-play-circle me-1"></i>
+                                                                            First
+                                                                        </span>
+                                                                    )}
+                                                                </span>
+                                                            </li>
+                                                        ))}
+                                                    </ol>
+                                                </div>
+                                            ) : (
+                                                /* Fallback: Original 2x2 Grid */
+                                                <div className="table-responsive">
+                                                    <table className="table table-bordered">
+                                                        <tbody>
+                                                            {Array.from({ length: 2 }).map((_, rowIndex) => (
+                                                                <tr key={rowIndex}>
+                                                                    {Array.from({ length: 2 }).map((_, colIndex) => {
+                                                                        const participantIndex = rowIndex * 2 + colIndex;
+                                                                        const participant = participantsArr[participantIndex];
+                                                                        return (
+                                                                            <td key={colIndex}>
+                                                                                {participant
+                                                                                    ? `${participant.firstname} ${participant.lastname}`
+                                                                                    : 'Empty'}
+                                                                            </td>
+                                                                        );
+                                                                    })}
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            )}
+                                            {/* Declare Winner Button */}
+                                            {participantsArr.some((p) => String(p.player_id) === String(userId)) && (
+                                                <button
+                                                    className="btn btn-success mt-3"
+                                                    onClick={() => handleDeclareWinner(pod.id)}
+                                                >
+                                                    I Won!
+                                                </button>
+                                            )}
                                         </div>
-                                        {/* Declare Winner Button */}
-                                        {Array.isArray(pod.participants) && pod.participants.some((p) => String(p.player_id) === String(userId)) && (
-                                            <button
-                                                className="btn btn-success mt-3"
-                                                onClick={() => handleDeclareWinner(pod.id)}
-                                            >
-                                                I Won!
-                                            </button>
-                                        )}
                                     </div>
                                 </div>
-                            </div>
-                        ))
+                            );
+                        })
                     ) : (
                         <p className="text-center">No active games available.</p>
                     )}
