@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { updatePod, removeParticipant, addParticipant, toggleDQ, deletePod } from '../../api/podsAdminApi';
 import { getPods } from '../../api/podsApi';
@@ -28,6 +28,8 @@ const EditPodPage = () => {
     const [originalParticipants, setOriginalParticipants] = useState([]); // Track original state for comparison
     const [originalWinnerId, setOriginalWinnerId] = useState('');
     const [originalIsDraw, setOriginalIsDraw] = useState(false);
+    const [turnOrder, setTurnOrder] = useState([]); // Track turn order as array of player_ids
+    const [originalTurnOrder, setOriginalTurnOrder] = useState([]); // Track original turn order
 
     useEffect(() => {
         const fetchPodDetails = async () => {
@@ -35,8 +37,17 @@ const EditPodPage = () => {
                 const podDetails = await getPods({ podId });
                 if (podDetails) {
                     setPod(podDetails);
-                    setParticipants(podDetails.participants || []);
-                    setOriginalParticipants(JSON.parse(JSON.stringify(podDetails.participants || []))); // Deep copy
+                    const participantsData = podDetails.participants || [];
+                    setParticipants(participantsData);
+                    setOriginalParticipants(JSON.parse(JSON.stringify(participantsData))); // Deep copy
+
+                    // Initialize turn order from participants (sorted by turn_order if available)
+                    const sortedParticipants = [...participantsData].sort((a, b) =>
+                        (a.turn_order || 999) - (b.turn_order || 999)
+                    );
+                    const initialTurnOrder = sortedParticipants.map(p => p.player_id);
+                    setTurnOrder(initialTurnOrder);
+                    setOriginalTurnOrder([...initialTurnOrder]);
 
                     const winner = podDetails.participants.find(
                         (participant) => participant.result === 'win'
@@ -97,6 +108,20 @@ const EditPodPage = () => {
             return true;
         }
 
+        // Check if turn order changed
+        if (turnOrder.length !== originalTurnOrder.length ||
+            turnOrder.some((id, idx) => id !== originalTurnOrder[idx])) {
+            return true;
+        }
+
+        // Check if original participants had no turn_order set (all null/undefined)
+        // If so, saving will set the turn order for the first time
+        const hadNoTurnOrder = originalParticipants.length > 0 &&
+            originalParticipants.every(p => !p.turn_order);
+        if (hadNoTurnOrder && turnOrder.length > 0) {
+            return true;
+        }
+
         // Check if any DQ status changed
         const dqChanged = participants.some((p, index) => {
             const original = originalParticipants[index];
@@ -110,9 +135,53 @@ const EditPodPage = () => {
         return false;
     };
 
+    // Randomize turn order using Fisher-Yates shuffle
+    const randomizeTurnOrder = useCallback(() => {
+        setTurnOrder(prev => {
+            const shuffled = [...prev];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        });
+        showToast('Turn order randomized', 'info');
+    }, [showToast]);
+
+    // Move player up in turn order
+    const movePlayerUp = useCallback((playerId) => {
+        setTurnOrder(prev => {
+            const order = [...prev];
+            const index = order.indexOf(playerId);
+            if (index <= 0) return prev;
+            [order[index], order[index - 1]] = [order[index - 1], order[index]];
+            return order;
+        });
+    }, []);
+
+    // Move player down in turn order
+    const movePlayerDown = useCallback((playerId) => {
+        setTurnOrder(prev => {
+            const order = [...prev];
+            const index = order.indexOf(playerId);
+            if (index === -1 || index >= order.length - 1) return prev;
+            [order[index], order[index + 1]] = [order[index + 1], order[index]];
+            return order;
+        });
+    }, []);
+
+    // Get participant by player_id
+    const getParticipantById = useCallback((playerId) => {
+        return participants.find(p => p.player_id === playerId) ||
+               pendingAdditions.find(p => p.player_id === playerId);
+    }, [participants, pendingAdditions]);
+
     const handleRemoveParticipant = (participantId) => {
         // Mark for removal instead of actually removing from state
         setPendingRemovals([...pendingRemovals, participantId]);
+
+        // Remove from turn order
+        setTurnOrder(prev => prev.filter(id => id !== participantId));
 
         // If removing the winner, clear winner selection
         if (winnerId == participantId) {
@@ -125,6 +194,8 @@ const EditPodPage = () => {
 
     const handleUndoRemove = (participantId) => {
         setPendingRemovals(pendingRemovals.filter(id => id !== participantId));
+        // Re-add to turn order at the end
+        setTurnOrder(prev => [...prev, participantId]);
         showToast('Removal cancelled', 'info');
     };
 
@@ -167,6 +238,8 @@ const EditPodPage = () => {
         };
 
         setPendingAdditions([...pendingAdditions, newParticipant]);
+        // Add to turn order at the end
+        setTurnOrder(prev => [...prev, userToAdd.id]);
         showToast('Participant marked for addition', 'info');
         setShowAddModal(false);
         setSelectedUserId('');
@@ -174,6 +247,8 @@ const EditPodPage = () => {
 
     const handleUndoAdd = (participantId) => {
         setPendingAdditions(pendingAdditions.filter(p => p.player_id !== participantId));
+        // Remove from turn order
+        setTurnOrder(prev => prev.filter(id => id !== participantId));
         showToast('Addition cancelled', 'info');
     };
 
@@ -236,10 +311,14 @@ const EditPodPage = () => {
                     result = 'loss';
                 }
 
+                // Get turn order position (1-indexed)
+                const turnOrderPosition = turnOrder.indexOf(participant.player_id) + 1;
+
                 return {
                     player_id: participant.player_id,
                     result: result,
                     confirmed: 1,
+                    turn_order: turnOrderPosition > 0 ? turnOrderPosition : null,
                 };
             }),
             result: isDraw ? 'draw' : 'win',
@@ -491,6 +570,87 @@ const EditPodPage = () => {
                                 </li>
                             ))}
                         </ul>
+                    </div>
+
+                    {/* Turn Order Card */}
+                    <div className="card mb-4">
+                        <div className="card-header d-flex justify-content-between align-items-center">
+                            <h5 className="mb-0">
+                                <i className="fas fa-sort-numeric-down me-2"></i>
+                                Turn Order
+                            </h5>
+                            <button
+                                className="btn btn-sm btn-outline-secondary"
+                                onClick={randomizeTurnOrder}
+                                title="Randomize turn order"
+                                disabled={turnOrder.length < 2}
+                            >
+                                <i className="fas fa-random me-1"></i>
+                                Randomize
+                            </button>
+                        </div>
+                        <div className="card-body">
+                            {turnOrder.length === 0 ? (
+                                <p className="text-muted mb-0">No players in pod yet.</p>
+                            ) : (
+                                <div className="turn-order-list">
+                                    {turnOrder.map((playerId, index) => {
+                                        const participant = getParticipantById(playerId);
+                                        if (!participant) return null;
+
+                                        const isPendingRemoval = pendingRemovals.includes(playerId);
+                                        const isNew = pendingAdditions.some(p => p.player_id === playerId);
+
+                                        return (
+                                            <div
+                                                key={playerId}
+                                                className={`turn-order-item d-flex align-items-center justify-content-between p-2 mb-1 rounded ${
+                                                    isPendingRemoval ? 'opacity-50' : ''
+                                                }`}
+                                            >
+                                                <div className="d-flex align-items-center">
+                                                    <span className={`turn-number badge ${index === 0 ? 'bg-warning text-dark' : 'bg-secondary'} me-2`}>
+                                                        {index + 1}
+                                                    </span>
+                                                    <span>{participant.firstname} {participant.lastname}</span>
+                                                    {index === 0 && (
+                                                        <span className="badge bg-warning text-dark ms-2">
+                                                            <i className="fas fa-play-circle me-1"></i>
+                                                            First
+                                                        </span>
+                                                    )}
+                                                    {isNew && (
+                                                        <span className="badge bg-info text-dark ms-2">New</span>
+                                                    )}
+                                                </div>
+                                                <div className="btn-group btn-group-sm">
+                                                    <button
+                                                        className="btn btn-outline-secondary"
+                                                        onClick={() => movePlayerUp(playerId)}
+                                                        disabled={index === 0}
+                                                        title="Move up"
+                                                    >
+                                                        <i className="fas fa-chevron-up"></i>
+                                                    </button>
+                                                    <button
+                                                        className="btn btn-outline-secondary"
+                                                        onClick={() => movePlayerDown(playerId)}
+                                                        disabled={index === turnOrder.length - 1}
+                                                        title="Move down"
+                                                    >
+                                                        <i className="fas fa-chevron-down"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                            <small className="text-muted d-block mt-2">
+                                <i className="fas fa-info-circle me-1"></i>
+                                Use arrows to reorder or click Randomize
+                            </small>
+                        </div>
                     </div>
                 </div>
 

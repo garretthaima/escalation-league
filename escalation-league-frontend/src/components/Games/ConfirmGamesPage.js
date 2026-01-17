@@ -135,7 +135,7 @@ const ConfirmGamesTab = () => {
                     {safeGames.map((pod) => (
                         <div key={pod.id} className="col-md-6 mb-4">
                             <div className="card">
-                                <div className="card-header" style={{ backgroundColor: '#6c757d', color: 'white' }}>
+                                <div className="card-header bg-secondary text-white">
                                     <h5 className="mb-0">
                                         <i className="fas fa-clock me-2"></i>
                                         Pod #{pod.id} - Pending Confirmation

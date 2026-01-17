@@ -10,26 +10,93 @@ const {
 } = require('../utils/socketEmitter');
 
 // Create a Pod
+// Supports two modes:
+// 1. Simple mode: { leagueId } - creates open pod with creator as first player
+// 2. Full mode: { league_id, player_ids, turn_order? } - creates active pod with all players
 const createPod = async (req, res) => {
-    const { leagueId } = req.body;
+    const { leagueId, league_id, player_ids, turn_order } = req.body;
     const creatorId = req.user.id;
+    const effectiveLeagueId = leagueId || league_id;
 
     logger.info('Pod creation requested', {
         userId: creatorId,
-        leagueId
+        leagueId: effectiveLeagueId,
+        hasPlayerIds: !!player_ids
     });
 
     try {
-        // Create the pod and get the inserted ID
+        // Mode 2: Create pod with specific players (from pod suggestions)
+        if (player_ids && Array.isArray(player_ids) && player_ids.length >= 3) {
+            if (player_ids.length > 6) {
+                return res.status(400).json({ error: 'Maximum 6 players allowed in a pod.' });
+            }
+
+            // Validate turn_order if provided
+            if (turn_order && Array.isArray(turn_order)) {
+                if (turn_order.length !== player_ids.length) {
+                    return res.status(400).json({ error: 'Turn order must have same length as player_ids.' });
+                }
+                const turnOrderSet = new Set(turn_order);
+                const playerIdSet = new Set(player_ids);
+                if (turn_order.some(id => !playerIdSet.has(id)) || player_ids.some(id => !turnOrderSet.has(id))) {
+                    return res.status(400).json({ error: 'Turn order must contain exactly the same player IDs.' });
+                }
+            }
+
+            // Create the pod as active (since we have full roster)
+            const [podId] = await db('game_pods').insert({
+                league_id: effectiveLeagueId,
+                creator_id: creatorId,
+                confirmation_status: 'active'
+            });
+
+            // Add all players with turn order
+            const orderToUse = turn_order || player_ids;
+            const playerInserts = orderToUse.map((playerId, index) => ({
+                pod_id: podId,
+                player_id: playerId,
+                turn_order: index + 1
+            }));
+            await db('game_players').insert(playerInserts);
+
+            // Fetch pod with participants for response
+            const pod = await db('game_pods').where({ id: podId }).first();
+            const participants = await db('game_players as gp')
+                .join('users as u', 'gp.player_id', 'u.id')
+                .where('gp.pod_id', podId)
+                .select('u.id as player_id', 'u.firstname', 'u.lastname', 'u.email', 'gp.result', 'gp.confirmed', 'gp.turn_order')
+                .orderBy('gp.turn_order', 'asc');
+
+            logger.info('Pod created with players', {
+                userId: creatorId,
+                leagueId: effectiveLeagueId,
+                podId,
+                playerCount: player_ids.length
+            });
+
+            // Emit WebSocket event
+            emitPodCreated(req.app, effectiveLeagueId, {
+                id: podId,
+                league_id: effectiveLeagueId,
+                creator_id: creatorId,
+                confirmation_status: 'active',
+                participants
+            });
+
+            return res.status(201).json({ ...pod, participants });
+        }
+
+        // Mode 1: Simple pod creation (original behavior)
         const [podId] = await db('game_pods').insert({
-            league_id: leagueId,
+            league_id: effectiveLeagueId,
             creator_id: creatorId,
         });
 
-        // Add the creator as a participant in the pod
+        // Add the creator as a participant in the pod (turn_order 1)
         await db('game_players').insert({
             pod_id: podId,
             player_id: creatorId,
+            turn_order: 1
         });
 
         // Fetch the created pod to return it in the response
@@ -43,14 +110,14 @@ const createPod = async (req, res) => {
 
         logger.info('Pod created successfully', {
             userId: creatorId,
-            leagueId,
+            leagueId: effectiveLeagueId,
             podId
         });
 
         // Emit WebSocket event with complete pod data including participants
-        emitPodCreated(req.app, leagueId, {
+        emitPodCreated(req.app, effectiveLeagueId, {
             id: podId,
-            league_id: leagueId,
+            league_id: effectiveLeagueId,
             creator_id: creatorId,
             confirmation_status: 'open',
             participants: [{
@@ -59,7 +126,8 @@ const createPod = async (req, res) => {
                 lastname: creator.lastname,
                 email: creator.email,
                 result: null,
-                confirmed: 0
+                confirmed: 0,
+                turn_order: 1
             }]
         });
 
@@ -67,7 +135,7 @@ const createPod = async (req, res) => {
     } catch (err) {
         logger.error('Error creating pod', err, {
             userId: creatorId,
-            leagueId
+            leagueId: effectiveLeagueId
         });
         res.status(500).json({ error: 'Failed to create pod.' });
     }
@@ -100,10 +168,11 @@ const joinPod = async (req, res) => {
             return res.status(400).json({ error: 'You are already part of this pod.' });
         }
 
-        // Add the user to the pod
+        // Add the user to the pod with next turn order
         await db('game_players').insert({
             pod_id: podId,
             player_id: playerId,
+            turn_order: participantCount + 1
         });
 
         // Fetch user details for WebSocket event
@@ -331,9 +400,11 @@ const getPods = async (req, res) => {
                         'u.lastname',
                         'u.email',
                         'gp.result',
-                        'gp.confirmed'
+                        'gp.confirmed',
+                        'gp.turn_order'
                     )
-                    .where('gp.pod_id', pod.id);
+                    .where('gp.pod_id', pod.id)
+                    .orderBy('gp.turn_order', 'asc');
 
                 return { ...pod, participants };
             })
