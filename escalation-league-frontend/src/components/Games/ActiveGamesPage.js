@@ -358,6 +358,19 @@ const ActiveGamesTab = () => {
         }
     };
 
+    const confirmDeclareDraw = async () => {
+        setShowWinModal(false);
+
+        try {
+            await logPodResult(selectedPodId, { result: 'draw' });
+            showToast('Draw declared! Waiting for other players to confirm.', 'success');
+            // WebSocket event will update the UI
+        } catch (err) {
+            console.error('Error declaring draw:', err.response?.data?.error || err.message);
+            showToast(err.response?.data?.error || 'Failed to declare draw.', 'error');
+        }
+    };
+
     if (loading) {
         return <div className="text-center mt-4">Loading pods...</div>;
     }
@@ -550,20 +563,27 @@ const ActiveGamesTab = () => {
                 </div>
             </div>
 
-            {/* Bootstrap Modal for Win Confirmation */}
+            {/* Bootstrap Modal for Game Result Declaration */}
             <div className={`modal fade ${showWinModal ? 'show' : ''}`} style={{ display: showWinModal ? 'block' : 'none' }} tabIndex="-1">
                 <div className="modal-dialog">
                     <div className="modal-content">
                         <div className="modal-header">
-                            <h5 className="modal-title">Declare Victory</h5>
+                            <h5 className="modal-title">Declare Game Result</h5>
                             <button type="button" className="btn-close" onClick={() => setShowWinModal(false)} aria-label="Close"></button>
                         </div>
                         <div className="modal-body">
-                            <p>Are you sure you won this game? This will notify other players to confirm the result.</p>
+                            <p>How did this game end? This will notify other players to confirm the result.</p>
                         </div>
                         <div className="modal-footer">
                             <button type="button" className="btn btn-secondary" onClick={() => setShowWinModal(false)}>Cancel</button>
-                            <button type="button" className="btn btn-success" onClick={confirmDeclareWinner}>Yes, I Won!</button>
+                            <button type="button" className="btn btn-outline-secondary" onClick={confirmDeclareDraw}>
+                                <i className="fas fa-handshake me-1"></i>
+                                Declare Draw
+                            </button>
+                            <button type="button" className="btn btn-success" onClick={confirmDeclareWinner}>
+                                <i className="fas fa-trophy me-1"></i>
+                                I Won!
+                            </button>
                         </div>
                     </div>
                 </div>

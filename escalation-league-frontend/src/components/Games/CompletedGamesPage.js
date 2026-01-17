@@ -145,6 +145,7 @@ const CompletedGamesTab = () => {
                     <tr>
                         <th>Pod #</th>
                         <th>Date</th>
+                        <th>Winner</th>
                         <th>Your Result</th>
                         <th>Win Condition</th>
                         <th>Participants</th>
@@ -155,11 +156,22 @@ const CompletedGamesTab = () => {
                         const userParticipant = game.participants.find(p => p.player_id === userId);
                         const userResult = userParticipant?.result || 'Not Played';
                         const isUserInGame = !!userParticipant;
+                        const winner = game.participants.find(p => p.result === 'win');
+                        const isDraw = game.participants.some(p => p.result === 'draw');
 
                         return (
                             <tr key={game.id}>
                                 <td>#{game.id}</td>
                                 <td>{new Date(game.created_at).toLocaleDateString()}</td>
+                                <td>
+                                    {isDraw ? (
+                                        <span className="text-muted">Draw</span>
+                                    ) : winner ? (
+                                        <span>{winner.firstname} {winner.lastname}</span>
+                                    ) : (
+                                        <span className="text-muted">-</span>
+                                    )}
+                                </td>
                                 <td>
                                     {isUserInGame ? (
                                         <span className={`badge ${userResult === 'win' ? 'bg-success' : userResult === 'loss' ? 'bg-danger' : 'bg-secondary'}`}>
