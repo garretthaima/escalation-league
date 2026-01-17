@@ -3,10 +3,14 @@
  * @returns { Promise<void> }
  */
 exports.up = async function (knex) {
-    await knex.schema.alterTable('game_players', (table) => {
-        // Turn order position (1-6 for players, null if not set)
-        table.integer('turn_order').unsigned().nullable();
-    });
+    // Check if column already exists
+    const hasColumn = await knex.schema.hasColumn('game_players', 'turn_order');
+    if (!hasColumn) {
+        await knex.schema.alterTable('game_players', (table) => {
+            // Turn order position (1-6 for players, null if not set)
+            table.integer('turn_order').unsigned().nullable();
+        });
+    }
 };
 
 /**
