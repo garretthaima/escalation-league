@@ -1,6 +1,7 @@
 const request = require('supertest');
 const { getAuthToken, getAuthTokenWithRole } = require('../helpers/authHelper');
 const { createTestLeague, addUserToLeague, createSignupRequest } = require('../helpers/leaguesHelper');
+const db = require('../helpers/testDb');
 
 jest.mock('../../models/db', () => require('../helpers/testDb'));
 jest.mock('../../utils/settingsUtils', () => ({
@@ -391,5 +392,205 @@ describe('User-League Routes', () => {
         // TODO: Test include game history in league
         // TODO: Test include commander performance
         // TODO: Test include achievements/awards
+    });
+
+    describe('GET /api/user-leagues/:league_id/participants/:user_id/turn-order-stats', () => {
+        it('should return empty stats when user has no completed games', async () => {
+            const leagueId = await createTestLeague();
+            const { token, userId } = await getAuthTokenWithRole('league_user', ['league_read']);
+            await addUserToLeague(userId, leagueId);
+
+            const res = await request(app)
+                .get(`/api/user-leagues/${leagueId}/participants/${userId}/turn-order-stats`)
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.status).toBe(200);
+            expect(res.body.turnOrderStats).toEqual([]);
+            expect(res.body.totalGames).toBe(0);
+        });
+
+        it('should return 401 without authentication', async () => {
+            const leagueId = await createTestLeague();
+
+            const res = await request(app)
+                .get(`/api/user-leagues/${leagueId}/participants/1/turn-order-stats`);
+
+            expect(res.status).toBe(401);
+        });
+
+        it('should calculate user turn order win rates correctly', async () => {
+            const leagueId = await createTestLeague();
+            const { token, userId } = await getAuthTokenWithRole('league_user', ['league_read']);
+            const { userId: user2Id } = await getAuthTokenWithRole('league_user', ['league_read']);
+            const { userId: user3Id } = await getAuthTokenWithRole('league_user', ['league_read']);
+            const { userId: user4Id } = await getAuthTokenWithRole('league_user', ['league_read']);
+
+            await addUserToLeague(userId, leagueId);
+            await addUserToLeague(user2Id, leagueId);
+            await addUserToLeague(user3Id, leagueId);
+            await addUserToLeague(user4Id, leagueId);
+
+            // Create first game: user is 1st and wins
+            const [pod1Id] = await db('game_pods').insert({
+                league_id: leagueId,
+                creator_id: userId,
+                confirmation_status: 'complete'
+            });
+
+            await db('game_players').insert([
+                { pod_id: pod1Id, player_id: userId, turn_order: 1, result: 'win', confirmed: 1 },
+                { pod_id: pod1Id, player_id: user2Id, turn_order: 2, result: 'loss', confirmed: 1 },
+                { pod_id: pod1Id, player_id: user3Id, turn_order: 3, result: 'loss', confirmed: 1 },
+                { pod_id: pod1Id, player_id: user4Id, turn_order: 4, result: 'loss', confirmed: 1 }
+            ]);
+
+            // Create second game: user is 2nd and loses
+            const [pod2Id] = await db('game_pods').insert({
+                league_id: leagueId,
+                creator_id: user2Id,
+                confirmation_status: 'complete'
+            });
+
+            await db('game_players').insert([
+                { pod_id: pod2Id, player_id: user2Id, turn_order: 1, result: 'win', confirmed: 1 },
+                { pod_id: pod2Id, player_id: userId, turn_order: 2, result: 'loss', confirmed: 1 },
+                { pod_id: pod2Id, player_id: user3Id, turn_order: 3, result: 'loss', confirmed: 1 },
+                { pod_id: pod2Id, player_id: user4Id, turn_order: 4, result: 'loss', confirmed: 1 }
+            ]);
+
+            const res = await request(app)
+                .get(`/api/user-leagues/${leagueId}/participants/${userId}/turn-order-stats`)
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.status).toBe(200);
+            expect(res.body.totalGames).toBe(2);
+            expect(Array.isArray(res.body.turnOrderStats)).toBe(true);
+
+            // Check first position stats (1 win, 1 game = 100%)
+            const firstPosition = res.body.turnOrderStats.find(s => s.position === 1);
+            expect(firstPosition).toBeDefined();
+            expect(firstPosition.wins).toBe(1);
+            expect(firstPosition.gamesPlayed).toBe(1);
+            expect(firstPosition.winRate).toBe(100);
+
+            // Check second position stats (0 wins, 1 game = 0%)
+            const secondPosition = res.body.turnOrderStats.find(s => s.position === 2);
+            expect(secondPosition).toBeDefined();
+            expect(secondPosition.wins).toBe(0);
+            expect(secondPosition.gamesPlayed).toBe(1);
+            expect(secondPosition.winRate).toBe(0);
+        });
+
+        it('should show limited data message when less than 5 games', async () => {
+            const leagueId = await createTestLeague();
+            const { token, userId } = await getAuthTokenWithRole('league_user', ['league_read']);
+            const { userId: user2Id } = await getAuthTokenWithRole('league_user', ['league_read']);
+
+            await addUserToLeague(userId, leagueId);
+            await addUserToLeague(user2Id, leagueId);
+
+            // Create one game
+            const [podId] = await db('game_pods').insert({
+                league_id: leagueId,
+                creator_id: userId,
+                confirmation_status: 'complete'
+            });
+
+            await db('game_players').insert([
+                { pod_id: podId, player_id: userId, turn_order: 1, result: 'win', confirmed: 1 },
+                { pod_id: podId, player_id: user2Id, turn_order: 2, result: 'loss', confirmed: 1 }
+            ]);
+
+            const res = await request(app)
+                .get(`/api/user-leagues/${leagueId}/participants/${userId}/turn-order-stats`)
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.status).toBe(200);
+            expect(res.body.message).toBe('Limited data - statistics may not be statistically significant');
+        });
+
+        it('should only return stats for specified user', async () => {
+            const leagueId = await createTestLeague();
+            const { token, userId } = await getAuthTokenWithRole('league_user', ['league_read']);
+            const { userId: user2Id } = await getAuthTokenWithRole('league_user', ['league_read']);
+
+            await addUserToLeague(userId, leagueId);
+            await addUserToLeague(user2Id, leagueId);
+
+            // Create game where user2 wins
+            const [podId] = await db('game_pods').insert({
+                league_id: leagueId,
+                creator_id: userId,
+                confirmation_status: 'complete'
+            });
+
+            await db('game_players').insert([
+                { pod_id: podId, player_id: userId, turn_order: 1, result: 'loss', confirmed: 1 },
+                { pod_id: podId, player_id: user2Id, turn_order: 2, result: 'win', confirmed: 1 }
+            ]);
+
+            // Get stats for user (not user2)
+            const res = await request(app)
+                .get(`/api/user-leagues/${leagueId}/participants/${userId}/turn-order-stats`)
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.status).toBe(200);
+            expect(res.body.totalGames).toBe(1);
+
+            // User should have 0 wins at position 1
+            const firstPosition = res.body.turnOrderStats.find(s => s.position === 1);
+            expect(firstPosition).toBeDefined();
+            expect(firstPosition.wins).toBe(0);
+            expect(firstPosition.gamesPlayed).toBe(1);
+        });
+
+        it('should only include games from specified league', async () => {
+            const league1Id = await createTestLeague({ name: 'League 1' });
+            const league2Id = await createTestLeague({ name: 'League 2' });
+            const { token, userId } = await getAuthTokenWithRole('league_user', ['league_read']);
+            const { userId: user2Id } = await getAuthTokenWithRole('league_user', ['league_read']);
+
+            await addUserToLeague(userId, league1Id);
+            await addUserToLeague(userId, league2Id);
+            await addUserToLeague(user2Id, league1Id);
+            await addUserToLeague(user2Id, league2Id);
+
+            // Create game in league 1
+            const [pod1Id] = await db('game_pods').insert({
+                league_id: league1Id,
+                creator_id: userId,
+                confirmation_status: 'complete'
+            });
+
+            await db('game_players').insert([
+                { pod_id: pod1Id, player_id: userId, turn_order: 1, result: 'win', confirmed: 1 },
+                { pod_id: pod1Id, player_id: user2Id, turn_order: 2, result: 'loss', confirmed: 1 }
+            ]);
+
+            // Create game in league 2
+            const [pod2Id] = await db('game_pods').insert({
+                league_id: league2Id,
+                creator_id: userId,
+                confirmation_status: 'complete'
+            });
+
+            await db('game_players').insert([
+                { pod_id: pod2Id, player_id: userId, turn_order: 1, result: 'loss', confirmed: 1 },
+                { pod_id: pod2Id, player_id: user2Id, turn_order: 2, result: 'win', confirmed: 1 }
+            ]);
+
+            // Get stats only for league 1
+            const res = await request(app)
+                .get(`/api/user-leagues/${league1Id}/participants/${userId}/turn-order-stats`)
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.status).toBe(200);
+            expect(res.body.totalGames).toBe(1);
+
+            // Should only show win from league 1
+            const firstPosition = res.body.turnOrderStats.find(s => s.position === 1);
+            expect(firstPosition.wins).toBe(1);
+            expect(firstPosition.winRate).toBe(100);
+        });
     });
 });

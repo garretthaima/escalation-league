@@ -76,3 +76,9 @@ export const getOpponentMatchups = async (leagueId, userId) => {
     const response = await axiosInstance.get(`/user-leagues/${leagueId}/participants/${userId}/matchups`);
     return response.data;
 };
+
+// Get turn order win stats for a participant
+export const getTurnOrderStats = async (leagueId, userId) => {
+    const response = await axiosInstance.get(`/user-leagues/${leagueId}/participants/${userId}/turn-order-stats`);
+    return response.data;
+};
