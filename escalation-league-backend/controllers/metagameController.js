@@ -9,24 +9,13 @@ const getMetagameStats = async (req, res) => {
     try {
         const { leagueId } = req.params;
 
-        console.log('=== METAGAME DEBUG ===');
-        console.log('Fetching metagame for leagueId:', leagueId);
-
         // Get all decks for users in the specified league
         const decksInLeague = await db('user_leagues as ul')
             .join('decks as d', 'ul.deck_id', 'd.id')
             .where('ul.league_id', leagueId)
             .select('d.id', 'd.name', 'd.commanders', 'd.cards', 'd.platform');
 
-        console.log('Found decks:', decksInLeague.length);
-        if (decksInLeague.length > 0) {
-            console.log('First deck:', decksInLeague[0].name);
-            console.log('First deck commanders:', decksInLeague[0].commanders);
-            console.log('First deck cards sample:', JSON.stringify(decksInLeague[0].cards).substring(0, 500));
-        }
-
         if (decksInLeague.length === 0) {
-            console.log('No decks found, returning empty response');
             return res.status(200).json({
                 totalDecks: 0,
                 message: 'No decks found in this league'
@@ -426,13 +415,9 @@ const getMetagameStats = async (req, res) => {
                 const frontFaceNames = staplesList.map(s => s.name.split(' // ')[0]);
                 const allSearchNames = [...new Set([...stapleNames, ...frontFaceNames])];
 
-                console.log('Fetching staple images for:', stapleNames);
                 const stapleCards = await scryfallDb('cards')
                     .whereIn('name', allSearchNames)
                     .select('name', 'id', 'image_uris', 'card_faces');
-
-                console.log('Found staple cards:', stapleCards.length);
-                console.log('Sample card:', stapleCards[0]);
 
                 // Helper to parse image_uris
                 const parseImageUris = (field) => {
@@ -488,7 +473,6 @@ const getMetagameStats = async (req, res) => {
                         image_uris: scryfallData?.image_uris || []
                     };
                 });
-                console.log('Staples with images:', staples.slice(0, 2));
             } catch (err) {
                 console.error('Error fetching staple images:', err);
                 // If error, use staples without images
@@ -616,20 +600,6 @@ const getMetagameStats = async (req, res) => {
             keywords: categorizedKeywords,
             commanderSynergies: topCommanderSynergies
         };
-
-        console.log('Response summary:', {
-            totalDecks: response.totalDecks,
-            topCardsLength: response.topCards?.length,
-            topCommandersLength: response.topCommanders?.length,
-            staples: response.staples?.length,
-            manaCurveKeys: response.manaCurve?.distribution?.length,
-            colorCounts: colorCounts,
-            colorDistributionLength: response.colorDistribution?.length,
-            interaction: response.interaction,
-            resources: response.resources,
-            winConditions: response.winConditions
-        });
-        console.log('Staples data sample:', response.staples?.slice(0, 3));
 
         res.status(200).json(response);
 

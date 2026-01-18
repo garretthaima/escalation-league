@@ -7,7 +7,7 @@ const { getOpponentMatchups } = require('../services/gameService');
 
 // Sign up for a league
 const signUpForLeague = async (req, res) => {
-    const { leagueId, commander, commanderPartner } = req.body;
+    const { leagueId, commander, commanderPartner, decklist_url } = req.body;
     const userId = req.user.id; // Assuming user ID is available from authentication middleware
 
     try {

@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom'; // Import Link from react-router-dom
+import { Link } from 'react-router-dom';
 import { getLeagueStats } from '../../api/leaguesApi';
 import { isUserInLeague } from '../../api/userLeaguesApi';
 import { usePermissions } from '../context/PermissionsProvider';
+import { SkeletonLeaderboard, SkeletonText } from '../Shared/Skeleton';
 
 const LeagueLeaderboard = () => {
     const { permissions, loading: loadingPermissions } = usePermissions(); // Use PermissionsProvider
@@ -85,7 +86,15 @@ const LeagueLeaderboard = () => {
     };
 
     if (loadingPermissions || loading) {
-        return <div className="text-center mt-5">Loading...</div>; // Centered loading indicator
+        return (
+            <div className="container mt-5">
+                <h1 className="text-center mb-4">League Leaderboard</h1>
+                <div className="text-center mb-3">
+                    <SkeletonText width="50" className="mx-auto" />
+                </div>
+                <SkeletonLeaderboard rows={10} />
+            </div>
+        );
     }
 
     if (error) {
