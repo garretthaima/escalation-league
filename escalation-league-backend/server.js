@@ -8,6 +8,7 @@ const logger = require('./utils/logger');
 const requestLogger = require('./middlewares/requestLogger');
 const discordBot = require('./services/discordBot');
 const { setIo } = require('./utils/socketEmitter');
+const { swaggerUi, specs } = require('./swagger');
 
 const app = express();
 const server = http.createServer(app);
@@ -80,12 +81,18 @@ app.use('/api', apiLimiter);
 
   // Health check endpoint (before routes, no auth required)
   app.get('/api/health', (req, res) => {
-    res.status(200).json({ 
-      status: 'ok', 
+    res.status(200).json({
+      status: 'ok',
       timestamp: new Date().toISOString(),
       uptime: process.uptime()
     });
   });
+
+  // Swagger API documentation
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, {
+    customCss: '.swagger-ui .topbar { display: none }',
+    customSiteTitle: 'Escalation League API Docs',
+  }));
 
   // Routes
   const routes = require('./routes');
