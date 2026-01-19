@@ -65,11 +65,12 @@ const updatePod = async (req, res) => {
         if (participants) {
             console.log('Updating participants:', participants);
             await db('game_players').where({ pod_id: podId }).del();
-            const participantInserts = participants.map((participant) => ({
+            const participantInserts = participants.map((participant, index) => ({
                 pod_id: podId,
                 player_id: participant.player_id,
                 result: participant.result || null,
                 confirmed: participant.confirmed || 0,
+                turn_order: participant.turn_order || (index + 1),
             }));
             console.log('Inserting participants:', participantInserts);
             await db('game_players').insert(participantInserts);
@@ -158,7 +159,8 @@ const updatePod = async (req, res) => {
                 if (pod) {
                     const participants = await db('game_players')
                         .where({ pod_id: podId })
-                        .select('player_id', 'result', 'confirmed');
+                        .select('player_id', 'result', 'confirmed', 'turn_order')
+                        .orderBy('turn_order', 'asc');
                     return { ...pod, participants };
                 }
                 return null;
@@ -282,12 +284,20 @@ const addParticipant = async (req, res) => {
             }
         }
 
-        // Add the participant
+        // Get max turn_order to assign next position
+        const maxTurnOrder = await db('game_players')
+            .where({ pod_id: podId })
+            .max('turn_order as max')
+            .first();
+        const nextTurnOrder = (maxTurnOrder?.max || 0) + 1;
+
+        // Add the participant with turn_order
         await db('game_players').insert({
             pod_id: podId,
             player_id: playerId,
             result: null,
-            confirmed: 0
+            confirmed: 0,
+            turn_order: nextTurnOrder
         });
 
         // If adding 4th player to an open pod, move to active
