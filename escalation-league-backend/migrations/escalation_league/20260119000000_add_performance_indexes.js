@@ -30,8 +30,6 @@ exports.up = async function (knex) {
     await knex.schema.alterTable('user_leagues', (table) => {
         table.index('user_id', 'idx_user_leagues_user_id');
         table.index('league_id', 'idx_user_leagues_league_id');
-        table.index('status', 'idx_user_leagues_status');
-        table.index(['league_id', 'status'], 'idx_user_leagues_league_status');
     });
     console.log('✅ user_leagues indexes added');
 
@@ -107,8 +105,6 @@ exports.down = async function (knex) {
     await knex.schema.alterTable('user_leagues', (table) => {
         table.dropIndex([], 'idx_user_leagues_user_id');
         table.dropIndex([], 'idx_user_leagues_league_id');
-        table.dropIndex([], 'idx_user_leagues_status');
-        table.dropIndex([], 'idx_user_leagues_league_status');
     });
 
     // league_signup_requests indexes
