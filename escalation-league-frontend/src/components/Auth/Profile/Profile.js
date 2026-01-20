@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Tabs, Tab } from 'react-bootstrap';
 import OverviewTab from './OverviewTab';
 import SettingsTab from './SettingsTab';
@@ -7,12 +7,22 @@ import StatisticsTab from './StatisticsTab';
 import LeagueTab from './LeagueTab';
 import { getUserProfile, updateUserProfile } from '../../../api/usersApi';
 
+const VALID_TABS = ['overview', 'statistics', 'league', 'settings'];
+
 const Profile = () => {
     const [user, setUser] = useState(null);
     const [currentLeague, setCurrentLeague] = useState(null);
     const [error, setError] = useState('');
-    const [activeTab, setActiveTab] = useState('overview');
+    const [searchParams, setSearchParams] = useSearchParams();
     const navigate = useNavigate();
+
+    // Get tab from URL or default to 'overview'
+    const tabFromUrl = searchParams.get('tab');
+    const activeTab = VALID_TABS.includes(tabFromUrl) ? tabFromUrl : 'overview';
+
+    const handleTabSelect = (tab) => {
+        setSearchParams({ tab });
+    };
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -77,7 +87,7 @@ const Profile = () => {
                     style={{ width: '50px', height: '50px', borderRadius: '50%' }}
                 />
             </div>
-            <Tabs activeKey={activeTab} onSelect={(tab) => setActiveTab(tab)} className="mb-3">
+            <Tabs activeKey={activeTab} onSelect={handleTabSelect} className="mb-3">
                 <Tab eventKey="overview" title="Overview">
                     <OverviewTab user={user} />
                 </Tab>
