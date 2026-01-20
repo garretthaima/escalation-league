@@ -65,6 +65,7 @@ const createPod = async (req, res) => {
             const participants = await db('game_players as gp')
                 .join('users as u', 'gp.player_id', 'u.id')
                 .where('gp.pod_id', podId)
+                .whereNull('gp.deleted_at')
                 .select('u.id as player_id', 'u.firstname', 'u.lastname', 'u.email', 'gp.result', 'gp.confirmed', 'gp.turn_order')
                 .orderBy('gp.turn_order', 'asc');
 
@@ -419,6 +420,7 @@ const getPods = async (req, res) => {
                         'gp.turn_order'
                     )
                     .where('gp.pod_id', pod.id)
+                    .whereNull('gp.deleted_at')
                     .orderBy('gp.turn_order', 'asc');
 
                 return { ...pod, participants };

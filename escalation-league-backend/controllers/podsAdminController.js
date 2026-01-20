@@ -11,7 +11,7 @@ const updatePod = async (req, res) => {
     try {
         // Get current pod state and participants for stats reversal
         const currentPod = await db('game_pods').where({ id: podId }).first();
-        const currentParticipants = await db('game_players').where({ pod_id: podId });
+        const currentParticipants = await db('game_players').where({ pod_id: podId }).whereNull('deleted_at');
 
         // If pod was complete, reverse old stats before making changes
         if (currentPod.confirmation_status === 'complete' && currentPod.league_id) {
@@ -96,7 +96,7 @@ const updatePod = async (req, res) => {
         await db('game_pods').where({ id: podId }).update(podUpdates);
 
         // Fetch updated participants for new stats
-        const newParticipants = await db('game_players').where({ pod_id: podId });
+        const newParticipants = await db('game_players').where({ pod_id: podId }).whereNull('deleted_at');
 
         // If pod is now complete, apply new stats
         if (confirmation_status === 'complete' || currentPod.confirmation_status === 'complete') {
@@ -160,6 +160,7 @@ const updatePod = async (req, res) => {
                 if (pod) {
                     const participants = await db('game_players')
                         .where({ pod_id: podId })
+                        .whereNull('deleted_at')
                         .select('player_id', 'result', 'confirmed', 'turn_order')
                         .orderBy('turn_order', 'asc');
                     return { ...pod, participants };
@@ -189,34 +190,22 @@ const removeParticipant = async (req, res) => {
     const { podId, playerId } = req.params;
 
     try {
-        console.log('=== REMOVE PARTICIPANT ===');
-        console.log('Pod ID:', podId);
-        console.log('Player ID:', playerId);
-
         const participant = await db('game_players')
             .where({ pod_id: podId, player_id: playerId })
+            .whereNull('deleted_at')
             .first();
 
         if (!participant) {
             return res.status(404).json({ error: 'Participant not found in the pod.' });
         }
 
-        console.log('Participant to remove:', participant);
-
         // Check if this player was the winner
         const wasWinner = participant.result === 'win';
-        console.log('Was winner?', wasWinner);
 
-        // Get all participants BEFORE removal for logging
-        const allParticipantsBefore = await db('game_players').where({ pod_id: podId });
-        console.log('All participants BEFORE removal:', allParticipantsBefore.map(p => ({ id: p.player_id, result: p.result })));
-
-        // Remove the participant from the pod
-        await db('game_players').where({ pod_id: podId, player_id: playerId }).del();
-
-        // Get all participants AFTER removal for logging
-        const allParticipantsAfter = await db('game_players').where({ pod_id: podId });
-        console.log('All participants AFTER removal:', allParticipantsAfter.map(p => ({ id: p.player_id, result: p.result })));
+        // Soft delete the participant from the pod
+        await db('game_players')
+            .where({ pod_id: podId, player_id: playerId })
+            .update({ deleted_at: db.fn.now() });
 
         // If the removed player was the winner, reset the pod status and clear winner
         if (wasWinner) {
@@ -224,15 +213,12 @@ const removeParticipant = async (req, res) => {
 
             // If pod was in pending or complete status, reset it
             if (pod && (pod.confirmation_status === 'pending' || pod.confirmation_status === 'complete')) {
-                console.log('Resetting pod status from', pod.confirmation_status, 'to active');
                 await db('game_pods').where({ id: podId }).update({
                     confirmation_status: 'active',
                     result: null
                 });
             }
         }
-
-        console.log('=== END REMOVE PARTICIPANT ===');
 
         res.status(200).json({
             message: 'Participant removed successfully.',
@@ -266,7 +252,7 @@ const addParticipant = async (req, res) => {
         }
 
         // Check current participant count
-        const currentParticipants = await db('game_players').where({ pod_id: podId });
+        const currentParticipants = await db('game_players').where({ pod_id: podId }).whereNull('deleted_at');
         if (currentParticipants.length >= 4) {
             return res.status(400).json({ error: 'Pod is full. Maximum 4 players allowed.' });
         }
@@ -295,6 +281,7 @@ const addParticipant = async (req, res) => {
         // Get max turn_order to assign next position
         const maxTurnOrder = await db('game_players')
             .where({ pod_id: podId })
+            .whereNull('deleted_at')
             .max('turn_order as max')
             .first();
         const nextTurnOrder = (maxTurnOrder?.max || 0) + 1;
@@ -333,6 +320,7 @@ const updateParticipantResult = async (req, res) => {
     try {
         const participant = await db('game_players')
             .where({ pod_id: podId, player_id: playerId })
+            .whereNull('deleted_at')
             .first();
 
         if (!participant) {
@@ -340,7 +328,7 @@ const updateParticipantResult = async (req, res) => {
         }
 
         // Update the participant's result
-        await db('game_players').where({ pod_id: podId, player_id: playerId }).update({ result });
+        await db('game_players').where({ pod_id: podId, player_id: playerId }).whereNull('deleted_at').update({ result });
 
         res.status(200).json({ message: 'Participant result updated successfully.' });
     } catch (err) {
@@ -356,11 +344,17 @@ const deletePod = async (req, res) => {
     try {
         // Get current pod state and participants for stats reversal
         const currentPod = await db('game_pods').where({ id: podId }).first();
-        const currentParticipants = await db('game_players').where({ pod_id: podId });
+        const currentParticipants = await db('game_players').where({ pod_id: podId }).whereNull('deleted_at');
 
         // If pod was complete, reverse stats before deleting
         if (currentPod && currentPod.confirmation_status === 'complete' && currentPod.league_id) {
             console.log('Reversing stats for pod deletion:', { podId, participants: currentParticipants.length });
+
+            // Fetch league point settings for points reversal
+            const league = await db('leagues')
+                .where({ id: currentPod.league_id })
+                .select('points_per_win', 'points_per_loss', 'points_per_draw')
+                .first();
 
             for (const p of currentParticipants) {
                 // Skip DQ'd players - they never got stats in the first place
@@ -372,6 +366,16 @@ const deletePod = async (req, res) => {
                 const losses = p.result === 'loss' ? -1 : 0;
                 const draws = p.result === 'draw' ? -1 : 0;
 
+                // Calculate points to reverse
+                let points = 0;
+                if (p.result === 'win') {
+                    points = -(league.points_per_win || 4);
+                } else if (p.result === 'loss') {
+                    points = -(league.points_per_loss || 1);
+                } else if (p.result === 'draw') {
+                    points = -(league.points_per_draw || 1);
+                }
+
                 // Reverse user stats
                 await db('users')
                     .where({ id: p.player_id })
@@ -381,19 +385,20 @@ const deletePod = async (req, res) => {
                         draws: draws
                     });
 
-                // Reverse league stats
+                // Reverse league stats (including points)
                 await db('user_leagues')
                     .where({ user_id: p.player_id, league_id: currentPod.league_id })
                     .increment({
                         league_wins: wins,
                         league_losses: losses,
-                        league_draws: draws
+                        league_draws: draws,
+                        total_points: points
                     });
             }
         }
 
-        // Remove all participants from the pod
-        await db('game_players').where({ pod_id: podId }).del();
+        // Soft delete all participants from the pod
+        await db('game_players').where({ pod_id: podId }).update({ deleted_at: db.fn.now() });
 
         // Soft delete the pod
         await db('game_pods').where({ id: podId }).update({ deleted_at: db.fn.now() });
@@ -424,6 +429,7 @@ const toggleDQ = async (req, res) => {
         // Check if participant exists
         const participant = await db('game_players')
             .where({ pod_id: podId, player_id: playerId })
+            .whereNull('deleted_at')
             .first();
 
         if (!participant) {
@@ -437,6 +443,7 @@ const toggleDQ = async (req, res) => {
 
         await db('game_players')
             .where({ pod_id: podId, player_id: playerId })
+            .whereNull('deleted_at')
             .update({ result: newResult });
 
         // If pod is already complete, need to recalculate stats
