@@ -9,7 +9,7 @@ import { LeagueDashboard } from './components/Leagues/Dashboard';
 import SignUp from './components/Leagues/SignUp';
 import PastLeagues from './components/Leagues/PastLeagues';
 import PriceCheckPage from './components/Leagues/PriceCheckPage';
-import { GamesPage, CompletedGamesPage, ConfirmGamesPage, ActiveGamesPage } from './components/Games';
+import { PodsDashboard, PodsHistory } from './components/Pods';
 import CreateLeaguePage from './components/Admin/CreateLeaguePage';
 import Rules from './components/Static/Rules';
 import Awards from './components/Static/Awards';
@@ -88,12 +88,13 @@ const App = () => {
                             <Route path="/leagues/leaderboard" element={<Navigate to="/leagues" replace />} />
                             <Route path="/leagues/past" element={<PastLeagues />} />
 
-                            {/* Games Section */}
-                            <Route path="/pods" element={<GamesPage />}>
-                                <Route path="active" element={<ActiveGamesPage />} />
-                                <Route path="complete" element={<CompletedGamesPage />} />
-                                <Route path="pending" element={<ConfirmGamesPage />} />
-                            </Route>
+                            {/* Pods/Games Section */}
+                            <Route path="/pods" element={<PodsDashboard />} />
+                            <Route path="/pods/history" element={<PodsHistory />} />
+                            {/* Legacy routes - redirect to new dashboard */}
+                            <Route path="/pods/active" element={<Navigate to="/pods" replace />} />
+                            <Route path="/pods/complete" element={<Navigate to="/pods/history" replace />} />
+                            <Route path="/pods/pending" element={<Navigate to="/pods" replace />} />
 
                             {/* Profile Section */}
                             <Route path="/profile" element={<Profile />} />

@@ -14,9 +14,8 @@ const getLeagueLinks = (inLeague) => {
 };
 
 const getPodsLinks = () => [
-    { label: 'Active Pods', path: '/pods/active', order: 1, icon: 'fa-list' },
-    { label: 'Pending Pods', path: '/pods/pending', order: 2, icon: 'fa-plus-circle' },
-    { label: 'Completed Pods', path: '/pods/complete', order: 3, icon: 'fa-info-circle' },
+    { label: 'Dashboard', path: '/pods', order: 1, icon: 'fa-gamepad' },
+    { label: 'Game History', path: '/pods/history', order: 2, icon: 'fa-history' },
 ];
 
 const navbarLinks = (inLeague) => [
