@@ -22,7 +22,7 @@ const CollapsibleSection = ({
                 <div className="d-flex align-items-center">
                     {icon && <i className={`${icon} me-2`}></i>}
                     <h5 className="mb-0">{title}</h5>
-                    {badge && <span className="badge bg-secondary ms-2">{badge}</span>}
+                    {badge != null && badge !== 0 && <span className="badge bg-secondary ms-2">{badge}</span>}
                 </div>
                 <div className="d-flex align-items-center">
                     {actions && (

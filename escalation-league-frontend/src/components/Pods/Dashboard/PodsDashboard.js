@@ -13,7 +13,7 @@ import CreateGameModal from './CreateGameModal';
 import DeclareResultModal from './DeclareResultModal';
 
 const PodsDashboard = () => {
-    const { permissions } = usePermissions();
+    const { permissions, loading: permissionsLoading } = usePermissions();
     const { showToast } = useToast();
     const { socket, connected, joinLeague, leaveLeague } = useWebSocket();
 
@@ -40,6 +40,9 @@ const PodsDashboard = () => {
 
     // Fetch initial data
     useEffect(() => {
+        // Wait for permissions to load before checking
+        if (permissionsLoading) return;
+
         const fetchData = async () => {
             try {
                 if (!canReadPods) {
@@ -80,9 +83,12 @@ const PodsDashboard = () => {
 
                 setActivePods(filterUserPods(active || []));
                 setPendingPods(filterUserPods(pending || []));
-                // Only show recent 5 completed games
+                // Only show recent 5 completed games (sorted by newest first)
                 const userCompleted = filterUserPods(completed || []);
-                setRecentCompleted(userCompleted.slice(0, 5));
+                const sortedCompleted = userCompleted.sort((a, b) =>
+                    new Date(b.created_at) - new Date(a.created_at)
+                );
+                setRecentCompleted(sortedCompleted.slice(0, 5));
 
             } catch (err) {
                 console.error('Error fetching pods:', err);
@@ -93,7 +99,7 @@ const PodsDashboard = () => {
         };
 
         fetchData();
-    }, [canReadPods, isAdmin]);
+    }, [permissionsLoading, canReadPods, isAdmin]);
 
     // WebSocket listeners
     useEffect(() => {
@@ -233,7 +239,7 @@ const PodsDashboard = () => {
     };
 
     // Loading state
-    if (loading) {
+    if (loading || permissionsLoading) {
         return (
             <div className="container mt-4">
                 <div className="text-center py-5">

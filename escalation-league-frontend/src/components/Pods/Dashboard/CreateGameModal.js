@@ -28,8 +28,8 @@ const CreateGameModal = ({ show, onHide, leagueId, userId, onGameCreated }) => {
                 const mappedUsers = users.map(u => ({ ...u, id: u.user_id || u.id }));
                 setLeagueUsers(mappedUsers);
 
-                // Pre-select current user
-                const currentUser = mappedUsers.find(u => u.id === userId);
+                // Pre-select current user (use String comparison for type safety)
+                const currentUser = mappedUsers.find(u => String(u.id) === String(userId));
                 if (currentUser) {
                     setSelectedPlayers([currentUser]);
                     setTurnOrder([currentUser.id]);
@@ -53,10 +53,10 @@ const CreateGameModal = ({ show, onHide, leagueId, userId, onGameCreated }) => {
 
     // Toggle player selection
     const togglePlayer = (user) => {
-        const isSelected = selectedPlayers.some(p => p.id === user.id);
+        const isSelected = selectedPlayers.some(p => String(p.id) === String(user.id));
         if (isSelected) {
-            setSelectedPlayers(prev => prev.filter(p => p.id !== user.id));
-            setTurnOrder(prev => prev.filter(id => id !== user.id));
+            setSelectedPlayers(prev => prev.filter(p => String(p.id) !== String(user.id)));
+            setTurnOrder(prev => prev.filter(id => String(id) !== String(user.id)));
         } else {
             if (selectedPlayers.length >= 4) {
                 showToast('Maximum 4 players allowed', 'warning');
@@ -103,8 +103,9 @@ const CreateGameModal = ({ show, onHide, leagueId, userId, onGameCreated }) => {
     }, []);
 
     // Get player by ID - use leagueUsers as source of truth for player data
+    // Use String comparison to handle potential type mismatches between numbers/strings
     const getPlayer = useCallback((playerId) => {
-        return leagueUsers.find(p => p.id === playerId);
+        return leagueUsers.find(p => String(p.id) === String(playerId));
     }, [leagueUsers]);
 
     // Create the game
@@ -175,8 +176,8 @@ const CreateGameModal = ({ show, onHide, leagueId, userId, onGameCreated }) => {
                                             style={{ maxHeight: '350px', overflowY: 'auto' }}
                                         >
                                             {leagueUsers.map(user => {
-                                                const isSelected = selectedPlayers.some(p => p.id === user.id);
-                                                const isCurrentUser = user.id === userId;
+                                                const isSelected = selectedPlayers.some(p => String(p.id) === String(user.id));
+                                                const isCurrentUser = String(user.id) === String(userId);
                                                 return (
                                                     <button
                                                         key={user.id}
@@ -231,30 +232,26 @@ const CreateGameModal = ({ show, onHide, leagueId, userId, onGameCreated }) => {
                                                     return (
                                                         <div
                                                             key={playerId}
-                                                            className={`list-group-item d-flex justify-content-between align-items-center ${index === 0 ? 'list-group-item-warning' : ''}`}
+                                                            className={`list-group-item d-flex justify-content-between align-items-center py-2 ${index === 0 ? 'list-group-item-warning' : ''}`}
                                                         >
-                                                            <div className="d-flex align-items-center">
-                                                                <span className={`badge ${index === 0 ? 'bg-warning text-dark' : 'bg-secondary'} me-2`}>
+                                                            <div className="d-flex align-items-center flex-grow-1 min-width-0">
+                                                                <span className={`badge ${index === 0 ? 'bg-warning text-dark' : 'bg-secondary'} me-2 flex-shrink-0`}>
                                                                     {index + 1}
                                                                 </span>
-                                                                <span>{player.firstname} {player.lastname}</span>
-                                                                {index === 0 && (
-                                                                    <span className="badge bg-warning text-dark ms-2">
-                                                                        <i className="fas fa-play-circle me-1"></i>
-                                                                        First
-                                                                    </span>
-                                                                )}
+                                                                <span className="text-truncate">
+                                                                    {player.firstname} {player.lastname}
+                                                                </span>
                                                             </div>
-                                                            <div className="btn-group btn-group-sm">
+                                                            <div className="btn-group btn-group-sm flex-shrink-0 ms-2">
                                                                 <button
-                                                                    className="btn btn-outline-secondary"
+                                                                    className="btn btn-outline-secondary btn-sm px-2"
                                                                     onClick={() => moveUp(playerId)}
                                                                     disabled={index === 0}
                                                                 >
                                                                     <i className="fas fa-chevron-up"></i>
                                                                 </button>
                                                                 <button
-                                                                    className="btn btn-outline-secondary"
+                                                                    className="btn btn-outline-secondary btn-sm px-2"
                                                                     onClick={() => moveDown(playerId)}
                                                                     disabled={index === turnOrder.length - 1}
                                                                 >

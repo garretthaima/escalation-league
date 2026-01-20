@@ -261,8 +261,8 @@ const logPodResult = async (req, res) => {
         // Get pod details for WebSocket events
         const pod = await db('game_pods').where({ id: podId }).first();
 
-        // If declaring a win, update pod status to pending and emit event
-        if (result === 'win') {
+        // If declaring a win or draw, update pod status to pending and emit event
+        if (result === 'win' || result === 'draw') {
             await db('game_pods').where({ id: podId }).update({ confirmation_status: 'pending' });
             emitWinnerDeclared(req.app, pod.league_id, podId, playerId);
         }
