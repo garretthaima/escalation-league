@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { getPods } from '../../api/podsApi';
 import { useNavigate } from 'react-router-dom';
+import { Pagination, usePagination } from '../Shared';
+import { SkeletonTable } from '../Shared/Skeleton';
 import './PodAdminPage.css';
 
 const PodAdminPage = () => {
@@ -9,6 +11,18 @@ const PodAdminPage = () => {
     const [filteredPods, setFilteredPods] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+
+    // Pagination
+    const {
+        page,
+        pageSize,
+        totalPages,
+        setTotalItems,
+        handlePageChange,
+        handlePageSizeChange,
+        paginationProps,
+        reset: resetPagination
+    } = usePagination();
 
     // Filter states
     const [searchTerm, setSearchTerm] = useState('');
@@ -88,7 +102,9 @@ const PodAdminPage = () => {
         }
 
         setFilteredPods(filtered);
-    }, [statusFilter, leagueFilter, searchTerm, allPods]);
+        setTotalItems(filtered.length);
+        resetPagination(); // Reset to page 1 when filters change
+    }, [statusFilter, leagueFilter, searchTerm, allPods, setTotalItems, resetPagination]);
 
     const handleEditPod = (pod) => {
         navigate(`/admin/pods/${pod.id}`);
@@ -117,6 +133,12 @@ const PodAdminPage = () => {
         }
     });
     const uniqueLeagues = Array.from(leagueMap.values());
+
+    // Get paginated pods
+    const paginatedPods = filteredPods.slice(
+        (page - 1) * pageSize,
+        page * pageSize
+    );
 
     return (
         <div className="container mt-4">
@@ -244,10 +266,14 @@ const PodAdminPage = () => {
                 </div>
             </div>
 
-            {loading && <p>Loading pods...</p>}
             {error && <p className="text-danger">{error}</p>}
 
             {/* Desktop Table View */}
+            {loading ? (
+                <div className="pod-table-desktop">
+                    <SkeletonTable rows={10} cols={8} />
+                </div>
+            ) : (
             <div className="table-responsive pod-table-desktop">
                 <table className="table table-hover">
                     <thead>
@@ -263,14 +289,14 @@ const PodAdminPage = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {filteredPods.length === 0 ? (
+                        {paginatedPods.length === 0 ? (
                             <tr>
                                 <td colSpan="8" className="text-center text-muted">
                                     No pods found
                                 </td>
                             </tr>
                         ) : (
-                            filteredPods.map((pod) => (
+                            paginatedPods.map((pod) => (
                                 <tr key={pod.id} className={pod.deleted_at ? 'table-danger' : ''}>
                                     <td>#{pod.id}</td>
                                     <td>{pod.league_name || `League #${pod.league_id}`}</td>
@@ -323,15 +349,21 @@ const PodAdminPage = () => {
                     </tbody>
                 </table>
             </div>
+            )}
 
             {/* Mobile Card View */}
+            {loading ? (
+                <div className="pod-card-mobile">
+                    <SkeletonTable rows={5} cols={1} />
+                </div>
+            ) : (
             <div className="pod-card-mobile">
-                {filteredPods.length === 0 ? (
+                {paginatedPods.length === 0 ? (
                     <div className="text-center text-muted py-4">
                         No pods found
                     </div>
                 ) : (
-                    filteredPods.map((pod) => (
+                    paginatedPods.map((pod) => (
                         <div
                             key={pod.id}
                             className={`pod-card ${pod.deleted_at ? 'deleted' : ''}`}
@@ -392,6 +424,12 @@ const PodAdminPage = () => {
                     ))
                 )}
             </div>
+            )}
+
+            {/* Pagination */}
+            {!loading && filteredPods.length > 0 && (
+                <Pagination {...paginationProps} className="mt-4" />
+            )}
         </div>
     );
 };

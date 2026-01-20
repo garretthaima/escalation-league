@@ -115,6 +115,7 @@ services:
         REACT_APP_BACKEND_URL: https://dev-api.escalationleague.com/api
         REACT_APP_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
         REACT_APP_SCRYFALL_USER_AGENT: EscalationLeague-Dev/1.0; garretthaima@gmail.com
+        REACT_APP_ENV: development
     container_name: escalation-league-frontend-dev
     networks:
       - default

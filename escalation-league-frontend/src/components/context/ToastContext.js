@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useCallback } from 'react';
 import Toast from '../Shared/Toast';
 
 const ToastContext = createContext();
@@ -14,10 +14,10 @@ export const useToast = () => {
 export const ToastProvider = ({ children }) => {
     const [toasts, setToasts] = useState([]);
 
-    const showToast = (message, type = 'success') => {
+    const showToast = useCallback((message, type = 'success') => {
         const id = Date.now();
         setToasts(prev => [...prev, { id, message, type }]);
-    };
+    }, []);
 
     const closeToast = (id) => {
         setToasts(prev => prev.filter(toast => toast.id !== id));

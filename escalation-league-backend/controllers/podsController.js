@@ -232,14 +232,24 @@ const logPodResult = async (req, res) => {
         if (result !== undefined) {
             updateData.result = result;
         } else {
-            // If no result specified, check if someone else already won
-            // If so, this player should be marked as a loss
+            // If no result specified, check if someone declared a win or draw
             const winner = await db('game_players')
                 .where({ pod_id: podId, result: 'win' })
                 .first();
 
             if (winner) {
+                // Someone won, so this player lost
                 updateData.result = 'loss';
+            } else {
+                // Check if someone declared a draw
+                const drawer = await db('game_players')
+                    .where({ pod_id: podId, result: 'draw' })
+                    .first();
+
+                if (drawer) {
+                    // It's a draw, so everyone gets draw
+                    updateData.result = 'draw';
+                }
             }
         }
 
@@ -261,15 +271,16 @@ const logPodResult = async (req, res) => {
         // Get pod details for WebSocket events
         const pod = await db('game_pods').where({ id: podId }).first();
 
-        // If declaring a win, update pod status to pending and emit event
-        if (result === 'win') {
+        // If declaring a win or draw, update pod status to pending and emit event
+        if (result === 'win' || result === 'draw') {
             await db('game_pods').where({ id: podId }).update({ confirmation_status: 'pending' });
             emitWinnerDeclared(req.app, pod.league_id, podId, playerId);
         }
 
         // Check if all participants have confirmed
+        // Use == instead of === because MySQL tinyint may return as number or boolean
         const participants = await db('game_players').where({ pod_id: podId });
-        const allConfirmed = participants.every((p) => p.confirmed === 1);
+        const allConfirmed = participants.every((p) => p.confirmed == 1);
 
         if (allConfirmed) {
             // Determine the pod result

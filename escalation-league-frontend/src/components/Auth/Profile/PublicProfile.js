@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { getLeagueParticipantsDetails, getOpponentMatchups, getTurnOrderStats } from '../../../api/userLeaguesApi';
 import { getLeagueDetails } from '../../../api/leaguesApi';
+import { SkeletonProfileHeader, SkeletonCard, SkeletonStatsGrid } from '../../Shared/Skeleton';
 
 const PublicProfile = () => {
     const { userId, leagueId } = useParams();
@@ -53,7 +54,14 @@ const PublicProfile = () => {
     }, [userId, leagueId]);
 
     if (loading) {
-        return <div className="text-center mt-5">Loading...</div>;
+        return (
+            <div className="container mt-4">
+                <SkeletonProfileHeader />
+                <SkeletonCard lines={4} className="mb-4" />
+                <SkeletonStatsGrid count={3} className="mb-4" />
+                <SkeletonCard lines={2} />
+            </div>
+        );
     }
 
     if (error) {

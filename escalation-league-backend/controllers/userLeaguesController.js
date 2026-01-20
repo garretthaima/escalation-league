@@ -7,7 +7,7 @@ const { getOpponentMatchups } = require('../services/gameService');
 
 // Sign up for a league
 const signUpForLeague = async (req, res) => {
-    const { leagueId, commander, commanderPartner } = req.body;
+    const { leagueId, commander, commanderPartner, decklist_url } = req.body;
     const userId = req.user.id; // Assuming user ID is available from authentication middleware
 
     try {
@@ -183,9 +183,8 @@ const getLeagueParticipants = async (req, res) => {
                             .where('id', p.current_commander)
                             .first();
                         commanderName = commanderData ? commanderData.name : null;
-                        console.log(`[DEBUG] Commander lookup for ${p.firstname}: id=${p.current_commander}, found=${commanderName}`);
                     } catch (lookupErr) {
-                        console.error(`[DEBUG] Commander lookup failed for ${p.firstname}:`, lookupErr.message);
+                        console.error(`Commander lookup failed for ${p.firstname}:`, lookupErr.message);
                     }
                 }
                 return {
