@@ -102,10 +102,10 @@ const CreateGameModal = ({ show, onHide, leagueId, userId, onGameCreated }) => {
         });
     }, []);
 
-    // Get player by ID
+    // Get player by ID - use leagueUsers as source of truth for player data
     const getPlayer = useCallback((playerId) => {
-        return selectedPlayers.find(p => p.id === playerId);
-    }, [selectedPlayers]);
+        return leagueUsers.find(p => p.id === playerId);
+    }, [leagueUsers]);
 
     // Create the game
     const handleCreate = async () => {
