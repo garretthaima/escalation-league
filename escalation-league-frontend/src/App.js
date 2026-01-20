@@ -1,15 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import './App.css';
-import { Route, Routes } from 'react-router-dom';
+import { Route, Routes, Navigate } from 'react-router-dom';
 import SignIn from './components/Auth/SignIn';
 import Profile from './components/Auth/Profile/Profile';
 import Navbar from './components/Navbar/Navbar';
 import LeagueLayout from './components/Leagues/LeagueLayout';
-import CurrentLeague from './components/Leagues/CurrentLeague';
 import { LeagueDashboard } from './components/Leagues/Dashboard';
 import SignUp from './components/Leagues/SignUp';
 import PastLeagues from './components/Leagues/PastLeagues';
-import LeagueLeaderboard from './components/Leagues/LeagueLeaderboard';
 import PriceCheckPage from './components/Leagues/PriceCheckPage';
 import { GamesPage, CompletedGamesPage, ConfirmGamesPage, ActiveGamesPage } from './components/Games';
 import CreateLeaguePage from './components/Admin/CreateLeaguePage';
@@ -85,9 +83,9 @@ const App = () => {
                                 <Route path="metagame" element={<MetagameDashboard />} />
                             </Route>
 
-                            {/* Legacy routes - redirect or keep for backwards compatibility */}
-                            <Route path="/leagues/current" element={<CurrentLeague />} />
-                            <Route path="/leagues/leaderboard" element={<LeagueLeaderboard />} />
+                            {/* Legacy routes - redirect to new dashboard */}
+                            <Route path="/leagues/current" element={<Navigate to="/leagues" replace />} />
+                            <Route path="/leagues/leaderboard" element={<Navigate to="/leagues" replace />} />
                             <Route path="/leagues/past" element={<PastLeagues />} />
 
                             {/* Games Section */}

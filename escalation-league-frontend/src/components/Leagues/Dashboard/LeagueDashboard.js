@@ -25,6 +25,7 @@ const LeagueDashboard = () => {
     const [leaderboard, setLeaderboard] = useState([]);
     const [participants, setParticipants] = useState([]);
     const [metagame, setMetagame] = useState(null);
+    const [metagameLoading, setMetagameLoading] = useState(false);
     const [showCommanderModal, setShowCommanderModal] = useState(false);
 
     useEffect(() => {
@@ -42,20 +43,18 @@ const LeagueDashboard = () => {
 
                 const leagueId = activeLeague.league_id;
 
-                // Fetch all data in parallel
-                const [leagueDetails, userStatsData, leaderboardData, participantsData, metagameData] = await Promise.all([
+                // Fetch essential data in parallel (fast endpoints)
+                const [leagueDetails, userStatsData, leaderboardData, participantsData] = await Promise.all([
                     getLeagueDetails(leagueId),
                     getUserLeagueStats(leagueId),
                     getLeagueStats(leagueId).then(data => data.leaderboard || []).catch(() => []),
-                    getLeagueParticipants(leagueId).catch(() => []),
-                    getMetagameAnalysis(leagueId).catch(() => null)
+                    getLeagueParticipants(leagueId).catch(() => [])
                 ]);
 
                 setLeague(leagueDetails);
                 setUserStats(userStatsData);
                 setLeaderboard(leaderboardData);
                 setParticipants(participantsData);
-                setMetagame(metagameData);
 
                 // Find user's rank in leaderboard
                 if (userStatsData && leaderboardData.length > 0) {
@@ -76,6 +75,26 @@ const LeagueDashboard = () => {
             fetchDashboardData();
         }
     }, [loadingPermissions, navigate, user?.id]);
+
+    // Lazy load metagame data after dashboard renders
+    useEffect(() => {
+        const fetchMetagameData = async () => {
+            if (!league?.id || metagame !== null) return;
+
+            setMetagameLoading(true);
+            try {
+                const metagameData = await getMetagameAnalysis(league.id);
+                setMetagame(metagameData);
+            } catch (err) {
+                console.error('Error fetching metagame data:', err);
+                // Silently fail - metagame is not critical
+            } finally {
+                setMetagameLoading(false);
+            }
+        };
+
+        fetchMetagameData();
+    }, [league?.id, metagame]);
 
     const handleCommanderUpdate = () => {
         setShowCommanderModal(false);
@@ -184,7 +203,7 @@ const LeagueDashboard = () => {
                     <span className="badge bg-warning text-dark">BETA</span>
                 }
             >
-                <MetagamePreview metagame={metagame} leagueId={league.id} />
+                <MetagamePreview metagame={metagame} leagueId={league.id} loading={metagameLoading} />
             </CollapsibleSection>
 
             {/* Participants Section */}

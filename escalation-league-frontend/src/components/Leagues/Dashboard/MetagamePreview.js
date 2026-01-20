@@ -3,7 +3,18 @@ import PropTypes from 'prop-types';
 import { Link } from 'react-router-dom';
 import ColorDistributionChart from '../../Metagame/ColorDistributionChart';
 
-const MetagamePreview = ({ metagame, leagueId }) => {
+const MetagamePreview = ({ metagame, leagueId, loading }) => {
+    if (loading) {
+        return (
+            <div className="text-center text-muted py-4">
+                <div className="spinner-border spinner-border-sm me-2" role="status">
+                    <span className="visually-hidden">Loading...</span>
+                </div>
+                <span>Loading metagame insights...</span>
+            </div>
+        );
+    }
+
     if (!metagame) {
         return (
             <div className="text-center text-muted py-4">
@@ -82,7 +93,8 @@ MetagamePreview.propTypes = {
         colorDistribution: PropTypes.array,
         staples: PropTypes.array
     }),
-    leagueId: PropTypes.number
+    leagueId: PropTypes.number,
+    loading: PropTypes.bool
 };
 
 export default MetagamePreview;
