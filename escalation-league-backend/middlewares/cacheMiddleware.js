@@ -68,6 +68,7 @@ const invalidateCache = async (pattern) => {
         const keys = await redis.keys(pattern);
         if (keys.length > 0) {
             await redis.del(...keys);
+            console.log(`Cache invalidated: ${keys.length} keys matching ${pattern}`);
         }
     } catch (err) {
         console.error('Cache invalidation error:', err);

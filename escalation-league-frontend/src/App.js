@@ -4,8 +4,9 @@ import { Route, Routes } from 'react-router-dom';
 import SignIn from './components/Auth/SignIn';
 import Profile from './components/Auth/Profile/Profile';
 import Navbar from './components/Navbar/Navbar';
-import LeaguesPage from './components/Leagues/LeaguesPage';
+import LeagueLayout from './components/Leagues/LeagueLayout';
 import CurrentLeague from './components/Leagues/CurrentLeague';
+import { LeagueDashboard } from './components/Leagues/Dashboard';
 import SignUp from './components/Leagues/SignUp';
 import PastLeagues from './components/Leagues/PastLeagues';
 import LeagueLeaderboard from './components/Leagues/LeagueLeaderboard';
@@ -73,15 +74,21 @@ const App = () => {
 
 
                             {/* Leagues Section */}
-                            <Route path="/leagues" element={<LeaguesPage />}>
-                                <Route path="current" element={<CurrentLeague />} />
-                                <Route path="signup" element={<SignUp />} />
-                                <Route path="leaderboard" element={<LeagueLeaderboard />} />
-                                <Route path="price-check" element={<PriceCheckPage />} />
+                            {/* Main dashboard - no nested layout wrapper */}
+                            <Route path="/leagues" element={<LeagueDashboard />} />
+                            <Route path="/leagues/signup" element={<SignUp />} />
+
+                            {/* Tool pages with shared layout */}
+                            <Route path="/leagues" element={<LeagueLayout />}>
                                 <Route path="budget" element={<BudgetDashboard />} />
+                                <Route path="price-check" element={<PriceCheckPage />} />
                                 <Route path="metagame" element={<MetagameDashboard />} />
-                                <Route path="past" element={<PastLeagues />} />
                             </Route>
+
+                            {/* Legacy routes - redirect or keep for backwards compatibility */}
+                            <Route path="/leagues/current" element={<CurrentLeague />} />
+                            <Route path="/leagues/leaderboard" element={<LeagueLeaderboard />} />
+                            <Route path="/leagues/past" element={<PastLeagues />} />
 
                             {/* Games Section */}
                             <Route path="/pods" element={<GamesPage />}>

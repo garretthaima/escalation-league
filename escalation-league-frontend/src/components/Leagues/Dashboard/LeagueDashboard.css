@@ -1,0 +1,126 @@
+/* League Dashboard Styles */
+
+.league-dashboard {
+    max-width: 1200px;
+}
+
+/* Hero Section */
+.dashboard-hero {
+    padding: 1.5rem;
+    background: linear-gradient(135deg, rgba(13, 110, 253, 0.1) 0%, rgba(13, 110, 253, 0.05) 100%);
+    border-radius: 12px;
+    border: 1px solid rgba(13, 110, 253, 0.2);
+}
+
+.dashboard-hero h1 {
+    font-weight: 600;
+}
+
+/* Collapsible Sections */
+.league-dashboard .card {
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.league-dashboard .card-header {
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 1rem 1.25rem;
+    transition: background 0.2s ease;
+}
+
+.league-dashboard .card-header:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.league-dashboard .card-body {
+    padding: 1.25rem;
+}
+
+/* User Standing Card */
+.league-dashboard .border-primary {
+    border-width: 2px !important;
+}
+
+/* Hover effect for participant cards */
+.hover-bg-dark {
+    transition: background 0.2s ease;
+}
+
+.hover-bg-dark:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* Table Styles */
+.league-dashboard .table {
+    margin-bottom: 0;
+}
+
+.league-dashboard .table th {
+    border-top: none;
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--bs-secondary);
+}
+
+.league-dashboard .table-primary {
+    --bs-table-bg: rgba(13, 110, 253, 0.15) !important;
+}
+
+/* Stats Cards */
+.league-dashboard .bg-opacity-10 {
+    transition: transform 0.2s ease;
+}
+
+.league-dashboard .bg-opacity-10:hover {
+    transform: translateY(-2px);
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .dashboard-hero {
+        padding: 1rem;
+    }
+
+    .dashboard-hero h1 {
+        font-size: 1.5rem;
+    }
+
+    .league-dashboard .card-header {
+        padding: 0.875rem 1rem;
+    }
+
+    .league-dashboard .card-body {
+        padding: 1rem;
+    }
+}
+
+/* Animations */
+.league-dashboard .card-body {
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Badge Styles */
+.league-dashboard .badge {
+    font-weight: 500;
+}
+
+/* Quick Action Buttons */
+.league-dashboard .btn-outline-primary:hover,
+.league-dashboard .btn-outline-secondary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}

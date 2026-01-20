@@ -1,9 +1,10 @@
 const getLeagueLinks = (inLeague) => {
     if (inLeague) {
         return [
-            { label: 'Current League', path: '/leagues/current', order: 1, icon: 'fa-trophy' },
-            { label: 'Leaderboard', path: '/leagues/leaderboard', order: 2, icon: 'fa-chart-line' },
-            { label: 'Attendance', path: '/attendance', order: 3, icon: 'fa-clipboard-check' },
+            { label: 'Dashboard', path: '/leagues', order: 1, icon: 'fa-home' },
+            { label: 'Budget', path: '/leagues/budget', order: 2, icon: 'fa-coins' },
+            { label: 'Metagame', path: '/leagues/metagame', order: 3, icon: 'fa-chart-pie' },
+            { label: 'Attendance', path: '/attendance', order: 4, icon: 'fa-clipboard-check' },
         ];
     } else {
         return [
