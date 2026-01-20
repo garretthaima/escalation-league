@@ -65,10 +65,12 @@ const cacheMiddleware = (ttl = CACHE_TTL.MEDIUM, keyGenerator = null) => {
  */
 const invalidateCache = async (pattern) => {
     try {
+        console.log(`[CACHE] Invalidating pattern: ${pattern}`);
         const keys = await redis.keys(pattern);
+        console.log(`[CACHE] Found ${keys.length} keys:`, keys);
         if (keys.length > 0) {
             await redis.del(...keys);
-            console.log(`Cache invalidated: ${keys.length} keys matching ${pattern}`);
+            console.log(`[CACHE] Deleted ${keys.length} keys matching ${pattern}`);
         }
     } catch (err) {
         console.error('Cache invalidation error:', err);
@@ -102,6 +104,7 @@ const cacheInvalidators = {
 
     // Invalidate when a game is completed
     gameCompleted: async (leagueId) => {
+        console.log(`[CACHE] gameCompleted called for leagueId: ${leagueId}`);
         await invalidateCache(`cache:/api/user-leagues/${leagueId}/participants*`);
         await invalidateCache(`cache:/api/metagame/${leagueId}*`);
         await invalidateCache(`cache:/api/leagues/${leagueId}/stats*`);
