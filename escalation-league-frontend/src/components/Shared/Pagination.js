@@ -173,18 +173,18 @@ export const usePagination = (initialPageSize) => {
 
     const totalPages = Math.ceil(totalItems / pageSize) || 1;
 
-    const handlePageChange = (newPage) => {
+    const handlePageChange = React.useCallback((newPage) => {
         setPage(newPage);
-    };
+    }, []);
 
-    const handlePageSizeChange = (newSize) => {
+    const handlePageSizeChange = React.useCallback((newSize) => {
         setPageSize(newSize);
         setPage(1); // Reset to first page when changing page size
-    };
+    }, []);
 
-    const reset = () => {
+    const reset = React.useCallback(() => {
         setPage(1);
-    };
+    }, []);
 
     return {
         page,
