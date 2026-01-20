@@ -13,6 +13,7 @@ const {
     isUserInLeague,
     updateParticipantStatus,
     getParticipantMatchups,
+    getParticipantTurnOrderStats,
 } = require('../controllers/userLeaguesController');
 const authenticateToken = require('../middlewares/authentication');
 const authorizePermission = require('../middlewares/authorizePermission');
@@ -104,6 +105,14 @@ router.get(
     authorizePermission(['league_read']),
     cacheMiddleware(CACHE_TTL.MEDIUM), // Cache for 5 minutes
     getParticipantMatchups
+);
+
+// Get turn order win stats for a participant
+router.get(
+    '/:league_id/participants/:user_id/turn-order-stats',
+    authenticateToken,
+    authorizePermission(['league_read']),
+    getParticipantTurnOrderStats
 );
 
 // Admin: Update participant status (activate/deactivate, disqualify)

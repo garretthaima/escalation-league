@@ -15,3 +15,11 @@ export const getCardStats = async (leagueId, cardName) => {
     const response = await axiosInstance.get(`/leagues/${leagueId}/metagame/card/${encodeURIComponent(cardName)}`);
     return response.data;
 };
+
+/**
+ * Get win rate statistics by turn order position
+ */
+export const getTurnOrderStats = async (leagueId) => {
+    const response = await axiosInstance.get(`/leagues/${leagueId}/metagame/turn-order`);
+    return response.data;
+};
