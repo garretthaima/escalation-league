@@ -1,5 +1,6 @@
 const db = require('../models/db');
 const { emitPodDeleted } = require('../utils/socketEmitter');
+const { cacheInvalidators } = require('../middlewares/cacheMiddleware');
 
 
 // Update a Pod
@@ -168,6 +169,13 @@ const updatePod = async (req, res) => {
 
         if (!updatedPod) {
             return res.status(404).json({ error: 'Pod not found.' });
+        }
+
+        // Invalidate cache if game was completed or stats were updated
+        const wasComplete = currentPod.confirmation_status === 'complete';
+        const isNowComplete = confirmation_status === 'complete';
+        if ((isNowComplete || wasComplete) && updatedPod.league_id) {
+            await cacheInvalidators.gameCompleted(updatedPod.league_id);
         }
 
         res.status(200).json(updatedPod);
