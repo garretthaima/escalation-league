@@ -2,6 +2,7 @@ const db = require('../models/db');
 const logger = require('../utils/logger');
 const { emitSignupRequest, emitSignupResponse } = require('../utils/socketEmitter');
 const { calculateCurrentWeek, addCalculatedWeek } = require('../utils/leagueUtils');
+const { cacheInvalidators } = require('../middlewares/cacheMiddleware');
 
 // Create a league
 const createLeague = async (req, res) => {
@@ -121,6 +122,9 @@ const updateLeague = async (req, res) => {
         if (result === 0) {
             return res.status(404).json({ error: 'League not found.' });
         }
+
+        // Invalidate league caches
+        cacheInvalidators.leagueUpdated(id);
 
         res.status(200).json({ message: 'League updated successfully.' });
     } catch (err) {

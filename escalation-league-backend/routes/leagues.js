@@ -17,6 +17,7 @@ const {
 const authenticateToken = require('../middlewares/authentication');
 const authorizePermission = require('../middlewares/authorizePermission');
 const authorizeLeagueAccess = require('../middlewares/authorizeLeagueAccess');
+const { cacheMiddleware, CACHE_TTL } = require('../middlewares/cacheMiddleware');
 
 // League Management Endpoints
 router.post(
@@ -43,14 +44,16 @@ router.put(
 router.get(
     '/',
     authenticateToken,
-    authorizePermission(['league_read']), // Permission to view all leagues
+    authorizePermission(['league_read']),
+    cacheMiddleware(CACHE_TTL.LONG), // Cache for 15 minutes
     getLeagues
 );
 
 router.get(
     '/active',
     authenticateToken,
-    authorizePermission(['league_view_active']), // Permission to view the active league
+    authorizePermission(['league_view_active']),
+    cacheMiddleware(CACHE_TTL.MEDIUM), // Cache for 5 minutes
     getActiveLeague
 );
 
@@ -94,8 +97,9 @@ router.get(
 router.get(
     '/:leagueId/stats',
     authenticateToken,
-    authorizePermission(['league_view_details']), // Permission to view league stats and leaderboard
+    authorizePermission(['league_view_details']),
     authorizeLeagueAccess,
+    cacheMiddleware(CACHE_TTL.MEDIUM), // Cache for 5 minutes
     getLeagueStats
 );
 

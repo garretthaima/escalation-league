@@ -8,6 +8,7 @@ const {
     emitWinnerDeclared,
     emitGameConfirmed
 } = require('../utils/socketEmitter');
+const { cacheInvalidators } = require('../middlewares/cacheMiddleware');
 
 // Create a Pod
 // Supports two modes:
@@ -339,6 +340,9 @@ const logPodResult = async (req, res) => {
 
             // Emit game completed event
             emitGameConfirmed(req.app, pod.league_id, podId, playerId, true);
+
+            // Invalidate caches for this league
+            cacheInvalidators.gameCompleted(pod.league_id);
 
             return res.status(200).json({ message: 'Game result logged successfully, stats updated, and pod marked as complete.' });
         } else {
