@@ -177,11 +177,15 @@ const getLeagueParticipants = async (req, res) => {
             participants.map(async (p) => {
                 let commanderName = null;
                 if (p.current_commander) {
-                    const commanderData = await scryfallDb('cards')
-                        .select('name')
-                        .where('id', p.current_commander)
-                        .first();
-                    commanderName = commanderData ? commanderData.name : null;
+                    try {
+                        const commanderData = await scryfallDb('cards')
+                            .select('name')
+                            .where('id', p.current_commander)
+                            .first();
+                        commanderName = commanderData ? commanderData.name : null;
+                    } catch (lookupErr) {
+                        console.error(`Commander lookup failed for ${p.firstname}:`, lookupErr.message);
+                    }
                 }
                 return {
                     ...p,
