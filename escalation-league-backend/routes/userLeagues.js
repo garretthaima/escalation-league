@@ -17,6 +17,7 @@ const {
 } = require('../controllers/userLeaguesController');
 const authenticateToken = require('../middlewares/authentication');
 const authorizePermission = require('../middlewares/authorizePermission');
+const { cacheMiddleware, CACHE_TTL } = require('../middlewares/cacheMiddleware');
 
 // User-League Endpoints
 
@@ -80,18 +81,20 @@ router.delete(
     leaveLeague
 );
 
-// View league participants
+// View league participants (leaderboard data)
 router.get(
     '/:league_id/participants',
     authenticateToken,
-    authorizePermission(['league_read']), // Permission to view league participants
+    authorizePermission(['league_read']),
+    cacheMiddleware(CACHE_TTL.SHORT), // Cache for 1 minute (updates with games)
     getLeagueParticipants
 );
 
 router.get(
     '/:league_id/participants/:user_id',
     authenticateToken,
-    authorizePermission(['league_read']), // Restrict access to league admins
+    authorizePermission(['league_read']),
+    cacheMiddleware(CACHE_TTL.SHORT), // Cache for 1 minute
     getLeagueParticipantDetails
 );
 
@@ -100,6 +103,7 @@ router.get(
     '/:league_id/participants/:user_id/matchups',
     authenticateToken,
     authorizePermission(['league_read']),
+    cacheMiddleware(CACHE_TTL.MEDIUM), // Cache for 5 minutes
     getParticipantMatchups
 );
 
