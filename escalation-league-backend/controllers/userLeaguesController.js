@@ -154,6 +154,8 @@ const getLeagueParticipants = async (req, res) => {
     const { league_id } = req.params;
 
     try {
+        const scryfallDb = require('../models/scryfallDb');
+
         const participants = await db('user_leagues as ul')
             .join('users as u', 'ul.user_id', 'u.id')
             .select(
@@ -165,11 +167,30 @@ const getLeagueParticipants = async (req, res) => {
                 'ul.total_points',
                 'ul.is_active',
                 'ul.disqualified',
-                'ul.joined_at'
+                'ul.joined_at',
+                'ul.current_commander'
             )
             .where('ul.league_id', league_id);
 
-        res.status(200).json(participants);
+        // Fetch commander names from Scryfall DB for all participants
+        const participantsWithCommanders = await Promise.all(
+            participants.map(async (p) => {
+                let commanderName = null;
+                if (p.current_commander) {
+                    const commanderData = await scryfallDb('cards')
+                        .select('name')
+                        .where('id', p.current_commander)
+                        .first();
+                    commanderName = commanderData ? commanderData.name : null;
+                }
+                return {
+                    ...p,
+                    current_commander: commanderName
+                };
+            })
+        );
+
+        res.status(200).json(participantsWithCommanders);
     } catch (err) {
         console.error('Error fetching league participants:', err.message);
         res.status(500).json({ error: 'Failed to fetch league participants.' });

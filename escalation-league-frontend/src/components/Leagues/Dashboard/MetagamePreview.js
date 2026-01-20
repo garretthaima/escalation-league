@@ -25,17 +25,15 @@ const MetagamePreview = ({ metagame, leagueId }) => {
         <div>
             <div className="row">
                 {/* Color Distribution */}
-                <div className="col-md-6 mb-4 mb-md-0">
+                <div className="col-lg-7 mb-4">
                     <h6 className="text-muted mb-3">Color Distribution</h6>
-                    <div style={{ height: '200px' }}>
-                        <ColorDistributionChart colors={colorData} />
-                    </div>
+                    <ColorDistributionChart colors={colorData} />
                 </div>
 
-                {/* Quick Stats */}
-                <div className="col-md-6">
+                {/* Quick Stats & Staples */}
+                <div className="col-lg-5 mb-4">
                     <h6 className="text-muted mb-3">Quick Stats</h6>
-                    <div className="row g-2">
+                    <div className="row g-2 mb-3">
                         <div className="col-6">
                             <div className="p-3 bg-dark bg-opacity-25 rounded text-center">
                                 <div className="fs-4 fw-bold">{metagame.totalDecks || 0}</div>
@@ -52,7 +50,7 @@ const MetagamePreview = ({ metagame, leagueId }) => {
 
                     {/* Top Staples */}
                     {metagame.staples && metagame.staples.length > 0 && (
-                        <div className="mt-3">
+                        <div>
                             <h6 className="text-muted mb-2">Top Staples</h6>
                             <div className="d-flex flex-wrap gap-1">
                                 {metagame.staples.slice(0, 5).map((card, idx) => (
@@ -67,7 +65,7 @@ const MetagamePreview = ({ metagame, leagueId }) => {
             </div>
 
             {/* Link to full metagame */}
-            <div className="text-center mt-4 pt-3 border-top">
+            <div className="text-center pt-3 border-top">
                 <Link to="/leagues/metagame" className="btn btn-outline-primary">
                     <i className="fas fa-chart-bar me-2"></i>
                     View Full Metagame Analysis
