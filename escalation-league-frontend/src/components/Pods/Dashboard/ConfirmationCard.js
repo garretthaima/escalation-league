@@ -64,7 +64,7 @@ const ConfirmationCard = ({ pod, userId, onConfirm }) => {
                         return (
                             <div
                                 key={participant.player_id}
-                                className={`d-flex justify-content-between align-items-center py-2 px-2 rounded mb-1 ${isConfirmed ? 'bg-light' : ''
+                                className={`d-flex justify-content-between align-items-center py-2 px-2 rounded mb-1 ${isConfirmed ? 'bg-success bg-opacity-10' : ''
                                     }`}
                             >
                                 <span>
