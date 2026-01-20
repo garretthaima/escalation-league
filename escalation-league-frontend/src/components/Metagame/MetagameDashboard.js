@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getActiveLeague } from '../../api/leaguesApi';
-import { getMetagameAnalysis } from '../../api/metagameApi';
+import { getMetagameAnalysis, getTurnOrderStats } from '../../api/metagameApi';
 import ColorDistributionChart from './ColorDistributionChart';
 import ManaCurveChart from './ManaCurveChart';
 import './MetagameDashboard.css';
@@ -9,6 +9,7 @@ import './MetagameDashboard.css';
 const MetagameDashboard = () => {
     const [activeLeague, setActiveLeague] = useState(null);
     const [metagame, setMetagame] = useState(null);
+    const [turnOrderData, setTurnOrderData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [activeTab, setActiveTab] = useState('overview');
@@ -36,9 +37,13 @@ const MetagameDashboard = () => {
             }
             setActiveLeague(leagueData);
 
-            // Fetch metagame analysis
-            const metagameData = await getMetagameAnalysis(leagueData.id);
+            // Fetch metagame analysis and turn order stats in parallel
+            const [metagameData, turnOrderStats] = await Promise.all([
+                getMetagameAnalysis(leagueData.id),
+                getTurnOrderStats(leagueData.id).catch(() => null)
+            ]);
             setMetagame(metagameData);
+            setTurnOrderData(turnOrderStats);
 
         } catch (err) {
             console.error('Error fetching metagame data:', err);
@@ -543,6 +548,62 @@ const MetagameDashboard = () => {
                                     </div>
                                 ) : (
                                     <p className="text-muted">No win condition data</p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Turn Order Analysis */}
+                    <div className="col-12 mb-4">
+                        <div className="card">
+                            <div className="card-body">
+                                <h5 className="card-title">
+                                    <i className="fas fa-dice me-2"></i>Turn Order Win Rates
+                                </h5>
+                                {turnOrderData && turnOrderData.turnOrderStats && turnOrderData.turnOrderStats.length > 0 ? (
+                                    <div>
+                                        {turnOrderData.message && (
+                                            <div className="alert alert-info mb-3">
+                                                <i className="fas fa-info-circle me-2"></i>
+                                                {turnOrderData.message}
+                                            </div>
+                                        )}
+                                        <p className="text-muted mb-3">
+                                            Based on {turnOrderData.totalGames} completed game{turnOrderData.totalGames !== 1 ? 's' : ''}
+                                            {turnOrderData.gamesWithDraws > 0 && ` (${turnOrderData.gamesWithDraws} draw${turnOrderData.gamesWithDraws !== 1 ? 's' : ''})`}
+                                        </p>
+                                        <div className="row">
+                                            {turnOrderData.turnOrderStats.map((stat) => (
+                                                <div key={stat.position} className="col-md-3 col-sm-6 mb-3">
+                                                    <div className="p-3 border rounded text-center">
+                                                        <h6 className="mb-2">{stat.positionLabel}</h6>
+                                                        <div className="display-6 mb-1" style={{
+                                                            color: stat.winRate >= 30 ? '#198754' : stat.winRate >= 20 ? '#0d6efd' : '#6c757d'
+                                                        }}>
+                                                            {stat.winRate}%
+                                                        </div>
+                                                        <small className="text-muted">
+                                                            {stat.wins} win{stat.wins !== 1 ? 's' : ''} / {stat.gamesPlayed} game{stat.gamesPlayed !== 1 ? 's' : ''}
+                                                        </small>
+                                                        <div className="progress mt-2" style={{ height: '8px' }}>
+                                                            <div
+                                                                className="progress-bar"
+                                                                style={{
+                                                                    width: `${stat.winRate}%`,
+                                                                    backgroundColor: stat.winRate >= 30 ? '#198754' : stat.winRate >= 20 ? '#0d6efd' : '#6c757d'
+                                                                }}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <p className="text-muted">
+                                        <i className="fas fa-info-circle me-2"></i>
+                                        No completed games with turn order data yet. Turn order statistics will appear here once games are completed.
+                                    </p>
                                 )}
                             </div>
                         </div>

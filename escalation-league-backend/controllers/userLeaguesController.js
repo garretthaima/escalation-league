@@ -472,6 +472,71 @@ const getParticipantMatchups = async (req, res) => {
     }
 };
 
+// Get turn order win stats for a participant
+const getParticipantTurnOrderStats = async (req, res) => {
+    const { league_id, user_id } = req.params;
+
+    try {
+        // Get all completed games for this user in this league with turn order data
+        const completedGames = await db('game_pods as gp')
+            .join('game_players as pl', 'gp.id', 'pl.pod_id')
+            .where('gp.league_id', league_id)
+            .where('pl.player_id', user_id)
+            .where('gp.confirmation_status', 'complete')
+            .whereNotNull('pl.turn_order')
+            .whereNotNull('pl.result')
+            .select('gp.id as pod_id', 'pl.turn_order', 'pl.result');
+
+        if (completedGames.length === 0) {
+            return res.status(200).json({
+                message: 'No completed games with turn order data found',
+                turnOrderStats: [],
+                totalGames: 0
+            });
+        }
+
+        const totalGames = completedGames.length;
+
+        // Calculate stats for each turn order position (1-4)
+        const turnOrderStats = [];
+        for (let position = 1; position <= 4; position++) {
+            const gamesAtPosition = completedGames.filter(g => g.turn_order === position);
+            const winsAtPosition = gamesAtPosition.filter(g => g.result === 'win').length;
+            const totalAtPosition = gamesAtPosition.length;
+
+            if (totalAtPosition > 0) {
+                turnOrderStats.push({
+                    position,
+                    positionLabel: getPositionLabel(position),
+                    wins: winsAtPosition,
+                    gamesPlayed: totalAtPosition,
+                    winRate: Math.round((winsAtPosition / totalAtPosition) * 100 * 10) / 10
+                });
+            }
+        }
+
+        res.status(200).json({
+            turnOrderStats,
+            totalGames,
+            message: totalGames < 5 ? 'Limited data - statistics may not be statistically significant' : null
+        });
+    } catch (err) {
+        console.error('Error fetching participant turn order stats:', err.message);
+        res.status(500).json({ error: 'Failed to fetch turn order statistics.' });
+    }
+};
+
+// Helper function for position labels
+function getPositionLabel(position) {
+    const labels = {
+        1: '1st',
+        2: '2nd',
+        3: '3rd',
+        4: '4th'
+    };
+    return labels[position] || `${position}th`;
+}
+
 module.exports = {
     signUpForLeague,
     getUserLeagueStats,
@@ -484,5 +549,6 @@ module.exports = {
     isUserInLeague,
     getLeagueParticipantDetails,
     updateParticipantStatus,
-    getParticipantMatchups
+    getParticipantMatchups,
+    getParticipantTurnOrderStats
 };

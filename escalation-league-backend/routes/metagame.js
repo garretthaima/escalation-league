@@ -1,5 +1,5 @@
 const express = require('express');
-const { getMetagameStats, getCardStats } = require('../controllers/metagameController');
+const { getMetagameStats, getCardStats, getTurnOrderStats } = require('../controllers/metagameController');
 const authenticateToken = require('../middlewares/authentication');
 const authorizePermission = require('../middlewares/authorizePermission');
 
@@ -19,6 +19,14 @@ router.get(
     authenticateToken,
     authorizePermission(['league_view_details']),
     getCardStats
+);
+
+// Get win rate statistics by turn order position
+router.get(
+    '/:leagueId/metagame/turn-order',
+    authenticateToken,
+    authorizePermission(['league_view_details']),
+    getTurnOrderStats
 );
 
 module.exports = router;

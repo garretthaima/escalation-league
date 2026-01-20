@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { getLeagueParticipantsDetails, getOpponentMatchups } from '../../../api/userLeaguesApi';
+import { getLeagueParticipantsDetails, getOpponentMatchups, getTurnOrderStats } from '../../../api/userLeaguesApi';
 import { getLeagueDetails } from '../../../api/leaguesApi';
 
 const PublicProfile = () => {
@@ -8,6 +8,7 @@ const PublicProfile = () => {
     const [leagueDetails, setLeagueDetails] = useState(null);
     const [leagueInfo, setLeagueInfo] = useState(null);
     const [matchups, setMatchups] = useState(null);
+    const [turnOrderData, setTurnOrderData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -28,13 +29,17 @@ const PublicProfile = () => {
                 const leagueData = await getLeagueParticipantsDetails(leagueId, userId);
                 setLeagueDetails(leagueData);
 
-                // Fetch opponent matchup stats (nemesis/victim)
-                try {
-                    const matchupData = await getOpponentMatchups(leagueId, userId);
-                    setMatchups(matchupData);
-                } catch (matchupErr) {
-                    console.error('Error fetching matchups:', matchupErr);
-                    // Don't fail the whole page if matchups fail
+                // Fetch opponent matchup stats and turn order stats in parallel
+                const [matchupResult, turnOrderResult] = await Promise.allSettled([
+                    getOpponentMatchups(leagueId, userId),
+                    getTurnOrderStats(leagueId, userId)
+                ]);
+
+                if (matchupResult.status === 'fulfilled') {
+                    setMatchups(matchupResult.value);
+                }
+                if (turnOrderResult.status === 'fulfilled') {
+                    setTurnOrderData(turnOrderResult.value);
                 }
             } catch (err) {
                 console.error('Error fetching profile data:', err);
@@ -167,6 +172,43 @@ const PublicProfile = () => {
                                     </div>
                                 </div>
                             )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Turn Order Statistics Section */}
+            {turnOrderData && turnOrderData.turnOrderStats && turnOrderData.turnOrderStats.length > 0 && (
+                <div className="card mb-4">
+                    <div className="card-header">
+                        <h5 className="mb-0">
+                            <i className="fas fa-dice me-2"></i>
+                            Win Rate by Seat Position
+                        </h5>
+                    </div>
+                    <div className="card-body">
+                        {turnOrderData.message && (
+                            <p className="text-muted small mb-3">
+                                <i className="fas fa-info-circle me-1"></i>
+                                {turnOrderData.message}
+                            </p>
+                        )}
+                        <div className="row">
+                            {turnOrderData.turnOrderStats.map((stat) => (
+                                <div key={stat.position} className="col-6 col-md-3 mb-3">
+                                    <div className="text-center p-2 border rounded">
+                                        <div className="text-muted small">{stat.positionLabel}</div>
+                                        <div className="h4 mb-0" style={{
+                                            color: stat.winRate >= 40 ? '#198754' : stat.winRate >= 25 ? '#0d6efd' : '#6c757d'
+                                        }}>
+                                            {stat.winRate}%
+                                        </div>
+                                        <div className="text-muted small">
+                                            {stat.wins}W / {stat.gamesPlayed}G
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </div>

@@ -683,7 +683,84 @@ function getColorName(colorCode) {
     return colorMap[colorCode] || colorCode;
 }
 
+/**
+ * Get win rate statistics by turn order position
+ * Analyzes completed games to determine win percentages for each seating position
+ */
+const getTurnOrderStats = async (req, res) => {
+    try {
+        const { leagueId } = req.params;
+
+        // Get all completed games in this league with turn order data
+        const completedGames = await db('game_pods as gp')
+            .join('game_players as pl', 'gp.id', 'pl.pod_id')
+            .where('gp.league_id', leagueId)
+            .where('gp.confirmation_status', 'complete')
+            .whereNotNull('pl.turn_order')
+            .whereNotNull('pl.result')
+            .select('gp.id as pod_id', 'pl.turn_order', 'pl.result');
+
+        if (completedGames.length === 0) {
+            return res.status(200).json({
+                message: 'No completed games with turn order data found',
+                turnOrderStats: [],
+                totalGames: 0
+            });
+        }
+
+        // Group by pod to count unique games
+        const podIds = new Set(completedGames.map(g => g.pod_id));
+        const totalGames = podIds.size;
+
+        // Calculate stats for each turn order position (1-4)
+        const turnOrderStats = [];
+        for (let position = 1; position <= 4; position++) {
+            const gamesAtPosition = completedGames.filter(g => g.turn_order === position);
+            const winsAtPosition = gamesAtPosition.filter(g => g.result === 'win').length;
+            const totalAtPosition = gamesAtPosition.length;
+
+            if (totalAtPosition > 0) {
+                turnOrderStats.push({
+                    position,
+                    positionLabel: getPositionLabel(position),
+                    wins: winsAtPosition,
+                    gamesPlayed: totalAtPosition,
+                    winRate: Math.round((winsAtPosition / totalAtPosition) * 100 * 10) / 10
+                });
+            }
+        }
+
+        // Also calculate draws if any
+        const drawGames = completedGames.filter(g => g.result === 'draw');
+        const drawCount = new Set(drawGames.map(g => g.pod_id)).size;
+
+        res.status(200).json({
+            turnOrderStats,
+            totalGames,
+            gamesWithDraws: drawCount,
+            message: totalGames < 10 ? 'Limited data - statistics may not be statistically significant' : null
+        });
+    } catch (err) {
+        console.error('Error fetching turn order stats:', err.message);
+        res.status(500).json({ error: 'Failed to fetch turn order statistics.' });
+    }
+};
+
+/**
+ * Get position label for turn order
+ */
+function getPositionLabel(position) {
+    const labels = {
+        1: '1st (Going First)',
+        2: '2nd',
+        3: '3rd',
+        4: '4th (Going Last)'
+    };
+    return labels[position] || `${position}th`;
+}
+
 module.exports = {
     getMetagameStats,
-    getCardStats
+    getCardStats,
+    getTurnOrderStats
 };

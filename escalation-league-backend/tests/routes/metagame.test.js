@@ -385,4 +385,156 @@ describe('Metagame API', () => {
             expect(res.status).toBe(403);
         });
     });
+
+    describe('GET /api/leagues/:leagueId/metagame/turn-order', () => {
+        it('should return empty stats when no completed games exist', async () => {
+            const res = await request(app)
+                .get(`/api/leagues/${leagueId}/metagame/turn-order`)
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.status).toBe(200);
+            expect(res.body.turnOrderStats).toEqual([]);
+            expect(res.body.totalGames).toBe(0);
+            expect(res.body.message).toBe('No completed games with turn order data found');
+        });
+
+        it('should return 401 without authentication', async () => {
+            const res = await request(app)
+                .get(`/api/leagues/${leagueId}/metagame/turn-order`);
+
+            expect(res.status).toBe(401);
+        });
+
+        it('should return 403 without proper permissions', async () => {
+            const { token: unauthorizedToken } = await getAuthTokenWithRole('user', []);
+
+            const res = await request(app)
+                .get(`/api/leagues/${leagueId}/metagame/turn-order`)
+                .set('Authorization', `Bearer ${unauthorizedToken}`);
+
+            expect(res.status).toBe(403);
+        });
+
+        it('should calculate turn order win rates correctly', async () => {
+            // Create additional users
+            const { userId: user2Id } = await getAuthTokenWithRole('league_user', ['league_view_details']);
+            const { userId: user3Id } = await getAuthTokenWithRole('league_user', ['league_view_details']);
+            const { userId: user4Id } = await getAuthTokenWithRole('league_user', ['league_view_details']);
+
+            await addUserToLeague(user2Id, leagueId);
+            await addUserToLeague(user3Id, leagueId);
+            await addUserToLeague(user4Id, leagueId);
+
+            // Create a completed pod with turn order data
+            const [podId] = await db('game_pods').insert({
+                league_id: leagueId,
+                creator_id: userId,
+                confirmation_status: 'complete'
+            });
+
+            // Add players with turn order and results
+            // User 1 is first and wins
+            await db('game_players').insert([
+                { pod_id: podId, player_id: userId, turn_order: 1, result: 'win', confirmed: 1 },
+                { pod_id: podId, player_id: user2Id, turn_order: 2, result: 'loss', confirmed: 1 },
+                { pod_id: podId, player_id: user3Id, turn_order: 3, result: 'loss', confirmed: 1 },
+                { pod_id: podId, player_id: user4Id, turn_order: 4, result: 'loss', confirmed: 1 }
+            ]);
+
+            const res = await request(app)
+                .get(`/api/leagues/${leagueId}/metagame/turn-order`)
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.status).toBe(200);
+            expect(res.body.totalGames).toBe(1);
+            expect(Array.isArray(res.body.turnOrderStats)).toBe(true);
+            expect(res.body.turnOrderStats.length).toBe(4);
+
+            // Check first position stats
+            const firstPosition = res.body.turnOrderStats.find(s => s.position === 1);
+            expect(firstPosition).toBeDefined();
+            expect(firstPosition.wins).toBe(1);
+            expect(firstPosition.gamesPlayed).toBe(1);
+            expect(firstPosition.winRate).toBe(100);
+
+            // Check second position stats
+            const secondPosition = res.body.turnOrderStats.find(s => s.position === 2);
+            expect(secondPosition).toBeDefined();
+            expect(secondPosition.wins).toBe(0);
+            expect(secondPosition.gamesPlayed).toBe(1);
+            expect(secondPosition.winRate).toBe(0);
+        });
+
+        it('should show limited data message when less than 10 games', async () => {
+            // Create one completed game
+            const { userId: user2Id } = await getAuthTokenWithRole('league_user', ['league_view_details']);
+            await addUserToLeague(user2Id, leagueId);
+
+            const [podId] = await db('game_pods').insert({
+                league_id: leagueId,
+                creator_id: userId,
+                confirmation_status: 'complete'
+            });
+
+            await db('game_players').insert([
+                { pod_id: podId, player_id: userId, turn_order: 1, result: 'win', confirmed: 1 },
+                { pod_id: podId, player_id: user2Id, turn_order: 2, result: 'loss', confirmed: 1 }
+            ]);
+
+            const res = await request(app)
+                .get(`/api/leagues/${leagueId}/metagame/turn-order`)
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.status).toBe(200);
+            expect(res.body.message).toBe('Limited data - statistics may not be statistically significant');
+        });
+
+        it('should count draw games correctly', async () => {
+            const { userId: user2Id } = await getAuthTokenWithRole('league_user', ['league_view_details']);
+            await addUserToLeague(user2Id, leagueId);
+
+            const [podId] = await db('game_pods').insert({
+                league_id: leagueId,
+                creator_id: userId,
+                confirmation_status: 'complete'
+            });
+
+            // Both players have draw result
+            await db('game_players').insert([
+                { pod_id: podId, player_id: userId, turn_order: 1, result: 'draw', confirmed: 1 },
+                { pod_id: podId, player_id: user2Id, turn_order: 2, result: 'draw', confirmed: 1 }
+            ]);
+
+            const res = await request(app)
+                .get(`/api/leagues/${leagueId}/metagame/turn-order`)
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.status).toBe(200);
+            expect(res.body.gamesWithDraws).toBe(1);
+        });
+
+        it('should only include completed games', async () => {
+            const { userId: user2Id } = await getAuthTokenWithRole('league_user', ['league_view_details']);
+            await addUserToLeague(user2Id, leagueId);
+
+            // Create an active (not completed) pod
+            const [activePodId] = await db('game_pods').insert({
+                league_id: leagueId,
+                creator_id: userId,
+                confirmation_status: 'active'
+            });
+
+            await db('game_players').insert([
+                { pod_id: activePodId, player_id: userId, turn_order: 1, result: null, confirmed: 0 },
+                { pod_id: activePodId, player_id: user2Id, turn_order: 2, result: null, confirmed: 0 }
+            ]);
+
+            const res = await request(app)
+                .get(`/api/leagues/${leagueId}/metagame/turn-order`)
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.status).toBe(200);
+            expect(res.body.totalGames).toBe(0);
+        });
+    });
 });
