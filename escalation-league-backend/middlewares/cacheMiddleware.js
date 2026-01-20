@@ -102,14 +102,14 @@ const cacheInvalidators = {
 
     // Invalidate when a game is completed
     gameCompleted: async (leagueId) => {
-        await invalidateCache(`cache:/api/user-leagues/${leagueId}/leaderboard*`);
+        await invalidateCache(`cache:/api/user-leagues/${leagueId}/participants*`);
         await invalidateCache(`cache:/api/metagame/${leagueId}*`);
         await invalidateCache(`cache:/api/leagues/${leagueId}/stats*`);
     },
 
     // Invalidate when player joins/leaves
     playerChanged: async (leagueId) => {
-        await invalidateCache(`cache:/api/user-leagues/${leagueId}/leaderboard*`);
+        await invalidateCache(`cache:/api/user-leagues/${leagueId}/participants*`);
         await invalidateCache(`cache:/api/leagues/${leagueId}*`);
     },
 
