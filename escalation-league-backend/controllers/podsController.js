@@ -294,6 +294,14 @@ const logPodResult = async (req, res) => {
                     link: `/pods?podId=${podId}`
                 });
             }
+
+            // Notify the declarer that they're waiting for confirmations
+            await createNotification(req.app, playerId, {
+                title: 'Awaiting Confirmations',
+                message: `You declared a ${result} in Pod #${podId}. Waiting for ${otherPlayers.length} player${otherPlayers.length > 1 ? 's' : ''} to confirm.`,
+                type: 'info',
+                link: `/pods?podId=${podId}`
+            });
         }
 
         // Check if all participants have confirmed

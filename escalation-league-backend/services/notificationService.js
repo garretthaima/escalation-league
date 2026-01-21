@@ -117,12 +117,79 @@ const notifyGameComplete = async (app, userId, podId) => {
     });
 };
 
+/**
+ * Get all admin user IDs (super_admin and league_admin)
+ * @returns {Promise<number[]>} Array of admin user IDs
+ */
+const getAdminUserIds = async () => {
+    const admins = await db('users')
+        .whereIn('role_id', [1, 2]) // super_admin = 1, league_admin = 2
+        .select('id');
+    return admins.map(a => a.id);
+};
+
+/**
+ * Notify all admins about an event
+ * @param {object} app - Express app instance
+ * @param {object} options - Notification options
+ * @returns {Promise<object[]>} Created notifications
+ */
+const notifyAdmins = async (app, options) => {
+    const adminIds = await getAdminUserIds();
+    return createBulkNotifications(app, adminIds, options);
+};
+
+// ============================================================================
+// Notification type templates (for quick use with createNotification)
+// ============================================================================
+const notificationTypes = {
+    signupApproved: (leagueName) => ({
+        title: `Welcome to ${leagueName}!`,
+        message: 'Your signup request has been approved.',
+        type: 'success',
+        link: '/leagues'
+    }),
+    signupRejected: (leagueName) => ({
+        title: 'Signup Update',
+        message: `Your signup request for ${leagueName} was not approved.`,
+        type: 'warning',
+        link: '/leagues'
+    }),
+    newSignupRequest: (userName, leagueName) => ({
+        title: 'New Signup Request',
+        message: `${userName} has requested to join ${leagueName}.`,
+        type: 'info',
+        link: '/admin'
+    }),
+    podAssigned: (podId, link) => ({
+        title: 'Pod Assigned',
+        message: `You've been assigned to Pod #${podId}. Good luck!`,
+        type: 'info',
+        link: link || '/pods'
+    }),
+    confirmGame: (podId) => ({
+        title: 'Confirm Your Game',
+        message: 'A game result needs your confirmation.',
+        type: 'warning',
+        link: `/pods?podId=${podId}`
+    }),
+    gameComplete: (podId, result) => ({
+        title: 'Game Complete',
+        message: `Pod #${podId} is complete. You ${result}!`,
+        type: result === 'won' ? 'success' : 'info',
+        link: `/pods?podId=${podId}`
+    })
+};
+
 module.exports = {
     createNotification,
     createBulkNotifications,
+    getAdminUserIds,
+    notifyAdmins,
     notifySignupApproved,
     notifySignupRejected,
     notifyPodAssigned,
     notifyConfirmGame,
-    notifyGameComplete
+    notifyGameComplete,
+    notificationTypes
 };

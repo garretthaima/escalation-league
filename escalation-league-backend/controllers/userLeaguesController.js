@@ -3,6 +3,7 @@ const redis = require('../utils/redisClient'); // Import the Redis client
 const { updateStats } = require('../utils/statsUtils');
 const logger = require('../utils/logger');
 const { getOpponentMatchups } = require('../services/gameService');
+const { notifyAdmins, notificationTypes } = require('../services/notificationService');
 
 
 // Sign up for a league
@@ -388,6 +389,13 @@ const requestSignupForLeague = async (req, res) => {
             deck_id,
             requestId
         });
+
+        // Notify admins about the new signup request
+        const user = await db('users').where({ id: userId }).first();
+        const league = await db('leagues').where({ id: league_id }).first();
+        const userName = user ? `${user.firstname} ${user.lastname}` : 'A user';
+        const leagueName = league?.name || 'a league';
+        await notifyAdmins(req.app, notificationTypes.newSignupRequest(userName, leagueName));
 
         res.status(200).json({ success: true, message: 'Signup request submitted successfully.' });
     } catch (err) {
