@@ -1,4 +1,5 @@
 const db = require('../models/db');
+const { emitNotificationRead } = require('../utils/socketEmitter');
 
 /**
  * Get paginated notifications for the current user
@@ -78,6 +79,9 @@ const markAsRead = async (req, res) => {
                 read_at: db.fn.now()
             });
 
+        // Emit to sync other tabs/devices
+        emitNotificationRead(req.app, userId, parseInt(id));
+
         res.status(200).json({ message: 'Notification marked as read.' });
     } catch (err) {
         console.error('Error marking notification as read:', err.message);
@@ -98,6 +102,9 @@ const markAllAsRead = async (req, res) => {
                 is_read: true,
                 read_at: db.fn.now()
             });
+
+        // Emit 'all' to sync other tabs/devices
+        emitNotificationRead(req.app, userId, 'all');
 
         res.status(200).json({
             message: 'All notifications marked as read.',
