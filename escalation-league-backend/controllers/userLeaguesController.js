@@ -4,6 +4,7 @@ const { updateStats } = require('../utils/statsUtils');
 const logger = require('../utils/logger');
 const { getOpponentMatchups } = require('../services/gameService');
 const { notifyAdmins, notificationTypes } = require('../services/notificationService');
+const { logLeagueSignup, logLeagueLeft } = require('../services/activityLogService');
 
 
 // Sign up for a league
@@ -142,6 +143,9 @@ const leaveLeague = async (req, res) => {
         if (result === 0) {
             return res.status(404).json({ error: 'No league data found to delete.' });
         }
+
+        // Log the activity
+        await logLeagueLeft(userId, league_id);
 
         res.status(200).json({ message: 'Successfully left the league.' });
     } catch (err) {
@@ -396,6 +400,9 @@ const requestSignupForLeague = async (req, res) => {
         const userName = user ? `${user.firstname} ${user.lastname}` : 'A user';
         const leagueName = league?.name || 'a league';
         await notifyAdmins(req.app, notificationTypes.newSignupRequest(userName, leagueName));
+
+        // Log the activity
+        await logLeagueSignup(userId, league_id, leagueName);
 
         res.status(200).json({ success: true, message: 'Signup request submitted successfully.' });
     } catch (err) {

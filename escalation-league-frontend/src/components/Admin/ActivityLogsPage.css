@@ -1,0 +1,37 @@
+.metadata-list {
+    list-style: none;
+    padding-left: 0;
+    font-size: 0.85rem;
+}
+
+.metadata-list li {
+    padding: 2px 0;
+}
+
+.metadata-list li strong {
+    color: var(--bs-secondary);
+}
+
+/* Dark mode support */
+[data-bs-theme="dark"] .metadata-list li strong {
+    color: var(--bs-gray-400);
+}
+
+/* Table styling */
+.activity-logs-table th {
+    white-space: nowrap;
+}
+
+.activity-logs-table td {
+    vertical-align: middle;
+}
+
+/* Filter card */
+.card-header {
+    font-weight: 600;
+}
+
+/* Badge styling for actions */
+.badge.bg-info {
+    font-weight: 500;
+}

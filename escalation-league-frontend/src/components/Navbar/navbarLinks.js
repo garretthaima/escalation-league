@@ -51,6 +51,7 @@ const navbarLinks = (inLeague) => [
             { label: 'Attendance', path: '/admin/attendance', order: 3, icon: 'fa-clipboard-list' },
             { label: 'User Roles', path: '/admin/users', order: 4, icon: 'fa-user-shield' },
             { label: 'Matchup Matrix', path: '/admin/matchup-matrix', order: 5, icon: 'fa-th' },
+            { label: 'Activity Logs', path: '/admin/activity-logs', order: 6, icon: 'fa-history' },
         ],
     },
 ];

@@ -3,6 +3,7 @@ const db = require('../models/db');
 const redis = require('../utils/redisClient');
 const { updateStats } = require('../utils/statsUtils');
 const logger = require('../utils/logger');
+const { logProfileUpdate, logAccountDeletion, logPasswordChange } = require('../services/activityLogService');
 
 // Fetch User Profile
 const getUserProfile = async (req, res) => {
@@ -133,11 +134,7 @@ const updateUserProfile = async (req, res) => {
     await db('users').where({ id: userId }).update(updates);
 
     // Log the activity
-    await db('activity_logs').insert({
-      user_id: userId,
-      action: 'Profile updated',
-      metadata: JSON.stringify(updates),
-    });
+    await logProfileUpdate(userId, updates);
 
     res.status(200).json({ message: 'Profile updated successfully.' });
   } catch (err) {
@@ -154,6 +151,9 @@ const deleteUserAccount = async (req, res) => {
   const userId = req.user.id;
 
   try {
+    // Log the activity before deletion
+    await logAccountDeletion(userId);
+
     await db('users').where({ id: userId }).update({ is_deleted: true });
     res.status(200).json({ message: 'User account soft deleted successfully.' });
   } catch (err) {
@@ -187,6 +187,9 @@ const changePassword = async (req, res) => {
     // Hash the new password and update it
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     await db('users').where({ id: userId }).update({ password: hashedPassword });
+
+    // Log the activity
+    await logPasswordChange(userId);
 
     res.status(200).json({ message: 'Password changed successfully.' });
   } catch (err) {

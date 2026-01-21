@@ -149,4 +149,15 @@ try {
     console.error('Error loading attendanceRoutes:', err.message);
 }
 
+/**
+ * Mounts activity-log-related routes at `/activity-logs`.
+ * @module routes/activityLogs
+ */
+try {
+    const activityLogsRoutes = require('./activityLogs');
+    router.use('/activity-logs', activityLogsRoutes); // Activity logs routes
+} catch (err) {
+    console.error('Error loading activityLogsRoutes:', err.message);
+}
+
 module.exports = router;
