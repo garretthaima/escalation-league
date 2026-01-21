@@ -33,7 +33,8 @@ const PriceCheckPage = () => {
         };
 
         fetchDeckId();
-    }, [activeLeague]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeLeague, user?.id]);
 
     const handlePriceCheck = async () => {
         if (!deckId) {

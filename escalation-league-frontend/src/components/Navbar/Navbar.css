@@ -25,6 +25,13 @@
     text-decoration: underline;
 }
 
+/* Dropdown button styled as nav-link */
+.navbar .nav-link.dropdown-toggle.btn-link {
+    background: none;
+    border: none;
+    text-decoration: none;
+}
+
 .navbar-brand {
     color: #ffffff !important;
 }

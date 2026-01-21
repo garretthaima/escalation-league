@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { loginUser, registerUser, googleAuth } from '../../api/authApi';
-import { getUserPermissions } from '../../api/usersApi';
 import { usePermissions } from '../context/PermissionsProvider';
 import GoogleSignInButton from './GoogleSignInButton';
 import { useToast } from '../context/ToastContext';
@@ -11,7 +10,7 @@ const SignIn = () => {
     const [formData, setFormData] = useState({ email: '', password: '', firstname: '', lastname: '' });
     const [error, setError] = useState('');
     const navigate = useNavigate();
-    const { setUser, setPermissions, refreshUserData } = usePermissions();
+    const { refreshUserData } = usePermissions();
     const { showToast } = useToast();
 
     const handleChange = (e) => {

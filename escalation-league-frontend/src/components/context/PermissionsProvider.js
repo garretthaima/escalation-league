@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { getUserPermissions, getUserProfile, getUserSetting, updateUserSetting } from '../../api/usersApi'; // Add API calls
-import { useNavigate } from 'react-router-dom';
 import { isUserInLeague } from '../../api/userLeaguesApi'; // Import the API call for activeLeague
 
 const PermissionsContext = createContext();
@@ -12,7 +11,6 @@ export const PermissionsProvider = ({ children }) => {
     const [darkMode, setDarkMode] = useState(true); // Default to dark mode
     const [activeLeague, setActiveLeague] = useState(null); // Add activeLeague state
     const [refreshKey, setRefreshKey] = useState(0); // Add refresh mechanism
-    const navigate = useNavigate();
 
     useEffect(() => {
         const fetchPermissionsAndUser = async () => {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { updatePod, removeParticipant, addParticipant, toggleDQ, deletePod } from '../../api/podsAdminApi';
+import { updatePod, deletePod } from '../../api/podsAdminApi';
 import { getPods } from '../../api/podsApi';
 import { getLeagueParticipants } from '../../api/userLeaguesApi';
 import { useToast } from '../context/ToastContext';
@@ -89,7 +89,7 @@ const EditPodPage = () => {
         };
 
         fetchPodDetails();
-    }, [podId, navigate]);
+    }, [podId, navigate, showToast]);
 
     // Check if there are any unsaved changes
     const hasChanges = () => {
@@ -184,7 +184,7 @@ const EditPodPage = () => {
         setTurnOrder(prev => prev.filter(id => id !== participantId));
 
         // If removing the winner, clear winner selection
-        if (winnerId == participantId) {
+        if (winnerId === String(participantId)) {
             setWinnerId('');
             setCurrentWinner(null);
         }
@@ -214,14 +214,14 @@ const EditPodPage = () => {
         }
 
         // Check if player already in pod or pending addition
-        if (participants.some(p => p.player_id == selectedUserId) ||
-            pendingAdditions.some(p => p.player_id == selectedUserId)) {
+        if (participants.some(p => String(p.player_id) === selectedUserId) ||
+            pendingAdditions.some(p => String(p.player_id) === selectedUserId)) {
             showToast('Player is already in this pod', 'error');
             return;
         }
 
         // Find the user details
-        const userToAdd = leagueUsers.find(u => u.id == selectedUserId);
+        const userToAdd = leagueUsers.find(u => String(u.id) === selectedUserId);
         if (!userToAdd) {
             showToast('User not found', 'error');
             return;
@@ -303,7 +303,7 @@ const EditPodPage = () => {
                 let result;
                 if (isDraw) {
                     result = 'draw';
-                } else if (winnerId && participant.player_id == winnerId) {
+                } else if (winnerId && String(participant.player_id) === winnerId) {
                     result = 'win';
                 } else if (participant.result === 'disqualified') {
                     result = 'disqualified'; // Preserve DQ status
@@ -470,7 +470,7 @@ const EditPodPage = () => {
                         <ul className="list-group list-group-flush">
                             {participants.map((participant, index) => {
                                 const isPendingRemoval = pendingRemovals.includes(participant.player_id);
-                                const isWinner = winnerId == participant.player_id;
+                                const isWinner = winnerId === String(participant.player_id);
                                 const canBeWinner = !isDraw && !isPendingRemoval && participant.result !== 'disqualified';
 
                                 return (
@@ -776,9 +776,9 @@ const EditPodPage = () => {
                                     {leagueUsers
                                         .filter(user => {
                                             // Exclude if user is in pod AND NOT pending removal
-                                            const isInPod = participants.some(p => p.player_id == user.id);
-                                            const isPendingRemoval = pendingRemovals.some(id => id == user.id);
-                                            const isPendingAddition = pendingAdditions.some(p => p.player_id == user.id);
+                                            const isInPod = participants.some(p => p.player_id === user.id);
+                                            const isPendingRemoval = pendingRemovals.some(id => id === user.id);
+                                            const isPendingAddition = pendingAdditions.some(p => p.player_id === user.id);
 
                                             // Show user if: (not in pod OR pending removal) AND not pending addition
                                             return (!isInPod || isPendingRemoval) && !isPendingAddition;

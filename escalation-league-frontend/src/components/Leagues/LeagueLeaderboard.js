@@ -6,7 +6,7 @@ import { usePermissions } from '../context/PermissionsProvider';
 import { SkeletonLeaderboard, SkeletonText } from '../Shared/Skeleton';
 
 const LeagueLeaderboard = () => {
-    const { permissions, loading: loadingPermissions } = usePermissions(); // Use PermissionsProvider
+    const { loading: loadingPermissions } = usePermissions(); // Use PermissionsProvider
     const [leagueId, setLeagueId] = useState(null);
     const [leaderboard, setLeaderboard] = useState([]);
     const [stats, setStats] = useState(null);

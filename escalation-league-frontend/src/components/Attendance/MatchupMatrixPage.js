@@ -36,6 +36,7 @@ const MatchupMatrixPage = () => {
 
     useEffect(() => {
         fetchMatrix();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [leagueId]);
 
     const sortedPlayers = [...players].sort((a, b) => {

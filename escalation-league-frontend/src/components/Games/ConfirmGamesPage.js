@@ -41,7 +41,8 @@ const ConfirmGamesTab = () => {
         };
 
         fetchGamesWaitingConfirmation();
-    }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isAdmin]);
 
     // WebSocket listeners for real-time confirmation updates
     useEffect(() => {

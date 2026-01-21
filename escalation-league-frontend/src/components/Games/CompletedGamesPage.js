@@ -41,7 +41,8 @@ const CompletedGamesTab = () => {
         };
 
         fetchCompletedGames();
-    }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isAdmin]);
 
     // Apply filters whenever filter states change
     useEffect(() => {
