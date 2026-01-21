@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getLeagueDetails, getLeagueStats } from '../../../api/leaguesApi';
-import { isUserInLeague, getLeagueParticipants, getUserLeagueStats } from '../../../api/userLeaguesApi';
+import { getLeagueParticipants, getUserLeagueStats } from '../../../api/userLeaguesApi';
 import { getMetagameAnalysis } from '../../../api/metagameApi';
 import { usePermissions } from '../../context/PermissionsProvider';
 import CollapsibleSection from '../../Shared/CollapsibleSection';
@@ -14,7 +14,7 @@ import './LeagueDashboard.css';
 
 const LeagueDashboard = () => {
     const navigate = useNavigate();
-    const { user, loading: loadingPermissions } = usePermissions();
+    const { user, loading: loadingPermissions, activeLeague: contextLeague } = usePermissions();
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -34,14 +34,13 @@ const LeagueDashboard = () => {
                 setLoading(true);
                 setError(null);
 
-                // Check if user is in a league
-                const { inLeague, league: activeLeague } = await isUserInLeague();
-                if (!inLeague) {
+                // Check if user is in a league (from context)
+                if (!contextLeague) {
                     navigate('/leagues/signup');
                     return;
                 }
 
-                const leagueId = activeLeague.league_id;
+                const leagueId = contextLeague.league_id;
 
                 // Fetch essential data in parallel (fast endpoints)
                 const [leagueDetails, userStatsData, leaderboardData, participantsData] = await Promise.all([
@@ -74,7 +73,7 @@ const LeagueDashboard = () => {
         if (!loadingPermissions) {
             fetchDashboardData();
         }
-    }, [loadingPermissions, navigate, user?.id]);
+    }, [loadingPermissions, navigate, user?.id, contextLeague]);
 
     // Lazy load metagame data after dashboard renders
     useEffect(() => {

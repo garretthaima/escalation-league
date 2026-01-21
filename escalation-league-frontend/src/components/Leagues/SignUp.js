@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getLeagues } from '../../api/leaguesApi';
-import { getUserPendingSignupRequests, requestSignupForLeague, isUserInLeague } from '../../api/userLeaguesApi';
+import { getUserPendingSignupRequests, requestSignupForLeague } from '../../api/userLeaguesApi';
 import { validateAndCacheDeck } from '../../api/decksApi'; // Import the function
 import ScryfallApi from '../../api/scryfallApi';
+import { usePermissions } from '../context/PermissionsProvider';
 
 const SignUp = () => {
+    const { activeLeague: contextActiveLeague, loading: permissionsLoading } = usePermissions();
+
     const [leagues, setLeagues] = useState([]);
     const [selectedLeague, setSelectedLeague] = useState('');
-    const [activeLeague, setActiveLeague] = useState(null);
     const [pendingRequest, setPendingRequest] = useState(false);
     const [message, setMessage] = useState('');
     const [loading, setLoading] = useState(true);
@@ -25,29 +27,18 @@ const SignUp = () => {
     const [deckValidationError, setDeckValidationError] = useState(''); // Validation error state
     const navigate = useNavigate();
 
+    // Use activeLeague from context
+    const activeLeague = contextActiveLeague;
+
     useEffect(() => {
+        if (permissionsLoading) return;
+
         const fetchLeagues = async () => {
             try {
                 const leaguesData = await getLeagues();
                 setLeagues(leaguesData.filter((league) => league.is_active));
             } catch (error) {
                 console.error('Error fetching leagues:', error);
-            }
-        };
-
-        const checkUserInLeague = async () => {
-            try {
-                const { inLeague, league } = await isUserInLeague();
-                if (inLeague) {
-                    setActiveLeague(league);
-                }
-            } catch (error) {
-                if (error.response && error.response.status === 404) {
-                    console.warn('User is not part of any league.');
-                    setActiveLeague(null);
-                } else {
-                    console.error('Error checking league membership:', error);
-                }
             }
         };
 
@@ -66,12 +57,12 @@ const SignUp = () => {
 
         const initialize = async () => {
             setLoading(true);
-            await Promise.all([fetchLeagues(), checkUserInLeague(), checkPendingRequests()]);
+            await Promise.all([fetchLeagues(), checkPendingRequests()]);
             setLoading(false);
         };
 
         initialize();
-    }, []);
+    }, [permissionsLoading]);
 
     const handleDeckValidation = async () => {
         try {

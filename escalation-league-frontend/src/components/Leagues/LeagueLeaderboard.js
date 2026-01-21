@@ -1,19 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getLeagueStats } from '../../api/leaguesApi';
-import { isUserInLeague } from '../../api/userLeaguesApi';
 import { usePermissions } from '../context/PermissionsProvider';
 import { SkeletonLeaderboard, SkeletonText } from '../Shared/Skeleton';
 
 const LeagueLeaderboard = () => {
-    const { loading: loadingPermissions } = usePermissions(); // Use PermissionsProvider
-    const [leagueId, setLeagueId] = useState(null);
+    const { loading: loadingPermissions, activeLeague } = usePermissions();
     const [leaderboard, setLeaderboard] = useState([]);
     const [stats, setStats] = useState(null);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(true);
     const [sortConfig, setSortConfig] = useState({ key: 'total_points', direction: 'desc' });
     const [expandedRows, setExpandedRows] = useState(new Set());
+
+    // Derive leagueId from context
+    const leagueId = activeLeague?.league_id;
 
     const toggleRow = (playerId) => {
         const newExpanded = new Set(expandedRows);
@@ -26,26 +27,16 @@ const LeagueLeaderboard = () => {
     };
 
     useEffect(() => {
-        const fetchUserLeague = async () => {
-            try {
-                const { inLeague, league } = await isUserInLeague();
-                if (!inLeague) {
-                    setError('You are not part of any league.');
-                    return;
-                }
-                setLeagueId(league.league_id);
-            } catch (err) {
-                console.error('Error checking league membership:', err);
-                setError('Failed to fetch league information.');
-            } finally {
-                setLoading(false);
-            }
-        };
+        if (loadingPermissions) return;
 
-        if (!loadingPermissions) {
-            fetchUserLeague();
+        if (!activeLeague) {
+            setError('You are not part of any league.');
+            setLoading(false);
+            return;
         }
-    }, [loadingPermissions]);
+
+        setLoading(false);
+    }, [loadingPermissions, activeLeague]);
 
     useEffect(() => {
         if (leagueId) {

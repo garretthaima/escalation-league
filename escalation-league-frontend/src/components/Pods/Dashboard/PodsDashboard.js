@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getPods, logPodResult } from '../../../api/podsApi';
-import { isUserInLeague } from '../../../api/userLeaguesApi';
 import { getUserProfile } from '../../../api/usersApi';
 import { usePermissions } from '../../context/PermissionsProvider';
 import { useToast } from '../../context/ToastContext';
@@ -13,15 +12,17 @@ import CreateGameModal from './CreateGameModal';
 import DeclareResultModal from './DeclareResultModal';
 
 const PodsDashboard = () => {
-    const { permissions, loading: permissionsLoading } = usePermissions();
+    const { permissions, loading: permissionsLoading, activeLeague } = usePermissions();
     const { showToast } = useToast();
     const { socket, connected, joinLeague, leaveLeague } = useWebSocket();
+
+    // Derive leagueId from context
+    const leagueId = activeLeague?.league_id;
 
     // State
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [userId, setUserId] = useState(null);
-    const [leagueId, setLeagueId] = useState(null);
 
     // Pod data
     const [activePods, setActivePods] = useState([]);
@@ -51,20 +52,14 @@ const PodsDashboard = () => {
                     return;
                 }
 
-                const [userProfile, leagueResponse] = await Promise.all([
-                    getUserProfile(),
-                    isUserInLeague()
-                ]);
-
-                setUserId(userProfile.user.id);
-
-                if (!leagueResponse.inLeague) {
+                if (!activeLeague) {
                     setError('You are not part of any league.');
                     setLoading(false);
                     return;
                 }
 
-                setLeagueId(leagueResponse.league.league_id);
+                const userProfile = await getUserProfile();
+                setUserId(userProfile.user.id);
 
                 // Fetch pods by status
                 const [active, pending, completed] = await Promise.all([
@@ -99,7 +94,7 @@ const PodsDashboard = () => {
         };
 
         fetchData();
-    }, [permissionsLoading, canReadPods, isAdmin]);
+    }, [permissionsLoading, canReadPods, isAdmin, activeLeague]);
 
     // WebSocket listeners
     useEffect(() => {

@@ -1,19 +1,19 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useRef, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { usePermissions } from '../context/PermissionsProvider';
 import ProfileSection from './ProfileSection';
 import NotificationCenter from './NotificationCenter';
-import { isUserInLeague } from '../../api/userLeaguesApi';
 import navbarLinks from './navbarLinks';
 import './Navbar.css';
 import './Navbar-mobile.css'; // Mobile-specific overrides
 
 const Navbar = ({ handleLogout }) => {
-    const { permissions, user, darkMode, toggleDarkMode } = usePermissions();
+    const { permissions, user, darkMode, toggleDarkMode, activeLeague, loading } = usePermissions();
     const location = useLocation();
-    const [inLeague, setInLeague] = useState(false);
-    const [leagueStatusLoading, setLeagueStatusLoading] = useState(true);
     const navbarCollapseRef = useRef(null);
+
+    // Derive inLeague from context (activeLeague is the league object or null)
+    const inLeague = !!activeLeague;
 
     // Collapse navbar on mobile when link is clicked (using ref instead of DOM query)
     const collapseNavbar = useCallback(() => {
@@ -37,27 +37,6 @@ const Navbar = ({ handleLogout }) => {
     const handleLinkClick = () => {
         collapseNavbar();
     };
-
-    useEffect(() => {
-        const fetchLeagueStatus = async () => {
-            setLeagueStatusLoading(true);
-            try {
-                const { inLeague } = await isUserInLeague();
-                setInLeague(inLeague);
-            } catch (err) {
-                console.error('Error fetching league status:', err);
-                setInLeague(false);
-            } finally {
-                setLeagueStatusLoading(false);
-            }
-        };
-
-        if (user) {
-            fetchLeagueStatus();
-        } else {
-            setLeagueStatusLoading(false);
-        }
-    }, [user]);
 
     // Generate navbar links dynamically based on inLeague state
     const filteredLinks = navbarLinks(inLeague).filter((link) => {
@@ -100,7 +79,7 @@ const Navbar = ({ handleLogout }) => {
                 </div>
                 <div className="collapse navbar-collapse" id="navbarNav" ref={navbarCollapseRef}>
                     <ul className="navbar-nav me-auto mb-2 mb-lg-0">
-                        {leagueStatusLoading && user ? (
+                        {loading && user ? (
                             <li className="nav-item">
                                 <span className="nav-link text-muted">
                                     <i className="fas fa-spinner fa-spin me-1"></i>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getPods, joinPod, createPod, overridePod, logPodResult } from '../../api/podsApi'; // Use unified getPods
-import { isUserInLeague, getLeagueParticipants } from '../../api/userLeaguesApi';
+import { getLeagueParticipants } from '../../api/userLeaguesApi';
 import { usePermissions } from '../context/PermissionsProvider';
 import { getUserProfile } from '../../api/usersApi';
 import { useToast } from '../context/ToastContext';
@@ -9,7 +9,6 @@ import { useWebSocket } from '../context/WebSocketProvider';
 const ActiveGamesTab = () => {
     const [openPods, setOpenPods] = useState([]);
     const [activePods, setActivePods] = useState([]);
-    const [leagueId, setLeagueId] = useState(null);
     const [userId, setUserId] = useState(null);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -23,30 +22,18 @@ const ActiveGamesTab = () => {
     const [turnOrder, setTurnOrder] = useState([]);
     const [creatingGame, setCreatingGame] = useState(false);
 
-    const { permissions } = usePermissions();
+    const { permissions, activeLeague } = usePermissions();
     const { showToast } = useToast();
     const { socket, connected, joinLeague, leaveLeague } = useWebSocket();
+
+    // Derive leagueId from context
+    const leagueId = activeLeague?.league_id;
 
     // Check permissions
     const canReadPods = permissions.some((perm) => perm.name === 'pod_read');
     const canCreatePods = permissions.some((perm) => perm.name === 'pod_create');
     // eslint-disable-next-line no-unused-vars
     const isAdmin = permissions.some((perm) => perm.name === 'admin_pod_update');
-
-    // Fetch league ID early for WebSocket connection (don't wait for pods)
-    useEffect(() => {
-        const fetchLeagueId = async () => {
-            try {
-                const response = await isUserInLeague();
-                if (response.inLeague && response.league?.league_id) {
-                    setLeagueId(response.league.league_id);
-                }
-            } catch (err) {
-                console.error('Error fetching league ID:', err);
-            }
-        };
-        fetchLeagueId();
-    }, []);
 
     useEffect(() => {
         const fetchPods = async () => {
@@ -188,17 +175,15 @@ const ActiveGamesTab = () => {
     // Simple pod creation (open pod that others join)
     const handleCreatePod = async () => {
         try {
-            const response = await isUserInLeague();
-            if (!response.inLeague || !response.league) {
+            if (!activeLeague) {
                 showToast('You are not part of any league.', 'warning');
                 return;
             }
 
-            const leagueId = response.league.league_id;
             await createPod({ leagueId });
 
             // WebSocket event (pod:created) will update the UI
-            showToast(`New pod created successfully in league: ${response.league.league_name}!`, 'success');
+            showToast(`New pod created successfully in league: ${activeLeague.league_name}!`, 'success');
         } catch (err) {
             console.error('Error creating pod:', err.response?.data?.error || err.message);
             showToast(err.response?.data?.error || 'Failed to create pod.', 'error');
@@ -208,14 +193,13 @@ const ActiveGamesTab = () => {
     // Open create game modal with player selection
     const handleOpenCreateModal = async () => {
         try {
-            const response = await isUserInLeague();
-            if (!response.inLeague || !response.league) {
+            if (!activeLeague) {
                 showToast('You are not part of any league.', 'warning');
                 return;
             }
 
             // Fetch league participants
-            const participants = await getLeagueParticipants(response.league.league_id);
+            const participants = await getLeagueParticipants(leagueId);
             const users = Array.isArray(participants) ? participants : [];
             // Map user_id to id for consistency
             const mappedUsers = users.map(u => ({ ...u, id: u.user_id || u.id }));
