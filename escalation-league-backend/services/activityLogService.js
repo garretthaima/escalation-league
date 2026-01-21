@@ -155,6 +155,22 @@ const logPlayerDQToggled = async (adminId, podId, playerId, isDQ) => {
     return logActivity(adminId, isDQ ? 'Disqualified player' : 'Reinstated player', { podId, playerId });
 };
 
+// ============================================================================
+// Settings Actions
+// ============================================================================
+
+const logSettingUpdated = async (adminId, settingKey, oldValue, newValue) => {
+    return logActivity(adminId, 'Updated app setting', { settingKey, oldValue, newValue });
+};
+
+const logSettingCreated = async (adminId, settingKey) => {
+    return logActivity(adminId, 'Created app setting', { settingKey });
+};
+
+const logSettingDeleted = async (adminId, settingKey) => {
+    return logActivity(adminId, 'Deleted app setting', { settingKey });
+};
+
 module.exports = {
     logActivity,
     // Auth
@@ -188,5 +204,9 @@ module.exports = {
     logParticipantRemoved,
     logParticipantAdded,
     logParticipantResultUpdated,
-    logPlayerDQToggled
+    logPlayerDQToggled,
+    // Settings
+    logSettingUpdated,
+    logSettingCreated,
+    logSettingDeleted
 };
