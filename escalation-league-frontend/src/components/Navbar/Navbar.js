@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { usePermissions } from '../context/PermissionsProvider';
 import ProfileSection from './ProfileSection';
+import NotificationCenter from './NotificationCenter';
 import { isUserInLeague } from '../../api/userLeaguesApi';
 import navbarLinks from './navbarLinks';
 import './Navbar.css';
@@ -165,6 +166,7 @@ const Navbar = ({ handleLogout }) => {
                     </ul>
                 </div>
                 <div className="navbar-right-buttons">
+                    {user && <NotificationCenter />}
                     <ProfileSection user={user} handleLogout={handleLogout} darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
                 </div>
             </div>
