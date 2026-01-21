@@ -135,6 +135,26 @@ const logPodDeleted = async (adminId, podId) => {
     return logActivity(adminId, 'Deleted pod', { podId });
 };
 
+const logPodOverridden = async (adminId, podId) => {
+    return logActivity(adminId, 'Overrode pod to active', { podId });
+};
+
+const logParticipantRemoved = async (adminId, podId, playerId, wasWinner = false) => {
+    return logActivity(adminId, 'Removed participant from pod', { podId, playerId, wasWinner });
+};
+
+const logParticipantAdded = async (adminId, podId, playerId) => {
+    return logActivity(adminId, 'Added participant to pod', { podId, playerId });
+};
+
+const logParticipantResultUpdated = async (adminId, podId, playerId, result) => {
+    return logActivity(adminId, 'Updated participant result', { podId, playerId, result });
+};
+
+const logPlayerDQToggled = async (adminId, podId, playerId, isDQ) => {
+    return logActivity(adminId, isDQ ? 'Disqualified player' : 'Reinstated player', { podId, playerId });
+};
+
 module.exports = {
     logActivity,
     // Auth
@@ -163,5 +183,10 @@ module.exports = {
     logUserActivated,
     logUserDeactivated,
     logPodUpdated,
-    logPodDeleted
+    logPodDeleted,
+    logPodOverridden,
+    logParticipantRemoved,
+    logParticipantAdded,
+    logParticipantResultUpdated,
+    logPlayerDQToggled
 };

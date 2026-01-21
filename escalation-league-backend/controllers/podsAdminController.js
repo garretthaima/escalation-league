@@ -1,6 +1,14 @@
 const db = require('../models/db');
 const { emitPodDeleted } = require('../utils/socketEmitter');
 const { cacheInvalidators } = require('../middlewares/cacheMiddleware');
+const {
+    logPodUpdated,
+    logPodDeleted,
+    logParticipantRemoved,
+    logParticipantAdded,
+    logParticipantResultUpdated,
+    logPlayerDQToggled
+} = require('../services/activityLogService');
 
 
 // Update a Pod
@@ -179,6 +187,13 @@ const updatePod = async (req, res) => {
             await cacheInvalidators.gameCompleted(updatedPod.league_id);
         }
 
+        // Log the admin action
+        const changes = {};
+        if (participants) changes.participants = 'updated';
+        if (result) changes.result = result;
+        if (confirmation_status) changes.confirmation_status = confirmation_status;
+        await logPodUpdated(req.user.id, podId, changes);
+
         res.status(200).json(updatedPod);
     } catch (err) {
         console.error('Error updating pod:', err.message);
@@ -219,6 +234,9 @@ const removeParticipant = async (req, res) => {
                 });
             }
         }
+
+        // Log the admin action
+        await logParticipantRemoved(req.user.id, podId, playerId, wasWinner);
 
         res.status(200).json({
             message: 'Participant removed successfully.',
@@ -302,6 +320,9 @@ const addParticipant = async (req, res) => {
             });
         }
 
+        // Log the admin action
+        await logParticipantAdded(req.user.id, podId, playerId);
+
         res.status(200).json({
             message: 'Participant added successfully.',
             participantCount: currentParticipants.length + 1
@@ -329,6 +350,9 @@ const updateParticipantResult = async (req, res) => {
 
         // Update the participant's result
         await db('game_players').where({ pod_id: podId, player_id: playerId }).whereNull('deleted_at').update({ result });
+
+        // Log the admin action
+        await logParticipantResultUpdated(req.user.id, podId, playerId, result);
 
         res.status(200).json({ message: 'Participant result updated successfully.' });
     } catch (err) {
@@ -407,6 +431,9 @@ const deletePod = async (req, res) => {
         if (currentPod && currentPod.league_id) {
             emitPodDeleted(req.app, currentPod.league_id, podId);
         }
+
+        // Log the admin action
+        await logPodDeleted(req.user.id, podId);
 
         res.status(200).json({ message: 'Pod deleted successfully.' });
     } catch (err) {
@@ -487,6 +514,9 @@ const toggleDQ = async (req, res) => {
                     });
             }
         }
+
+        // Log the admin action
+        await logPlayerDQToggled(req.user.id, podId, playerId, newResult === 'disqualified');
 
         res.status(200).json({
             message: `Player ${newResult === 'disqualified' ? 'disqualified' : 'reinstated'} successfully.`,

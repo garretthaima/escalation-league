@@ -10,7 +10,7 @@ const {
 } = require('../utils/socketEmitter');
 const { cacheInvalidators } = require('../middlewares/cacheMiddleware');
 const { createNotification } = require('../services/notificationService');
-const { logPodCreated, logPodJoined, logGameResultDeclared, logGameResultConfirmed, logGameCompleted } = require('../services/activityLogService');
+const { logPodCreated, logPodJoined, logGameResultDeclared, logGameResultConfirmed, logGameCompleted, logPodOverridden } = require('../services/activityLogService');
 
 // Create a Pod
 // Supports two modes:
@@ -521,6 +521,9 @@ const overridePod = async (req, res) => {
 
         // Emit WebSocket event
         emitPodActivated(req.app, pod.league_id, podId);
+
+        // Log the admin action
+        await logPodOverridden(req.user.id, podId);
 
         res.status(200).json({ message: 'Pod successfully overridden to active.' });
     } catch (err) {
