@@ -10,6 +10,7 @@ const {
 } = require('../utils/socketEmitter');
 const { cacheInvalidators } = require('../middlewares/cacheMiddleware');
 const { createNotification } = require('../services/notificationService');
+const { logPodCreated, logPodJoined, logGameResultDeclared, logGameResultConfirmed, logGameCompleted } = require('../services/activityLogService');
 
 // Create a Pod
 // Supports two modes:
@@ -77,6 +78,9 @@ const createPod = async (req, res) => {
                 playerCount: player_ids.length
             });
 
+            // Log activity
+            await logPodCreated(creatorId, podId, effectiveLeagueId);
+
             // Emit WebSocket event
             emitPodCreated(req.app, effectiveLeagueId, {
                 id: podId,
@@ -116,6 +120,9 @@ const createPod = async (req, res) => {
             leagueId: effectiveLeagueId,
             podId
         });
+
+        // Log activity
+        await logPodCreated(creatorId, podId, effectiveLeagueId);
 
         // Emit WebSocket event with complete pod data including participants
         emitPodCreated(req.app, effectiveLeagueId, {
@@ -183,6 +190,9 @@ const joinPod = async (req, res) => {
             .where({ id: playerId })
             .select('id', 'firstname', 'lastname', 'email')
             .first();
+
+        // Log activity
+        await logPodJoined(playerId, podId);
 
         // Emit player joined event
         emitPlayerJoined(req.app, pod.league_id, podId, user);
@@ -277,6 +287,9 @@ const logPodResult = async (req, res) => {
         if (result === 'win' || result === 'draw') {
             await db('game_pods').where({ id: podId }).update({ confirmation_status: 'pending' });
             emitWinnerDeclared(req.app, pod.league_id, podId, playerId);
+
+            // Log activity - result declared
+            await logGameResultDeclared(playerId, podId, result === 'win' ? playerId : null);
 
             // Get declarer's name and notify other players to confirm
             const declarer = await db('users').where({ id: playerId }).first();
@@ -376,6 +389,9 @@ const logPodResult = async (req, res) => {
                     result: podResult,
                 });
 
+            // Log activity - game completed
+            await logGameCompleted(playerId, podId);
+
             // Emit game completed event
             emitGameConfirmed(req.app, pod.league_id, podId, playerId, true);
 
@@ -395,6 +411,9 @@ const logPodResult = async (req, res) => {
 
             return res.status(200).json({ message: 'Game result logged successfully, stats updated, and pod marked as complete.' });
         } else {
+            // Log activity - result confirmed (not the declarer, just confirming)
+            await logGameResultConfirmed(playerId, podId);
+
             // Update the pod's confirmation status to 'pending'
             await db('game_pods')
                 .where({ id: podId })

@@ -11,6 +11,7 @@ const {
     revokeRefreshToken,
     revokeRefreshTokensByUser,
 } = require('../services/refreshTokenService');
+const { logLogin, logLogout } = require('../services/activityLogService');
 
 
 // Register User
@@ -101,6 +102,9 @@ const loginUser = async (req, res) => {
         );
 
         logger.info('User logged in successfully', { userId: user.id, email: user.email });
+
+        // Log activity
+        await logLogin(user.id, req.ip);
 
         res.status(200).json({
             token: accessToken, // Keep 'token' for backward compatibility
@@ -196,6 +200,9 @@ const googleAuth = async (req, res) => {
 
         logger.info('Google auth successful', { userId: user.id, email: user.email });
 
+        // Log activity
+        await logLogin(user.id, req.ip);
+
         res.status(200).json({
             success: true,
             token: accessToken, // Keep 'token' for backward compatibility
@@ -287,6 +294,10 @@ const logoutAll = async (req, res) => {
 
     try {
         await revokeRefreshTokensByUser(userId);
+
+        // Log activity
+        await logLogout(userId);
+
         logger.info('User logged out from all devices', { userId });
         res.status(200).json({ success: true, message: 'Logged out from all devices' });
     } catch (err) {

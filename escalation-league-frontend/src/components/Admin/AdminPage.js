@@ -16,6 +16,9 @@ const AdminPage = () => {
                 <li>
                     <Link to="/admin/users">User Role Management</Link>
                 </li>
+                <li>
+                    <Link to="/admin/activity-logs">Activity Logs</Link>
+                </li>
             </ul>
         </div>
     );

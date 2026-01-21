@@ -15,7 +15,7 @@ import Rules from './components/Static/Rules';
 import Awards from './components/Static/Awards';
 import NotAuthorized from './components/Auth/NotAuthorized';
 import PublicProfile from './components/Auth/Profile/PublicProfile';
-import { LeagueAdminPage, PodAdminPage, UserRoleManagementPage, AttendanceAdminPage } from './components/Admin';
+import { LeagueAdminPage, PodAdminPage, UserRoleManagementPage, AttendanceAdminPage, ActivityLogsPage } from './components/Admin';
 import EditPodPage from './components/Admin/EditPodPage';
 import { HomePage, Footer, Contact } from './components/Shared/';
 import { ToastProvider } from './components/context/ToastContext';
@@ -115,6 +115,7 @@ const App = () => {
                             <Route path="/admin/users" element={<UserRoleManagementPage />} />
                             <Route path="/admin/attendance" element={<AttendanceAdminPage />} />
                             <Route path="/admin/matchup-matrix" element={<MatchupMatrixPage />} />
+                            <Route path="/admin/activity-logs" element={<ActivityLogsPage />} />
 
 
                             {/* Not Authorized Page */}

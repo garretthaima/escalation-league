@@ -1,6 +1,14 @@
 const db = require('../models/db');
 const redis = require('../utils/redisClient');
 const bcrypt = require('bcrypt');
+const {
+    logUserRoleChange,
+    logUserBanned,
+    logUserUnbanned,
+    logUserActivated,
+    logUserDeactivated,
+    logPasswordReset
+} = require('../services/activityLogService');
 
 // Fetch All Users (Admin Only)
 const getAllUsers = async (req, res) => {
@@ -28,9 +36,14 @@ const getAllUsers = async (req, res) => {
 // Deactivate User Account (Admin Only)
 const deactivateUser = async (req, res) => {
     const { id } = req.params;
+    const adminId = req.user.id;
 
     try {
         await db('users').where({ id }).update({ is_active: false });
+
+        // Log activity
+        await logUserDeactivated(adminId, id);
+
         res.status(200).json({ message: 'User account deactivated successfully.' });
     } catch (err) {
         console.error('Error deactivating user account:', err);
@@ -40,9 +53,14 @@ const deactivateUser = async (req, res) => {
 
 const activateUser = async (req, res) => {
     const { id } = req.params;
+    const adminId = req.user.id;
 
     try {
         await db('users').where({ id }).update({ is_active: true });
+
+        // Log activity
+        await logUserActivated(adminId, id);
+
         res.status(200).json({ message: 'User account activated successfully.' });
     } catch (err) {
         console.error('Error activating user account:', err);
@@ -53,6 +71,7 @@ const activateUser = async (req, res) => {
 const banUser = async (req, res) => {
     const { id } = req.params;
     const { ban_reason } = req.body;
+    const adminId = req.user.id;
 
     if (!ban_reason) {
         return res.status(400).json({ error: 'Ban reason is required.' });
@@ -60,6 +79,10 @@ const banUser = async (req, res) => {
 
     try {
         await db('users').where({ id }).update({ is_banned: true, ban_reason });
+
+        // Log activity
+        await logUserBanned(adminId, id);
+
         res.status(200).json({ message: 'User account banned successfully.' });
     } catch (err) {
         console.error('Error banning user account:', err);
@@ -69,9 +92,14 @@ const banUser = async (req, res) => {
 
 const unbanUser = async (req, res) => {
     const { id } = req.params;
+    const adminId = req.user.id;
 
     try {
         await db('users').where({ id }).update({ is_banned: false, ban_reason: null });
+
+        // Log activity
+        await logUserUnbanned(adminId, id);
+
         res.status(200).json({ message: 'User account unbanned successfully.' });
     } catch (err) {
         console.error('Error unbanning user account:', err);
@@ -118,6 +146,7 @@ const getUserDetails = async (req, res) => {
 const resetUserPassword = async (req, res) => {
     const { id } = req.params;
     const { newPassword } = req.body;
+    const adminId = req.user.id;
 
     if (!newPassword) {
         return res.status(400).json({ error: 'New password is required.' });
@@ -126,6 +155,9 @@ const resetUserPassword = async (req, res) => {
     try {
         const hashedPassword = await bcrypt.hash(newPassword, 10);
         await db('users').where({ id }).update({ password: hashedPassword });
+
+        // Log activity
+        await logPasswordReset(id, adminId);
 
         res.status(200).json({ message: 'User password reset successfully.' });
     } catch (err) {
@@ -224,6 +256,7 @@ const reviewRoleRequest = async (req, res) => {
 const assignUserRole = async (req, res) => {
     const { userId } = req.params;
     const { roleId } = req.body;
+    const adminId = req.user.id;
 
     if (!roleId) {
         return res.status(400).json({ error: 'Role ID is required.' });
@@ -242,12 +275,18 @@ const assignUserRole = async (req, res) => {
             return res.status(404).json({ error: 'Role not found.' });
         }
 
+        // Get old role for logging
+        const oldRole = await db('roles').where({ id: user.role_id }).first();
+
         // Update the user's role
         await db('users').where({ id: userId }).update({ role_id: roleId });
 
         // Invalidate the Redis cache for this user so changes take effect immediately
         const cacheKey = `user:role:${userId}`;
         await redis.del(cacheKey);
+
+        // Log activity
+        await logUserRoleChange(adminId, userId, oldRole?.name || 'unknown', role.name);
 
         res.status(200).json({
             success: true,

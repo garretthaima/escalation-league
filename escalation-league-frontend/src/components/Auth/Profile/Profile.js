@@ -5,9 +5,10 @@ import OverviewTab from './OverviewTab';
 import SettingsTab from './SettingsTab';
 import StatisticsTab from './StatisticsTab';
 import LeagueTab from './LeagueTab';
+import ActivityTab from './ActivityTab';
 import { getUserProfile, updateUserProfile } from '../../../api/usersApi';
 
-const VALID_TABS = ['overview', 'statistics', 'league', 'settings'];
+const VALID_TABS = ['overview', 'statistics', 'league', 'activity', 'settings'];
 
 const Profile = () => {
     const [user, setUser] = useState(null);
@@ -96,6 +97,9 @@ const Profile = () => {
                 </Tab>
                 <Tab eventKey="league" title="League">
                     <LeagueTab currentLeague={currentLeague} />
+                </Tab>
+                <Tab eventKey="activity" title="Activity">
+                    <ActivityTab />
                 </Tab>
                 <Tab eventKey="settings" title="Settings">
                     <SettingsTab user={user} handlePictureUpdate={handlePictureUpdate} />
