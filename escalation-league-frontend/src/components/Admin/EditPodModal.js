@@ -152,18 +152,7 @@ const EditPodModal = ({ pod, onClose, onSave, onDelete }) => {
             return { player_id: p.player_id, result: original?.result || null, confirmed: p.confirmed };
         });
 
-        // Determine confirmation_status
-        let newConfirmationStatus = confirmationStatus;
-        const nonDqParticipants = newParticipantResults.filter(p => p.result !== 'disqualified');
-        const hasDefinitiveResult = isDraw || winnerId;
-
-        if (hasDefinitiveResult && nonDqParticipants.every(p => p.result)) {
-            // Admin set a definitive result - mark complete
-            newConfirmationStatus = 'complete';
-        }
-        // Otherwise preserve current status
-
-        // Determine pod result
+        // Determine pod result (but don't change confirmation_status - that's only via Force Complete)
         let podResult = null;
         if (isDraw) {
             podResult = 'draw';
@@ -174,7 +163,8 @@ const EditPodModal = ({ pod, onClose, onSave, onDelete }) => {
         const updates = {
             participants: newParticipantResults,
             result: podResult,
-            confirmation_status: newConfirmationStatus,
+            // Preserve current confirmation_status - don't auto-complete
+            confirmation_status: confirmationStatus,
         };
 
         try {
