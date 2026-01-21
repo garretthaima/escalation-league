@@ -1,5 +1,5 @@
 const express = require('express');
-const { getMetagameStats, getCardStats, getTurnOrderStats } = require('../controllers/metagameController');
+const { getMetagameStats, getCardStats, getTurnOrderStats, getCategoryCards, getCommanderMatchups } = require('../controllers/metagameController');
 const authenticateToken = require('../middlewares/authentication');
 const authorizePermission = require('../middlewares/authorizePermission');
 const { cacheMiddleware, CACHE_TTL } = require('../middlewares/cacheMiddleware');
@@ -30,6 +30,24 @@ router.get(
     authenticateToken,
     authorizePermission(['league_view_details']),
     getTurnOrderStats
+);
+
+// Get cards for a specific category (ramp, removal, etc.)
+router.get(
+    '/:leagueId/metagame/category/:category',
+    authenticateToken,
+    authorizePermission(['league_view_details']),
+    cacheMiddleware(CACHE_TTL.MEDIUM), // Cache for 5 minutes
+    getCategoryCards
+);
+
+// Get commander matchup statistics
+router.get(
+    '/:leagueId/metagame/commander-matchups',
+    authenticateToken,
+    authorizePermission(['league_view_details']),
+    cacheMiddleware(CACHE_TTL.MEDIUM), // Cache for 5 minutes
+    getCommanderMatchups
 );
 
 module.exports = router;

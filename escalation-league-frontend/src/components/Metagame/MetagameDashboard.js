@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getActiveLeague } from '../../api/leaguesApi';
-import { getMetagameAnalysis, getTurnOrderStats } from '../../api/metagameApi';
+import { getMetagameAnalysis, getTurnOrderStats, getCategoryCards } from '../../api/metagameApi';
 import ColorDistributionChart from './ColorDistributionChart';
 import ManaCurveChart from './ManaCurveChart';
 import './MetagameDashboard.css';
@@ -17,6 +17,8 @@ const MetagameDashboard = () => {
     const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(25);
+    // Category drill-down modal state
+    const [categoryModal, setCategoryModal] = useState({ show: false, category: null, cards: [], loading: false });
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -50,6 +52,19 @@ const MetagameDashboard = () => {
             setError(err.response?.data?.error || 'Failed to load metagame data.');
         } finally {
             setLoading(false);
+        }
+    };
+
+    // Handle category click to show drill-down modal
+    const handleCategoryClick = async (category, displayName) => {
+        if (!activeLeague) return;
+        setCategoryModal({ show: true, category: displayName, cards: [], loading: true });
+        try {
+            const data = await getCategoryCards(activeLeague.id, category);
+            setCategoryModal({ show: true, category: displayName, cards: data.cards || [], loading: false });
+        } catch (err) {
+            console.error('Error fetching category cards:', err);
+            setCategoryModal({ show: true, category: displayName, cards: [], loading: false, error: 'Failed to load cards' });
         }
     };
 
@@ -126,11 +141,11 @@ const MetagameDashboard = () => {
                 </li>
                 <li className="nav-item" role="presentation">
                     <button
-                        className={`nav-link ${activeTab === 'commanders' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('commanders')}
+                        className={`nav-link ${activeTab === 'matchups' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('matchups')}
                         type="button"
                     >
-                        Commanders
+                        Matchups
                     </button>
                 </li>
                 <li className="nav-item" role="presentation">
@@ -184,6 +199,76 @@ const MetagameDashboard = () => {
                             </div>
                         </div>
                     </div>
+                    {/* Meta Analytics Section */}
+                    {metagame.metaAnalytics && (
+                        <div className="col-12 mb-4">
+                            <div className="card">
+                                <div className="card-body">
+                                    <h5 className="card-title">
+                                        <i className="fas fa-chart-line me-2"></i>Meta Analytics
+                                    </h5>
+                                    <div className="row">
+                                        <div className="col-md-4 mb-3">
+                                            <div className="p-3 border rounded text-center">
+                                                <h6 className="text-muted mb-2">League Average CMC</h6>
+                                                <div className="display-5 text-primary">{metagame.metaAnalytics.leagueAvgCmc}</div>
+                                                <small className="text-muted">Mana value (excluding lands)</small>
+                                            </div>
+                                        </div>
+                                        <div className="col-md-4 mb-3">
+                                            <div className="p-3 border rounded text-center">
+                                                <h6 className="text-muted mb-2">Average Interaction</h6>
+                                                <div className="display-5 text-warning">{metagame.metaAnalytics.leagueAvgInteraction}</div>
+                                                <small className="text-muted">Removal + Counterspells + Wipes per deck</small>
+                                            </div>
+                                        </div>
+                                        <div className="col-md-4 mb-3">
+                                            <div className="p-3 border rounded text-center">
+                                                <h6 className="text-muted mb-2">Decks Analyzed</h6>
+                                                <div className="display-5 text-success">{metagame.totalDecks}</div>
+                                                <small className="text-muted">In this league</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {metagame.metaAnalytics.deckComparison && metagame.metaAnalytics.deckComparison.length > 0 && (
+                                        <div className="mt-3">
+                                            <h6>Deck CMC Comparison</h6>
+                                            <p className="text-muted small">Sorted from fastest (lowest CMC) to slowest</p>
+                                            <div className="table-responsive">
+                                                <table className="table table-sm">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Commander</th>
+                                                            <th>Avg CMC</th>
+                                                            <th>vs League</th>
+                                                            <th>Interaction</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {metagame.metaAnalytics.deckComparison.map((deck, idx) => {
+                                                            const diff = (deck.avgCmc - metagame.metaAnalytics.leagueAvgCmc).toFixed(2);
+                                                            const diffClass = diff < 0 ? 'text-success' : diff > 0 ? 'text-danger' : 'text-muted';
+                                                            return (
+                                                                <tr key={idx}>
+                                                                    <td>{deck.commander}</td>
+                                                                    <td><strong>{deck.avgCmc}</strong></td>
+                                                                    <td className={diffClass}>
+                                                                        {diff > 0 ? '+' : ''}{diff}
+                                                                    </td>
+                                                                    <td>{deck.interaction}</td>
+                                                                </tr>
+                                                            );
+                                                        })}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     <div className="col-12 mb-4">
                         <div className="card">
                             <div className="card-body">
@@ -223,66 +308,17 @@ const MetagameDashboard = () => {
                 </div>
             )}
 
-            {/* Commanders Tab */}
-            {activeTab === 'commanders' && (
+            {/* Matchups Tab */}
+            {activeTab === 'matchups' && (
                 <div className="row">
-                    <div className="col-md-6 mb-4">
+                    <div className="col-12 mb-4">
                         <div className="card">
-                            <div className="card-body">
-                                <h5 className="card-title">Most Popular Cards</h5>
-                                {metagame.topCards && metagame.topCards.length > 0 ? (
-                                    <table className="table table-sm">
-                                        <thead>
-                                            <tr>
-                                                <th>Card</th>
-                                                <th>Decks</th>
-                                                <th>%</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {metagame.topCards.map((card, idx) => (
-                                                <tr key={idx}>
-                                                    <td>{card.name}</td>
-                                                    <td>{card.count}</td>
-                                                    <td>{card.percentage}%</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                ) : (
-                                    <p className="text-muted">No card data available</p>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                    <div className="col-md-6 mb-4">
-                        <div className="card">
-                            <div className="card-body">
-                                <h5 className="card-title">Commander Synergies</h5>
-                                {metagame.commanderSynergies && Object.keys(metagame.commanderSynergies).length > 0 ? (
-                                    <table className="table table-sm">
-                                        <thead>
-                                            <tr>
-                                                <th>Commander</th>
-                                                <th>Top Synergy Cards</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {Object.entries(metagame.commanderSynergies).slice(0, 5).map(([commander, cards], idx) => (
-                                                <tr key={idx}>
-                                                    <td><strong>{commander}</strong></td>
-                                                    <td>
-                                                        <small className="text-muted">
-                                                            {cards.slice(0, 5).map(c => c.name).join(', ')}
-                                                        </small>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                ) : (
-                                    <p className="text-muted">Not enough data to identify synergies</p>
-                                )}
+                            <div className="card-body text-center py-5">
+                                <i className="fas fa-hard-hat fa-3x text-warning mb-3"></i>
+                                <h5 className="card-title">Coming Soon</h5>
+                                <p className="text-muted">
+                                    Commander matchup analytics are being redesigned to provide more meaningful insights for the league.
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -451,23 +487,41 @@ const MetagameDashboard = () => {
             {/* Strategy Tab */}
             {activeTab === 'strategy' && (
                 <div className="row">
+                    {/* Resources Section */}
                     <div className="col-md-4 mb-4">
-                        <div className="card">
+                        <div className="card h-100">
                             <div className="card-body">
-                                <h5 className="card-title">Resources</h5>
+                                <h5 className="card-title">
+                                    <i className="fas fa-coins me-2"></i>Resources
+                                </h5>
+                                <p className="text-muted small mb-3">Click to see cards</p>
                                 {metagame.resources ? (
                                     <div>
-                                        <div className="mb-3 p-2 border-start border-success border-3">
+                                        <div
+                                            className="mb-3 p-3 border rounded category-card"
+                                            onClick={() => handleCategoryClick('ramp', 'Ramp')}
+                                            style={{ cursor: 'pointer', transition: 'background-color 0.2s' }}
+                                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(25, 135, 84, 0.1)'}
+                                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ''}
+                                        >
                                             <h6 className="text-success mb-2">
                                                 <i className="fas fa-seedling me-2"></i>Ramp
+                                                <i className="fas fa-chevron-right float-end"></i>
                                             </h6>
                                             <p className="mb-1">Total: <strong>{metagame.resources.ramp.totalCount}</strong></p>
                                             <p className="mb-0">Avg per deck: <strong>{metagame.resources.ramp.averagePerDeck}</strong></p>
                                         </div>
 
-                                        <div className="p-2 border-start border-info border-3">
+                                        <div
+                                            className="p-3 border rounded category-card"
+                                            onClick={() => handleCategoryClick('cardDraw', 'Card Draw')}
+                                            style={{ cursor: 'pointer', transition: 'background-color 0.2s' }}
+                                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(13, 110, 253, 0.1)'}
+                                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ''}
+                                        >
                                             <h6 className="text-info mb-2">
                                                 <i className="fas fa-book me-2"></i>Card Draw
+                                                <i className="fas fa-chevron-right float-end"></i>
                                             </h6>
                                             <p className="mb-1">Total: <strong>{metagame.resources.cardDraw.totalCount}</strong></p>
                                             <p className="mb-0">Avg per deck: <strong>{metagame.resources.cardDraw.averagePerDeck}</strong></p>
@@ -479,31 +533,57 @@ const MetagameDashboard = () => {
                             </div>
                         </div>
                     </div>
+
+                    {/* Interaction Section */}
                     <div className="col-md-4 mb-4">
-                        <div className="card">
+                        <div className="card h-100">
                             <div className="card-body">
-                                <h5 className="card-title">Interaction</h5>
+                                <h5 className="card-title">
+                                    <i className="fas fa-shield-alt me-2"></i>Interaction
+                                </h5>
+                                <p className="text-muted small mb-3">Click to see cards</p>
                                 {metagame.interaction ? (
                                     <div>
-                                        <div className="mb-2 p-2 border-start border-danger border-3">
+                                        <div
+                                            className="mb-2 p-3 border rounded category-card"
+                                            onClick={() => handleCategoryClick('removal', 'Removal')}
+                                            style={{ cursor: 'pointer', transition: 'background-color 0.2s' }}
+                                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(220, 53, 69, 0.1)'}
+                                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ''}
+                                        >
                                             <h6 className="text-danger mb-1">
                                                 <i className="fas fa-skull-crossbones me-2"></i>Removal
+                                                <i className="fas fa-chevron-right float-end"></i>
                                             </h6>
-                                            <p className="mb-0"><strong>{metagame.interaction.removal}</strong></p>
+                                            <p className="mb-0">Total: <strong>{metagame.interaction.removal}</strong></p>
                                         </div>
 
-                                        <div className="mb-2 p-2 border-start border-primary border-3">
+                                        <div
+                                            className="mb-2 p-3 border rounded category-card"
+                                            onClick={() => handleCategoryClick('counterspells', 'Counterspells')}
+                                            style={{ cursor: 'pointer', transition: 'background-color 0.2s' }}
+                                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(13, 110, 253, 0.1)'}
+                                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ''}
+                                        >
                                             <h6 className="text-primary mb-1">
                                                 <i className="fas fa-ban me-2"></i>Counterspells
+                                                <i className="fas fa-chevron-right float-end"></i>
                                             </h6>
-                                            <p className="mb-0"><strong>{metagame.interaction.counterspells}</strong></p>
+                                            <p className="mb-0">Total: <strong>{metagame.interaction.counterspells}</strong></p>
                                         </div>
 
-                                        <div className="p-2 border-start border-warning border-3">
+                                        <div
+                                            className="p-3 border rounded category-card"
+                                            onClick={() => handleCategoryClick('boardWipes', 'Board Wipes')}
+                                            style={{ cursor: 'pointer', transition: 'background-color 0.2s' }}
+                                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 193, 7, 0.1)'}
+                                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ''}
+                                        >
                                             <h6 className="text-warning mb-1">
                                                 <i className="fas fa-bomb me-2"></i>Board Wipes
+                                                <i className="fas fa-chevron-right float-end"></i>
                                             </h6>
-                                            <p className="mb-0"><strong>{metagame.interaction.boardWipes}</strong></p>
+                                            <p className="mb-0">Total: <strong>{metagame.interaction.boardWipes}</strong></p>
                                         </div>
                                     </div>
                                 ) : (
@@ -512,38 +592,36 @@ const MetagameDashboard = () => {
                             </div>
                         </div>
                     </div>
+
+                    {/* Win Conditions Section */}
                     <div className="col-md-4 mb-4">
-                        <div className="card">
+                        <div className="card h-100">
                             <div className="card-body">
-                                <h5 className="card-title">Win Conditions</h5>
+                                <h5 className="card-title">
+                                    <i className="fas fa-trophy me-2"></i>Win Conditions
+                                </h5>
+                                <p className="text-muted small mb-3">Cards tagged as potential win conditions</p>
                                 {metagame.winConditions ? (
                                     <div>
-                                        <div className="mb-2 p-2 border-start border-danger border-3">
+                                        <div className="mb-2 p-3 border rounded">
                                             <h6 className="text-danger mb-1">
                                                 <i className="fas fa-fist-raised me-2"></i>Combat
                                             </h6>
-                                            <p className="mb-0"><strong>{metagame.winConditions.combat}</strong></p>
+                                            <p className="mb-0"><strong>{metagame.winConditions.combat}</strong> cards</p>
                                         </div>
 
-                                        <div className="mb-2 p-2 border-start border-success border-3">
+                                        <div className="mb-2 p-3 border rounded">
                                             <h6 className="text-success mb-1">
                                                 <i className="fas fa-cog me-2"></i>Combo
                                             </h6>
-                                            <p className="mb-0"><strong>{metagame.winConditions.combo}</strong></p>
+                                            <p className="mb-0"><strong>{metagame.winConditions.combo}</strong> cards</p>
                                         </div>
 
-                                        <div className="mb-2 p-2 border-start border-info border-3">
+                                        <div className="p-3 border rounded">
                                             <h6 className="text-info mb-1">
                                                 <i className="fas fa-star me-2"></i>Alternate
                                             </h6>
-                                            <p className="mb-0"><strong>{metagame.winConditions.alternate}</strong></p>
-                                        </div>
-
-                                        <div className="p-2 border-start border-secondary border-3">
-                                            <h6 className="text-secondary mb-1">
-                                                <i className="fas fa-trophy me-2"></i>Total
-                                            </h6>
-                                            <p className="mb-0"><strong>{metagame.winConditions.totalCards}</strong></p>
+                                            <p className="mb-0"><strong>{metagame.winConditions.alternate}</strong> cards</p>
                                         </div>
                                     </div>
                                 ) : (
@@ -712,6 +790,140 @@ const MetagameDashboard = () => {
                             </div>
                         </div>
                     )}
+                </div>
+            )}
+
+            {/* Category Cards Modal */}
+            {categoryModal.show && (
+                <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                    <div className="modal-dialog modal-lg modal-dialog-scrollable">
+                        <div className="modal-content">
+                            <div className="modal-header">
+                                <h5 className="modal-title">
+                                    <i className="fas fa-layer-group me-2"></i>
+                                    {categoryModal.category} Cards
+                                </h5>
+                                <button
+                                    type="button"
+                                    className="btn-close"
+                                    onClick={() => {
+                                        setHoveredCard(null);
+                                        setCategoryModal({ show: false, category: null, cards: [], loading: false });
+                                    }}
+                                ></button>
+                            </div>
+                            <div className="modal-body">
+                                {categoryModal.loading ? (
+                                    <div className="text-center py-4">
+                                        <div className="spinner-border" role="status">
+                                            <span className="visually-hidden">Loading...</span>
+                                        </div>
+                                    </div>
+                                ) : categoryModal.error ? (
+                                    <div className="alert alert-danger">{categoryModal.error}</div>
+                                ) : categoryModal.cards.length === 0 ? (
+                                    <p className="text-muted text-center py-4">No cards found in this category</p>
+                                ) : (
+                                    <div style={{ position: 'relative' }}>
+                                        <div className="table-responsive">
+                                            <table className="table table-sm table-hover">
+                                                <thead>
+                                                    <tr>
+                                                        <th>#</th>
+                                                        <th>Card Name</th>
+                                                        <th>In Decks</th>
+                                                        <th>%</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {categoryModal.cards.map((card, idx) => (
+                                                        <tr
+                                                            key={idx}
+                                                            onMouseEnter={(e) => {
+                                                                if (card.imageUri || (card.imageUris && card.imageUris.length > 0)) {
+                                                                    setHoveredCard(card);
+                                                                    setMousePosition({ x: e.clientX, y: e.clientY });
+                                                                }
+                                                            }}
+                                                            onMouseMove={(e) => {
+                                                                if (hoveredCard) {
+                                                                    setMousePosition({ x: e.clientX, y: e.clientY });
+                                                                }
+                                                            }}
+                                                            onMouseLeave={() => setHoveredCard(null)}
+                                                            style={{ cursor: card.imageUri || card.imageUris ? 'pointer' : 'default' }}
+                                                        >
+                                                            <td>{idx + 1}</td>
+                                                            <td>{card.name}</td>
+                                                            <td>
+                                                                <span className="badge bg-primary">{card.count}</span>
+                                                            </td>
+                                                            <td>{card.percentage}%</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+
+                                        {/* Card preview on hover */}
+                                        {hoveredCard && (hoveredCard.imageUri || (hoveredCard.imageUris && hoveredCard.imageUris.length > 0)) && (
+                                            <div
+                                                className="card-preview-popup"
+                                                style={{
+                                                    position: 'fixed',
+                                                    left: `${mousePosition.x + 20}px`,
+                                                    top: `${mousePosition.y - 150}px`,
+                                                    zIndex: 1100,
+                                                    pointerEvents: 'none',
+                                                    display: 'flex',
+                                                    gap: '10px'
+                                                }}
+                                            >
+                                                {hoveredCard.imageUris && hoveredCard.imageUris.length > 1 ? (
+                                                    // Multi-faced card: show both faces
+                                                    hoveredCard.imageUris.map((uri, idx) => (
+                                                        <img
+                                                            key={idx}
+                                                            src={uri}
+                                                            alt={`${hoveredCard.name} - Face ${idx + 1}`}
+                                                            className="img-fluid rounded shadow-lg"
+                                                            style={{
+                                                                maxWidth: '200px',
+                                                                border: '2px solid #fff'
+                                                            }}
+                                                        />
+                                                    ))
+                                                ) : (
+                                                    // Single-faced card
+                                                    <img
+                                                        src={hoveredCard.imageUri}
+                                                        alt={hoveredCard.name}
+                                                        className="img-fluid rounded shadow-lg"
+                                                        style={{
+                                                            maxWidth: '250px',
+                                                            border: '2px solid #fff'
+                                                        }}
+                                                    />
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                            <div className="modal-footer">
+                                <button
+                                    type="button"
+                                    className="btn btn-secondary"
+                                    onClick={() => {
+                                        setHoveredCard(null);
+                                        setCategoryModal({ show: false, category: null, cards: [], loading: false });
+                                    }}
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
