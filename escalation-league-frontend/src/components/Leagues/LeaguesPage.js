@@ -1,54 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { isUserInLeague } from '../../api/userLeaguesApi';
 import { usePermissions } from '../context/PermissionsProvider';
 
 const LeaguesPage = () => {
-    const [activeLeague, setActiveLeague] = useState(null);
-    const [inLeague, setInLeague] = useState(false);
-    const [error, setError] = useState(null);
-    const [loading, setLoading] = useState(true);
     const location = useLocation();
+    const { loading, activeLeague } = usePermissions();
 
-    const { loading: loadingPermissions } = usePermissions();
+    // Derive inLeague from context
+    const inLeague = !!activeLeague;
 
-    useEffect(() => {
-        const fetchLeagueData = async () => {
-            try {
-                // Check if the user is in a league
-                const { inLeague, league } = await isUserInLeague();
-                setInLeague(inLeague);
-
-                if (inLeague) {
-                    setActiveLeague(league);
-                }
-            } catch (err) {
-                if (err.response && err.response.status === 404) {
-                    console.warn('User is not part of any league.');
-                    setInLeague(false);
-                } else if (err.response && err.response.status === 403) {
-                    console.warn('User does not have the league_read permission.');
-                    setError('You do not have permission to view this page.');
-                } else {
-                    console.error('Error fetching league data:', err);
-                    setError('Failed to fetch league data.');
-                }
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        if (!loadingPermissions) {
-            fetchLeagueData();
-        }
-    }, [loadingPermissions]);
-
-    if (loadingPermissions || loading) {
-        return <div>Loading...</div>; // Show a loading indicator while permissions or league data are being fetched
-    }
-
-    if (error) {
-        return <div className="alert alert-danger">{error}</div>; // Show an error message if something went wrong
+    if (loading) {
+        return <div>Loading...</div>;
     }
 
     return (
