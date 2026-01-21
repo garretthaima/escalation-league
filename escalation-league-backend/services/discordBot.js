@@ -35,6 +35,7 @@ const startBot = async () => {
             GatewayIntentBits.Guilds,
             GatewayIntentBits.GuildMessages,
             GatewayIntentBits.GuildMessageReactions,
+            GatewayIntentBits.GuildMembers,  // Required to fetch user details for reactions
             GatewayIntentBits.MessageContent,
         ],
         partials: [
@@ -411,6 +412,9 @@ const handleAttendanceReaction = async (reaction, user, poll, isAdd) => {
 
     if (!appUser) {
         console.log(`[Discord Bot] Unknown Discord user ${user.tag} (${user.id}) reacted - not linked to app account`);
+        // Still update the poll message to show this user's Discord mention
+        // They just won't be tracked in the database for web/admin views
+        await updatePollMessage(poll.session_id);
         return;
     }
 
