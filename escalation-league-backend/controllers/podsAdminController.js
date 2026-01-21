@@ -16,10 +16,18 @@ const updatePod = async (req, res) => {
     const { podId } = req.params;
     const { participants, result, confirmation_status } = req.body;
 
+    console.log('=== updatePod called ===');
+    console.log('podId:', podId);
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
+    console.log('confirmation_status from request:', confirmation_status);
+
     try {
         // Get current pod state and participants for stats reversal
         const currentPod = await db('game_pods').where({ id: podId }).first();
         const currentParticipants = await db('game_players').where({ pod_id: podId }).whereNull('deleted_at');
+
+        console.log('Current pod status:', currentPod.confirmation_status);
+        console.log('Current pod result:', currentPod.result);
 
         // If pod was complete, reverse old stats before making changes
         if (currentPod.confirmation_status === 'complete' && currentPod.league_id) {
@@ -106,9 +114,14 @@ const updatePod = async (req, res) => {
         // Fetch updated participants for new stats
         const newParticipants = await db('game_players').where({ pod_id: podId }).whereNull('deleted_at');
 
+        console.log('Checking stats condition:');
+        console.log('  confirmation_status === "complete":', confirmation_status === 'complete');
+        console.log('  currentPod.confirmation_status === "complete":', currentPod.confirmation_status === 'complete');
+
         // If pod is now complete, apply new stats
         // ONLY apply stats if we're explicitly completing the pod OR if it was already complete
         if (confirmation_status === 'complete' || currentPod.confirmation_status === 'complete') {
+            console.log('>>> STATS BLOCK TRIGGERED <<<');
             const pod = await db('game_pods').where({ id: podId }).first();
 
             if (pod && pod.league_id) {
