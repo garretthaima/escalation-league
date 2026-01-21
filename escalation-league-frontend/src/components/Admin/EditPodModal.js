@@ -41,8 +41,8 @@ const EditPodModal = ({ pod, onClose, onSave, onDelete }) => {
 
                 // Derive state from participant results
                 const winner = podDetails.participants.find(p => p.result === 'win');
-                const dqPlayers = podDetails.participants.filter(p => p.result === 'dq').map(p => p.player_id);
-                const nonDqParticipants = podDetails.participants.filter(p => p.result !== 'dq');
+                const dqPlayers = podDetails.participants.filter(p => p.result === 'disqualified').map(p => p.player_id);
+                const nonDqParticipants = podDetails.participants.filter(p => p.result !== 'disqualified');
                 const allDraw = nonDqParticipants.length > 0 &&
                     nonDqParticipants.every(p => p.result === 'draw');
 
@@ -136,7 +136,7 @@ const EditPodModal = ({ pod, onClose, onSave, onDelete }) => {
         const newParticipantResults = participants.map(p => {
             // DQ takes priority
             if (dqPlayerIds.includes(p.player_id)) {
-                return { player_id: p.player_id, result: 'dq', confirmed: p.confirmed };
+                return { player_id: p.player_id, result: 'disqualified', confirmed: p.confirmed };
             }
             // Draw mode
             if (isDraw) {
@@ -154,7 +154,7 @@ const EditPodModal = ({ pod, onClose, onSave, onDelete }) => {
 
         // Determine confirmation_status
         let newConfirmationStatus = confirmationStatus;
-        const nonDqParticipants = newParticipantResults.filter(p => p.result !== 'dq');
+        const nonDqParticipants = newParticipantResults.filter(p => p.result !== 'disqualified');
         const hasDefinitiveResult = isDraw || winnerId;
 
         if (hasDefinitiveResult && nonDqParticipants.every(p => p.result)) {
@@ -234,7 +234,7 @@ const EditPodModal = ({ pod, onClose, onSave, onDelete }) => {
         if (original?.result === 'draw') {
             return <span className="badge bg-secondary ms-2">Draw</span>;
         }
-        if (original?.result === 'dq') {
+        if (original?.result === 'disqualified') {
             return <span className="badge bg-danger ms-2">DQ</span>;
         }
         return null;
