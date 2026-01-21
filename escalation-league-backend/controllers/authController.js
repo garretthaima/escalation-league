@@ -1,10 +1,16 @@
 const bcrypt = require('bcrypt');
 const db = require('../models/db');
 const { OAuth2Client } = require('google-auth-library');
-const { generateToken } = require('../utils/tokenUtils');
+const { generateAccessToken } = require('../utils/tokenUtils');
 const { handleError } = require('../utils/errorUtils');
 const { getSetting } = require('../utils/settingsUtils');
 const logger = require('../utils/logger');
+const {
+    createRefreshToken,
+    refreshTokens,
+    revokeRefreshToken,
+    revokeRefreshTokensByUser,
+} = require('../services/refreshTokenService');
 
 
 // Register User
@@ -86,9 +92,20 @@ const loginUser = async (req, res) => {
             return res.status(401).json({ error: 'Invalid email or password' });
         }
 
-        const token = await generateToken(user);
+        // Generate both access and refresh tokens
+        const accessToken = await generateAccessToken(user);
+        const refreshToken = await createRefreshToken(
+            user.id,
+            req.headers['user-agent'],
+            req.ip
+        );
 
-        res.status(200).json({ token });
+        logger.info('User logged in successfully', { userId: user.id, email: user.email });
+
+        res.status(200).json({
+            token: accessToken, // Keep 'token' for backward compatibility
+            refreshToken
+        });
     } catch (err) {
         console.error('Error during login:', err.message);
         res.status(500).json({ error: 'Internal server error' });
@@ -169,10 +186,21 @@ const googleAuth = async (req, res) => {
             user.role_name = userRole ? userRole.name : leagueUserRole.name;
         }
 
-        // Generate token using the utility function
-        const jwtToken = await generateToken(user);
+        // Generate both access and refresh tokens
+        const accessToken = await generateAccessToken(user);
+        const refreshToken = await createRefreshToken(
+            user.id,
+            req.headers['user-agent'],
+            req.ip
+        );
 
-        res.status(200).json({ success: true, token: jwtToken });
+        logger.info('Google auth successful', { userId: user.id, email: user.email });
+
+        res.status(200).json({
+            success: true,
+            token: accessToken, // Keep 'token' for backward compatibility
+            refreshToken
+        });
     } catch (err) {
         console.error('Error in Google Auth:', err.message);
         handleError(res, err, 401, 'Invalid Google token');
@@ -196,9 +224,83 @@ const verifyGoogleToken = async (req, res) => {
     }
 };
 
+/**
+ * Refresh access token using a valid refresh token
+ * Implements token rotation - issues new refresh token each time
+ */
+const refreshAccessToken = async (req, res) => {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+        return res.status(400).json({ error: 'Refresh token is required' });
+    }
+
+    try {
+        const tokens = await refreshTokens(
+            refreshToken,
+            req.headers['user-agent'],
+            req.ip
+        );
+
+        if (!tokens) {
+            return res.status(401).json({
+                error: 'Invalid or expired refresh token',
+                code: 'REFRESH_TOKEN_INVALID'
+            });
+        }
+
+        res.status(200).json({
+            token: tokens.accessToken,
+            refreshToken: tokens.refreshToken
+        });
+    } catch (err) {
+        console.error('Error refreshing token:', err.message);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+/**
+ * Logout - revoke the provided refresh token
+ */
+const logout = async (req, res) => {
+    const { refreshToken } = req.body;
+
+    try {
+        if (refreshToken) {
+            await revokeRefreshToken(refreshToken);
+        }
+
+        res.status(200).json({ success: true });
+    } catch (err) {
+        console.error('Error during logout:', err.message);
+        // Still return success - user wants to logout
+        res.status(200).json({ success: true });
+    }
+};
+
+/**
+ * Logout from all devices - revoke all refresh tokens for the user
+ * Requires valid access token
+ */
+const logoutAll = async (req, res) => {
+    const userId = req.user.id; // From auth middleware
+
+    try {
+        await revokeRefreshTokensByUser(userId);
+        logger.info('User logged out from all devices', { userId });
+        res.status(200).json({ success: true, message: 'Logged out from all devices' });
+    } catch (err) {
+        console.error('Error during logout all:', err.message);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
 module.exports = {
     registerUser,
     loginUser,
     googleAuth,
     verifyGoogleToken,
+    refreshAccessToken,
+    logout,
+    logoutAll,
 };

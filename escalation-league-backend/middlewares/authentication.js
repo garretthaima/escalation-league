@@ -78,7 +78,11 @@ const authenticateToken = async (req, res, next) => {
       return res.status(403).json({ error: 'Forbidden. Invalid token.' });
     }
     if (err.name === 'TokenExpiredError') {
-      return res.status(403).json({ error: 'Forbidden. Token expired.' });
+      // Return 401 with specific code so frontend knows to refresh
+      return res.status(401).json({
+        error: 'Token expired',
+        code: 'TOKEN_EXPIRED'
+      });
     }
     console.error('Error in authentication:', err.message);
     res.status(500).json({ error: 'Internal server error.' });
