@@ -80,7 +80,6 @@ const updatePod = async (req, res) => {
 
         // Update participants FIRST if provided (before updating pod status)
         if (participants) {
-            console.log('Updating participants:', participants);
             await db('game_players').where({ pod_id: podId }).del();
             const participantInserts = participants.map((participant, index) => ({
                 pod_id: podId,
@@ -89,7 +88,6 @@ const updatePod = async (req, res) => {
                 confirmed: participant.confirmed || 0,
                 turn_order: participant.turn_order || (index + 1),
             }));
-            console.log('Inserting participants:', participantInserts);
             await db('game_players').insert(participantInserts);
         }
 
@@ -108,8 +106,6 @@ const updatePod = async (req, res) => {
         const podUpdates = {};
         if (result) podUpdates.result = result;
         if (confirmation_status) podUpdates.confirmation_status = confirmation_status;
-
-        console.log('Pod updates to apply:', podUpdates);
 
         if (Object.keys(podUpdates).length > 0) {
             await db('game_pods').where({ id: podId }).update(podUpdates);
