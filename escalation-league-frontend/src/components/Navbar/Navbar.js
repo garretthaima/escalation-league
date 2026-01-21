@@ -106,21 +106,16 @@ const Navbar = ({ handleLogout }) => {
                                 // Render dropdowns with a clickable parent link
                                 return (
                                     <li className="nav-item dropdown" key={link.label}>
-                                        <a
-                                            className={`nav-link dropdown-toggle ${activeSection === link.label.toLowerCase() ? 'active' : ''}`}
-                                            href="#"
+                                        <button
+                                            type="button"
+                                            className={`nav-link dropdown-toggle btn btn-link ${activeSection === link.label.toLowerCase() ? 'active' : ''}`}
                                             id={`${link.label.toLowerCase()}Dropdown`}
-                                            role="button"
                                             data-bs-toggle="dropdown"
                                             aria-expanded="false"
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                // Let Bootstrap handle the dropdown toggle
-                                            }}
                                         >
                                             {link.icon && <i className={`fas ${link.icon} me-1`}></i>}
                                             {link.label}
-                                        </a>
+                                        </button>
                                         <ul className="dropdown-menu" aria-labelledby={`${link.label.toLowerCase()}Dropdown`}>
                                             {link.children
                                                 .sort((a, b) => a.order - b.order)

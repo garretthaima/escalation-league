@@ -30,7 +30,7 @@ const ActiveGamesTab = () => {
     // Check permissions
     const canReadPods = permissions.some((perm) => perm.name === 'pod_read');
     const canCreatePods = permissions.some((perm) => perm.name === 'pod_create');
-    const canUpdatePods = permissions.some((perm) => perm.name === 'pod_update');
+    // eslint-disable-next-line no-unused-vars
     const isAdmin = permissions.some((perm) => perm.name === 'admin_pod_update');
 
     // Fetch league ID early for WebSocket connection (don't wait for pods)
@@ -82,7 +82,8 @@ const ActiveGamesTab = () => {
         };
 
         fetchPods();
-    }, [canReadPods]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [canReadPods, isAdmin]);
 
     // WebSocket listeners for real-time updates
     useEffect(() => {

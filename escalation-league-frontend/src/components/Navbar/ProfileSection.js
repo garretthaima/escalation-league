@@ -1,10 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import './ProfileSection.css';
 
 const ProfileSection = ({ user, handleLogout, darkMode, toggleDarkMode }) => {
-    const navigate = useNavigate();
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
     const dropdownMenuRef = useRef(null);

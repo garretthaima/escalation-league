@@ -16,10 +16,7 @@ const PodAdminPage = () => {
     const {
         page,
         pageSize,
-        totalPages,
         setTotalItems,
-        handlePageChange,
-        handlePageSizeChange,
         paginationProps,
         reset: resetPagination
     } = usePagination();
@@ -69,6 +66,7 @@ const PodAdminPage = () => {
 
     useEffect(() => {
         fetchPods();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [showDeleted]);
 
     // Apply filters

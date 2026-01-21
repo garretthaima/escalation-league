@@ -12,7 +12,7 @@ const PodSuggestionsPage = () => {
     const { activeLeague, permissions } = usePermissions();
     const { showToast } = useToast();
 
-    const [session, setSession] = useState(null);
+    const [, setSession] = useState(null);
     const [suggestions, setSuggestions] = useState(null);
     const [podSize, setPodSize] = useState(4);
     const [loading, setLoading] = useState(true);
@@ -22,9 +22,7 @@ const PodSuggestionsPage = () => {
     const [turnOrders, setTurnOrders] = useState({});
     const [draggedPlayer, setDraggedPlayer] = useState(null);
 
-    const isAdmin = permissions?.includes('pod_manage');
-
-    const fetchSuggestions = async () => {
+    const fetchSuggestions = useCallback(async () => {
         setLoading(true);
         setError('');
         try {
@@ -48,11 +46,13 @@ const PodSuggestionsPage = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [sessionId, podSize]);
+
+    const isAdmin = permissions?.includes('pod_manage');
 
     useEffect(() => {
         fetchSuggestions();
-    }, [sessionId, podSize]);
+    }, [fetchSuggestions]);
 
     // Randomize turn order for a specific pod
     const randomizeTurnOrder = useCallback((podIndex) => {
