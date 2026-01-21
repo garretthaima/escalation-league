@@ -8,6 +8,7 @@ const logger = require('./utils/logger');
 const requestLogger = require('./middlewares/requestLogger');
 const discordBot = require('./services/discordBot');
 const { setIo } = require('./utils/socketEmitter');
+const { startCleanupJob } = require('./jobs/cleanupTokens');
 
 const app = express();
 const server = http.createServer(app);
@@ -188,6 +189,9 @@ app.use('/api', apiLimiter);
         console.error('[Discord Bot] Failed to start:', error.message);
         // Don't crash the server if Discord fails
       }
+
+      // Start token cleanup job
+      startCleanupJob();
     });
   }
 })();

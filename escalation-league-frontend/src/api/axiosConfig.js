@@ -15,10 +15,41 @@ if (!API_BASE_URL) {
 }
 
 const axiosInstance = axios.create({
-    baseURL: API_BASE_URL, // Set the base URL for all API calls
+    baseURL: API_BASE_URL,
 });
 
-let isRedirecting = false; // Flag to prevent multiple redirects
+// State for token refresh handling
+let isRefreshing = false;
+let failedQueue = [];
+let isRedirecting = false;
+
+// Process queued requests after token refresh
+const processQueue = (error, token = null) => {
+    failedQueue.forEach(prom => {
+        if (error) {
+            prom.reject(error);
+        } else {
+            prom.resolve(token);
+        }
+    });
+    failedQueue = [];
+};
+
+// Handle auth failure - clear tokens and redirect
+const handleAuthFailure = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
+
+    if (!isRedirecting) {
+        isRedirecting = true;
+        console.warn('Session expired. Redirecting to sign-in...');
+        setTimeout(() => {
+            window.location.href = '/signin';
+        }, 100);
+    }
+
+    return Promise.reject(new Error('Session expired'));
+};
 
 // Add a request interceptor to include the Authorization header
 axiosInstance.interceptors.request.use(
@@ -32,27 +63,81 @@ axiosInstance.interceptors.request.use(
     (error) => Promise.reject(error)
 );
 
-// Add a response interceptor to handle errors globally
+// Add a response interceptor with automatic token refresh
 axiosInstance.interceptors.response.use(
-    (response) => response, // Pass through successful responses
-    (error) => {
-        if (error.response && error.response.status === 401) {
-            // Token is invalid or expired
-            console.warn('Session expired. Redirecting to sign-in...');
+    (response) => response,
+    async (error) => {
+        const originalRequest = error.config;
 
-            // Clear the token and redirect to the sign-in page
-            localStorage.removeItem('token');
-            localStorage.removeItem('refreshToken');
-            if (!isRedirecting) {
-                isRedirecting = true;
-                // Use setTimeout to allow any pending UI updates to complete
-                setTimeout(() => {
-                    window.location.href = '/signin';
-                }, 100);
+        // Check if this is a 401 error and we haven't already retried
+        if (error.response?.status === 401 && !originalRequest._retry) {
+            // Don't retry the refresh endpoint itself
+            if (originalRequest.url?.includes('/auth/refresh')) {
+                return handleAuthFailure();
+            }
+
+            // If already refreshing, queue this request
+            if (isRefreshing) {
+                return new Promise((resolve, reject) => {
+                    failedQueue.push({ resolve, reject });
+                }).then(token => {
+                    originalRequest.headers.Authorization = `Bearer ${token}`;
+                    return axiosInstance(originalRequest);
+                }).catch(err => {
+                    return Promise.reject(err);
+                });
+            }
+
+            originalRequest._retry = true;
+            isRefreshing = true;
+
+            const refreshToken = localStorage.getItem('refreshToken');
+            if (!refreshToken) {
+                isRefreshing = false;
+                return handleAuthFailure();
+            }
+
+            try {
+                // Call refresh endpoint directly (bypass interceptors to avoid loops)
+                const response = await axios.post(
+                    `${API_BASE_URL}/auth/refresh`,
+                    { refreshToken }
+                );
+
+                const { token, refreshToken: newRefreshToken } = response.data;
+
+                // Store new tokens
+                localStorage.setItem('token', token);
+                if (newRefreshToken) {
+                    localStorage.setItem('refreshToken', newRefreshToken);
+                }
+
+                // Update the authorization header for this and future requests
+                axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+                originalRequest.headers.Authorization = `Bearer ${token}`;
+
+                // Process any queued requests
+                processQueue(null, token);
+
+                // Dispatch event for WebSocket and other components to update their token
+                window.dispatchEvent(new CustomEvent('tokenRefreshed', {
+                    detail: { token }
+                }));
+
+                // Retry the original request
+                return axiosInstance(originalRequest);
+            } catch (refreshError) {
+                processQueue(refreshError, null);
+                return handleAuthFailure();
+            } finally {
+                isRefreshing = false;
             }
         }
-        return Promise.reject(error); // Pass the error back to the calling code
+
+        return Promise.reject(error);
     }
 );
 
+// Export the base URL for components that need direct access (like WebSocket)
+export { API_BASE_URL };
 export default axiosInstance;

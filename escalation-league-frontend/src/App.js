@@ -23,6 +23,7 @@ import { WebSocketProvider } from './components/context/WebSocketProvider';
 import { BudgetDashboard } from './components/Budget';
 import { MetagameDashboard } from './components/Metagame';
 import { AttendancePage, PodSuggestionsPage, MatchupMatrixPage } from './components/Attendance';
+import { logoutUser } from './api/authApi';
 
 const App = () => {
     const [user, setUser] = useState(null);
@@ -44,9 +45,9 @@ const App = () => {
         }
     }, []);
 
-    const handleLogout = () => {
-        // Clear ALL localStorage items to prevent data leakage
-        localStorage.clear();
+    const handleLogout = async () => {
+        // Call API to revoke refresh token on server
+        await logoutUser();
 
         // Clear user state
         setUser(null);

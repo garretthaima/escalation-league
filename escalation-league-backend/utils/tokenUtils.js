@@ -1,6 +1,7 @@
 const { getSetting } = require('./settingsUtils');
 const { getUserSetting } = require('./userSettingsUtils');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 
 /**
  * Utility function to generate a JWT token
@@ -61,4 +62,67 @@ const parseDuration = (duration) => {
     }
 };
 
-module.exports = { generateToken };
+/**
+ * Generate a short-lived access token for API requests
+ * Uses the system access_token_expiration setting (default 15m)
+ * @param {Object} user - The user object containing user details
+ * @param {Object} options - Additional options for token generation
+ * @returns {Promise<string>} - The generated JWT access token
+ */
+const generateAccessToken = async (user, options = {}) => {
+    try {
+        const { customClaims = {} } = options;
+
+        // Use access_token_expiration setting for short-lived access tokens
+        const accessExpiration = await getSetting('access_token_expiration') || '15m';
+
+        // Build the token payload
+        const payload = {
+            id: user.id,
+            role_id: user.role_id,
+            role_name: user.role_name,
+            type: 'access', // Distinguish from other token types
+            ...customClaims,
+        };
+
+        // Sign and return the token
+        const secretKey = await getSetting('secret_key');
+        return jwt.sign(payload, secretKey, { expiresIn: accessExpiration });
+    } catch (error) {
+        console.error('Error generating access token:', error.message);
+        throw new Error('Failed to generate access token');
+    }
+};
+
+/**
+ * Generate an opaque refresh token
+ * @returns {Promise<Object>} - Object containing { token, tokenHash, expiresAt }
+ */
+const generateRefreshToken = async () => {
+    const refreshExpiration = await getSetting('refresh_token_expiration') || '30d';
+    const expiresInMs = parseDuration(refreshExpiration);
+
+    // Generate cryptographically secure random token
+    const token = crypto.randomBytes(32).toString('base64url');
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const expiresAt = new Date(Date.now() + expiresInMs);
+
+    return { token, tokenHash, expiresAt };
+};
+
+/**
+ * Hash a refresh token for comparison/storage
+ * @param {string} token - The raw refresh token
+ * @returns {string} - SHA-256 hash of the token
+ */
+const hashRefreshToken = (token) => {
+    return crypto.createHash('sha256').update(token).digest('hex');
+};
+
+module.exports = {
+    generateToken, // Keep for backward compatibility
+    generateAccessToken,
+    generateRefreshToken,
+    hashRefreshToken,
+    parseDuration
+};

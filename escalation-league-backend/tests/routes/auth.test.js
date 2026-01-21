@@ -359,8 +359,10 @@ describe('Auth Routes', () => {
                 .get('/api/users/profile')
                 .set('Authorization', `Bearer ${expiredToken}`);
 
-            expect(protectedRes.status).toBe(403);
-            expect(protectedRes.body).toHaveProperty('error', 'Forbidden. Token expired.');
+            // Returns 401 with TOKEN_EXPIRED code so frontend can attempt refresh
+            expect(protectedRes.status).toBe(401);
+            expect(protectedRes.body).toHaveProperty('error', 'Token expired');
+            expect(protectedRes.body).toHaveProperty('code', 'TOKEN_EXPIRED');
         });
 
         it('should handle SQL injection attempts in login', async () => {
