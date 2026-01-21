@@ -3,6 +3,7 @@ const logger = require('../utils/logger');
 const { emitSignupRequest, emitSignupResponse } = require('../utils/socketEmitter');
 const { calculateCurrentWeek, addCalculatedWeek } = require('../utils/leagueUtils');
 const { cacheInvalidators } = require('../middlewares/cacheMiddleware');
+const { createNotification, notificationTypes } = require('../services/notificationService');
 
 // Create a league
 const createLeague = async (req, res) => {
@@ -389,6 +390,10 @@ const approveSignupRequest = async (req, res) => {
         // Emit WebSocket event to notify the user
         emitSignupResponse(req.app, request.user_id, 'approved', request.league_id);
 
+        // Send notification to the user
+        const league = await db('leagues').where({ id: request.league_id }).first();
+        await createNotification(req.app, request.user_id, notificationTypes.signupApproved(league?.name || 'the league'));
+
         res.status(200).json({ message: 'Signup request approved successfully.' });
     } catch (err) {
         logger.error('Error approving signup request', err, {
@@ -424,6 +429,10 @@ const rejectSignupRequest = async (req, res) => {
 
         // Emit WebSocket event to notify the user
         emitSignupResponse(req.app, request.user_id, 'rejected', request.league_id);
+
+        // Send notification to the user
+        const league = await db('leagues').where({ id: request.league_id }).first();
+        await createNotification(req.app, request.user_id, notificationTypes.signupRejected(league?.name || 'the league'));
 
         res.status(200).json({ message: 'Signup request rejected successfully.' });
     } catch (err) {

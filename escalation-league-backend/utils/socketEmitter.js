@@ -200,6 +200,42 @@ const emitAttendanceUpdated = (sessionId, leagueId, attendanceData) => {
     }
 };
 
+/**
+ * Emit new notification to a specific user
+ * @param {object|null} app - Express app (null to use globalIo)
+ * @param {number} userId - Target user ID
+ * @param {object} notification - Notification object with id, title, message, type, link, created_at
+ */
+const emitNotification = (app, userId, notification) => {
+    try {
+        const io = app ? app.get('io') : globalIo;
+        if (io) {
+            io.to(`user:${userId}`).emit('notification:new', notification);
+            logger.info('WebSocket emitted notification:new', { userId, notificationId: notification.id });
+        }
+    } catch (err) {
+        logger.error('Failed to emit notification:new', { error: err.message });
+    }
+};
+
+/**
+ * Emit notification read event (for syncing across tabs/devices)
+ * @param {object|null} app - Express app (null to use globalIo)
+ * @param {number} userId - Target user ID
+ * @param {number|string} notificationId - Notification ID or 'all' for mark all read
+ */
+const emitNotificationRead = (app, userId, notificationId) => {
+    try {
+        const io = app ? app.get('io') : globalIo;
+        if (io) {
+            io.to(`user:${userId}`).emit('notification:read', { notificationId });
+            logger.info('WebSocket emitted notification:read', { userId, notificationId });
+        }
+    } catch (err) {
+        logger.error('Failed to emit notification:read', { error: err.message });
+    }
+};
+
 module.exports = {
     emitPodCreated,
     emitPlayerJoined,
@@ -211,5 +247,7 @@ module.exports = {
     emitSignupResponse,
     setIo,
     getIo,
-    emitAttendanceUpdated
+    emitAttendanceUpdated,
+    emitNotification,
+    emitNotificationRead
 };

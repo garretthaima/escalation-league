@@ -74,6 +74,13 @@
         display: inline !important;
     }
 
+    /* Right buttons container - bell and profile */
+    .navbar-right-buttons {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
     /* Profile dropdown container */
     .navbar-right-buttons .dropdown {
         position: relative;

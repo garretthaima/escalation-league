@@ -9,6 +9,7 @@ const {
     emitGameConfirmed
 } = require('../utils/socketEmitter');
 const { cacheInvalidators } = require('../middlewares/cacheMiddleware');
+const { createNotification } = require('../services/notificationService');
 
 // Create a Pod
 // Supports two modes:
@@ -276,6 +277,31 @@ const logPodResult = async (req, res) => {
         if (result === 'win' || result === 'draw') {
             await db('game_pods').where({ id: podId }).update({ confirmation_status: 'pending' });
             emitWinnerDeclared(req.app, pod.league_id, podId, playerId);
+
+            // Get declarer's name and notify other players to confirm
+            const declarer = await db('users').where({ id: playerId }).first();
+            const declarerName = declarer ? `${declarer.firstname} ${declarer.lastname}` : 'A player';
+            const otherPlayers = await db('game_players')
+                .where({ pod_id: podId })
+                .whereNot({ player_id: playerId })
+                .select('player_id');
+
+            for (const player of otherPlayers) {
+                await createNotification(req.app, player.player_id, {
+                    title: 'Confirm Game Result',
+                    message: `${declarerName} declared a ${result} in Pod #${podId}. Please confirm.`,
+                    type: 'info',
+                    link: `/pods?podId=${podId}`
+                });
+            }
+
+            // Notify the declarer that they're waiting for confirmations
+            await createNotification(req.app, playerId, {
+                title: 'Awaiting Confirmations',
+                message: `You declared a ${result} in Pod #${podId}. Waiting for ${otherPlayers.length} player${otherPlayers.length > 1 ? 's' : ''} to confirm.`,
+                type: 'info',
+                link: `/pods?podId=${podId}`
+            });
         }
 
         // Check if all participants have confirmed
@@ -355,6 +381,17 @@ const logPodResult = async (req, res) => {
 
             // Invalidate caches for this league
             cacheInvalidators.gameCompleted(pod.league_id);
+
+            // Notify all players that the game is complete
+            for (const p of participants) {
+                const resultText = p.result === 'win' ? 'won' : p.result === 'draw' ? 'drew' : 'lost';
+                await createNotification(req.app, p.player_id, {
+                    title: 'Game Complete',
+                    message: `Pod #${podId} is complete. You ${resultText}!`,
+                    type: p.result === 'win' ? 'success' : 'info',
+                    link: `/pods?podId=${podId}`
+                });
+            }
 
             return res.status(200).json({ message: 'Game result logged successfully, stats updated, and pod marked as complete.' });
         } else {
