@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { usePermissions } from '../context/PermissionsProvider';
 import ProfileSection from './ProfileSection';
 import NotificationCenter from './NotificationCenter';
@@ -9,40 +9,53 @@ import './Navbar.css';
 import './Navbar-mobile.css'; // Mobile-specific overrides
 
 const Navbar = ({ handleLogout }) => {
-    const { permissions, user, darkMode, toggleDarkMode } = usePermissions(); // Use darkMode and toggleDarkMode from PermissionsProvider
-    const [activeSection, setActiveSection] = useState('');
-    const [inLeague, setInLeague] = useState(false); // Track if the user is in a league
+    const { permissions, user, darkMode, toggleDarkMode } = usePermissions();
+    const location = useLocation();
+    const [inLeague, setInLeague] = useState(false);
+    const [leagueStatusLoading, setLeagueStatusLoading] = useState(true);
+    const navbarCollapseRef = useRef(null);
 
-    // Collapse navbar on mobile when link is clicked
-    const collapseNavbar = () => {
-        const navbarCollapse = document.getElementById('navbarNav');
+    // Collapse navbar on mobile when link is clicked (using ref instead of DOM query)
+    const collapseNavbar = useCallback(() => {
+        const navbarCollapse = navbarCollapseRef.current;
+        if (!navbarCollapse) return;
+
         const bsCollapse = window.bootstrap?.Collapse?.getInstance(navbarCollapse);
         if (bsCollapse) {
             bsCollapse.hide();
-        } else if (navbarCollapse?.classList.contains('show')) {
-            // Fallback if Bootstrap instance not found
+        } else if (navbarCollapse.classList.contains('show')) {
             navbarCollapse.classList.remove('show');
         }
-    };
+    }, []);
 
-    const handleLinkClick = (section) => {
-        setActiveSection(section.toLowerCase());
+    // Check if a path is active (handles both exact and prefix matching)
+    const isPathActive = useCallback((path) => {
+        if (path === '/') return location.pathname === '/';
+        return location.pathname === path || location.pathname.startsWith(path + '/');
+    }, [location.pathname]);
+
+    const handleLinkClick = () => {
         collapseNavbar();
     };
 
     useEffect(() => {
         const fetchLeagueStatus = async () => {
+            setLeagueStatusLoading(true);
             try {
-                const { inLeague } = await isUserInLeague(); // Fetch league status from API
+                const { inLeague } = await isUserInLeague();
                 setInLeague(inLeague);
             } catch (err) {
                 console.error('Error fetching league status:', err);
-                setInLeague(false); // Default to false if there's an error
+                setInLeague(false);
+            } finally {
+                setLeagueStatusLoading(false);
             }
         };
 
         if (user) {
-            fetchLeagueStatus(); // Fetch league status only if the user is logged in
+            fetchLeagueStatus();
+        } else {
+            setLeagueStatusLoading(false);
         }
     }, [user]);
 
@@ -61,14 +74,14 @@ const Navbar = ({ handleLogout }) => {
     const sortedLinks = filteredLinks.sort((a, b) => a.order - b.order);
 
     return (
-        <nav className={`navbar navbar-expand-lg navbar-dark`} style={{ backgroundColor: '#2d1b4e' }}>
+        <nav className="navbar navbar-expand-lg navbar-dark">
             <div className="container-fluid">
                 <div className="d-flex align-items-center">
                     <a className="navbar-brand d-flex align-items-center" href="/">
-                        <img src="/logo.png" alt="Escalation League Logo" style={{ height: '32px', marginRight: '10px' }} />
+                        <img src="/logo.png" alt="Escalation League Logo" className="navbar-logo" />
                         <span className="navbar-brand-text">Escalation League</span>
                         {process.env.REACT_APP_ENV === 'development' && (
-                            <span className="badge bg-warning text-dark ms-2" style={{ fontSize: '0.7rem', verticalAlign: 'middle' }}>
+                            <span className="badge bg-warning text-dark ms-2 navbar-dev-badge">
                                 DEV
                             </span>
                         )}
@@ -85,57 +98,67 @@ const Navbar = ({ handleLogout }) => {
                         <span className="navbar-toggler-icon"></span>
                     </button>
                 </div>
-                <div className="collapse navbar-collapse" id="navbarNav">
+                <div className="collapse navbar-collapse" id="navbarNav" ref={navbarCollapseRef}>
                     <ul className="navbar-nav me-auto mb-2 mb-lg-0">
-                        {sortedLinks.map((link) => {
-                            if (link.type === 'link') {
-                                // Render regular links
-                                return (
-                                    <li className="nav-item" key={link.path}>
-                                        <Link
-                                            className={`nav-link ${activeSection === link.label.toLowerCase() ? 'active' : ''}`}
-                                            to={link.path}
-                                            onClick={() => handleLinkClick(link.label)}
-                                        >
-                                            {link.icon && <i className={`fas ${link.icon} me-1`}></i>}
-                                            {link.label}
-                                        </Link>
-                                    </li>
-                                );
-                            } else if (link.type === 'dropdown') {
-                                // Render dropdowns with a clickable parent link
-                                return (
-                                    <li className="nav-item dropdown" key={link.label}>
-                                        <button
-                                            type="button"
-                                            className={`nav-link dropdown-toggle btn btn-link ${activeSection === link.label.toLowerCase() ? 'active' : ''}`}
-                                            id={`${link.label.toLowerCase()}Dropdown`}
-                                            data-bs-toggle="dropdown"
-                                            aria-expanded="false"
-                                        >
-                                            {link.icon && <i className={`fas ${link.icon} me-1`}></i>}
-                                            {link.label}
-                                        </button>
-                                        <ul className="dropdown-menu" aria-labelledby={`${link.label.toLowerCase()}Dropdown`}>
-                                            {link.children
-                                                .sort((a, b) => a.order - b.order)
-                                                .map((child) => (
-                                                    <li key={child.path}>
-                                                        <Link
-                                                            className="dropdown-item"
-                                                            to={child.path}
-                                                            onClick={() => handleLinkClick(child.label)}
-                                                        >
-                                                            <i className={`fas ${child.icon}`}></i> {child.label}
-                                                        </Link>
-                                                    </li>
-                                                ))}
-                                        </ul>
-                                    </li>
-                                );
-                            }
-                            return null;
-                        })}
+                        {leagueStatusLoading && user ? (
+                            <li className="nav-item">
+                                <span className="nav-link text-muted">
+                                    <i className="fas fa-spinner fa-spin me-1"></i>
+                                    Loading...
+                                </span>
+                            </li>
+                        ) : (
+                            sortedLinks.map((link) => {
+                                if (link.type === 'link') {
+                                    const isActive = isPathActive(link.path);
+                                    return (
+                                        <li className="nav-item" key={link.path}>
+                                            <Link
+                                                className={`nav-link ${isActive ? 'active' : ''}`}
+                                                to={link.path}
+                                                onClick={handleLinkClick}
+                                            >
+                                                {link.icon && <i className={`fas ${link.icon} me-1`}></i>}
+                                                {link.label}
+                                            </Link>
+                                        </li>
+                                    );
+                                } else if (link.type === 'dropdown') {
+                                    // Check if any child path is active
+                                    const isDropdownActive = link.children?.some(child => isPathActive(child.path));
+                                    return (
+                                        <li className="nav-item dropdown" key={link.label}>
+                                            <button
+                                                type="button"
+                                                className={`nav-link dropdown-toggle btn btn-link ${isDropdownActive ? 'active' : ''}`}
+                                                id={`${link.label.toLowerCase()}Dropdown`}
+                                                data-bs-toggle="dropdown"
+                                                aria-expanded="false"
+                                            >
+                                                {link.icon && <i className={`fas ${link.icon} me-1`}></i>}
+                                                {link.label}
+                                            </button>
+                                            <ul className="dropdown-menu" aria-labelledby={`${link.label.toLowerCase()}Dropdown`}>
+                                                {link.children
+                                                    .sort((a, b) => a.order - b.order)
+                                                    .map((child) => (
+                                                        <li key={child.path}>
+                                                            <Link
+                                                                className={`dropdown-item ${isPathActive(child.path) ? 'active' : ''}`}
+                                                                to={child.path}
+                                                                onClick={handleLinkClick}
+                                                            >
+                                                                <i className={`fas ${child.icon}`}></i> {child.label}
+                                                            </Link>
+                                                        </li>
+                                                    ))}
+                                            </ul>
+                                        </li>
+                                    );
+                                }
+                                return null;
+                            })
+                        )}
                     </ul>
                     {/* Mobile-only profile links */}
                     <ul className="navbar-nav d-lg-none">

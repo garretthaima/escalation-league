@@ -69,7 +69,19 @@
     color: white;
 }
 
-/* Responsive logo sizing */
+/* Logo styling */
+.navbar-logo {
+    height: 32px;
+    margin-right: 10px;
+}
+
+/* DEV badge styling */
+.navbar-dev-badge {
+    font-size: 0.7rem;
+    vertical-align: middle;
+}
+
+/* Responsive logo sizing - legacy support */
 .navbar-brand img {
     height: 32px;
     margin-right: 10px;
