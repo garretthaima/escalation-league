@@ -152,7 +152,7 @@ const EditPodModal = ({ pod, onClose, onSave, onDelete }) => {
             return { player_id: p.player_id, result: original?.result || null, confirmed: p.confirmed };
         });
 
-        // Determine pod result (but don't change confirmation_status - that's only via Force Complete)
+        // Determine pod result
         let podResult = null;
         if (isDraw) {
             podResult = 'draw';
@@ -160,12 +160,16 @@ const EditPodModal = ({ pod, onClose, onSave, onDelete }) => {
             podResult = 'win';
         }
 
+        // Only send participants and result - DO NOT send confirmation_status
+        // Status changes should only happen via Force Complete button
         const updates = {
             participants: newParticipantResults,
-            result: podResult,
-            // Preserve current confirmation_status - don't auto-complete
-            confirmation_status: confirmationStatus,
         };
+
+        // Only include result if it changed
+        if (podResult) {
+            updates.result = podResult;
+        }
 
         try {
             await updatePod(pod.id, updates);
