@@ -298,32 +298,50 @@ const EditPodPage = () => {
         ];
 
         // Build the updates payload with final state
+        // IMPORTANT: Preserve original confirmed values and don't auto-complete
+        const participantUpdates = finalParticipants.map((participant) => {
+            let result;
+            if (participant.result === 'disqualified') {
+                result = 'disqualified'; // DQ takes priority
+            } else if (isDraw) {
+                result = 'draw';
+            } else if (winnerId && String(participant.player_id) === winnerId) {
+                result = 'win';
+            } else if (winnerId) {
+                result = 'loss'; // Only set loss if a winner is selected
+            } else {
+                // No winner selected - preserve original result or null
+                const original = originalParticipants.find(op => op.player_id === participant.player_id);
+                result = original?.result || null;
+            }
+
+            // Get turn order position (1-indexed)
+            const turnOrderPosition = turnOrder.indexOf(participant.player_id) + 1;
+
+            // Preserve original confirmed status
+            const original = originalParticipants.find(op => op.player_id === participant.player_id);
+
+            return {
+                player_id: participant.player_id,
+                result: result,
+                confirmed: original?.confirmed ?? participant.confirmed ?? 0,
+                turn_order: turnOrderPosition > 0 ? turnOrderPosition : null,
+            };
+        });
+
         const updates = {
-            participants: finalParticipants.map((participant) => {
-                let result;
-                if (isDraw) {
-                    result = 'draw';
-                } else if (winnerId && String(participant.player_id) === winnerId) {
-                    result = 'win';
-                } else if (participant.result === 'disqualified') {
-                    result = 'disqualified'; // Preserve DQ status
-                } else {
-                    result = 'loss';
-                }
-
-                // Get turn order position (1-indexed)
-                const turnOrderPosition = turnOrder.indexOf(participant.player_id) + 1;
-
-                return {
-                    player_id: participant.player_id,
-                    result: result,
-                    confirmed: 1,
-                    turn_order: turnOrderPosition > 0 ? turnOrderPosition : null,
-                };
-            }),
-            result: isDraw ? 'draw' : 'win',
-            confirmation_status: 'complete',
+            participants: participantUpdates,
         };
+
+        // Only include result if winner or draw is set
+        if (isDraw) {
+            updates.result = 'draw';
+        } else if (winnerId) {
+            updates.result = 'win';
+        }
+
+        // DO NOT send confirmation_status - let the pod stay in its current state
+        // Status changes should only happen via Force Complete button or player confirmations
 
         try {
             await updatePod(pod.id, updates);
