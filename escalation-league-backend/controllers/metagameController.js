@@ -38,8 +38,21 @@ const getMetagameStats = async (req, res) => {
         let totalCreatures = 0;
         let totalInstantsSorceries = 0;
         let totalArtifactsEnchantments = 0;
+        const deckStats = []; // Track per-deck stats for comparison
 
-        const basicLands = ['Plains', 'Island', 'Swamp', 'Mountain', 'Forest', 'Wastes'];
+        // Exclude all basic lands including snow-covered and typed variants
+        const basicLandNames = [
+            'Plains', 'Island', 'Swamp', 'Mountain', 'Forest', 'Wastes',
+            'Snow-Covered Plains', 'Snow-Covered Island', 'Snow-Covered Swamp',
+            'Snow-Covered Mountain', 'Snow-Covered Forest'
+        ];
+
+        // Helper to check if a card is a basic land (by type line or name)
+        const isBasicLand = (card) => {
+            if (basicLandNames.includes(card.name)) return true;
+            const typeLine = (card.type_line || '').toLowerCase();
+            return typeLine.includes('basic') && typeLine.includes('land');
+        };
 
         // Keywords for interaction detection
         const removalKeywords = ['destroy', 'exile', 'sacrifice', 'remove', 'bounce', '-X/-X', 'dies'];
@@ -128,50 +141,94 @@ const getMetagameStats = async (req, res) => {
             }
 
             // Count cards (excluding basic lands)
+            // Per-deck tracking
+            let deckTotalCmc = 0;
+            let deckCardCount = 0;
+            let deckRemoval = 0;
+            let deckCounterspells = 0;
+            let deckBoardWipes = 0;
+            let deckRamp = 0;
+            let deckCardDraw = 0;
+
             if (Array.isArray(cards)) {
-                // Fetch all card details from scryfall in batch
+                // Helper to parse JSON fields safely
+                const parseIfNeeded = (field) => {
+                    if (!field) return [];
+                    if (Array.isArray(field)) return field;
+                    if (typeof field === 'string') {
+                        try {
+                            return JSON.parse(field);
+                        } catch (e) {
+                            return [];
+                        }
+                    }
+                    return [];
+                };
+
+                // Fetch card details from scryfall - try by ID first, then by name
                 const scryfallIds = cards.map(c => c.scryfall_id || c.id).filter(id => id);
+                const cardNames = cards.map(c => c.name).filter(n => n);
 
                 try {
-                    const cardDetails = await scryfallDb('cards')
+                    // First try to get cards by ID
+                    let cardDetails = await scryfallDb('cards')
                         .whereIn('id', scryfallIds)
                         .select('id', 'name', 'cmc', 'colors', 'type_line', 'oracle_text', 'keywords');
 
-                    // Helper to parse JSON fields safely
-                    const parseIfNeeded = (field) => {
-                        if (!field) return [];
-                        if (Array.isArray(field)) return field;
-                        if (typeof field === 'string') {
-                            try {
-                                return JSON.parse(field);
-                            } catch (e) {
-                                return [];
-                            }
-                        }
-                        return [];
-                    };
-
-                    // Create lookup map
-                    const cardMap = {};
+                    // Create lookup maps (by ID and by name)
+                    const cardMapById = {};
+                    const cardMapByName = {};
                     for (const card of cardDetails) {
-                        cardMap[card.id] = {
+                        const parsed = {
                             ...card,
                             colors: parseIfNeeded(card.colors),
                             oracle_text: card.oracle_text || ''
                         };
+                        cardMapById[card.id] = parsed;
+                        cardMapByName[card.name.toLowerCase()] = parsed;
                     }
+
+                    // If we didn't find enough cards by ID, try by name
+                    const missingNames = cardNames.filter(name =>
+                        !cardMapByName[name.toLowerCase()]
+                    );
+
+                    if (missingNames.length > 0) {
+                        const nameDetails = await scryfallDb('cards')
+                            .whereIn('name', missingNames)
+                            .select('id', 'name', 'cmc', 'colors', 'type_line', 'oracle_text', 'keywords');
+
+                        for (const card of nameDetails) {
+                            if (!cardMapByName[card.name.toLowerCase()]) {
+                                const parsed = {
+                                    ...card,
+                                    colors: parseIfNeeded(card.colors),
+                                    oracle_text: card.oracle_text || ''
+                                };
+                                cardMapByName[card.name.toLowerCase()] = parsed;
+                            }
+                        }
+                    }
+
+                    // Combined lookup function
+                    const getCardData = (card) => {
+                        const byId = cardMapById[card.scryfall_id || card.id];
+                        if (byId) return byId;
+                        const byName = cardMapByName[card.name?.toLowerCase()];
+                        if (byName) return byName;
+                        return card;
+                    };
 
                     // Process each card with full scryfall data
                     for (const card of cards) {
-                        const scryfallId = card.scryfall_id || card.id;
-                        const fullCard = cardMap[scryfallId] || card;
+                        const fullCard = getCardData(card);
 
                         const cardName = fullCard.name || card.name;
                         const cardText = (fullCard.oracle_text || '').toLowerCase();
                         const cardType = fullCard.type_line || '';
 
-                        // Skip basic lands
-                        if (basicLands.includes(cardName)) {
+                        // Skip basic lands (by name or type line)
+                        if (isBasicLand(fullCard)) {
                             continue;
                         }
 
@@ -188,6 +245,10 @@ const getMetagameStats = async (req, res) => {
                         const cmc = fullCard.cmc !== undefined ? fullCard.cmc : 0;
                         const cmcKey = cmc >= 7 ? '7+' : String(cmc);
                         cmcCounts[cmcKey] = (cmcCounts[cmcKey] || 0) + 1;
+
+                        // Track per-deck CMC
+                        deckTotalCmc += cmc;
+                        deckCardCount++;
 
                         // Count colors if available
                         if (fullCard.colors && Array.isArray(fullCard.colors)) {
@@ -207,22 +268,27 @@ const getMetagameStats = async (req, res) => {
                         // Detect interaction cards
                         if (removalKeywords.some(kw => cardText.includes(kw) || cardType.toLowerCase().includes('removal'))) {
                             interactionCards.removal++;
+                            deckRemoval++;
                         }
                         if (counterspellKeywords.some(kw => cardText.includes(kw)) || cardType.toLowerCase().includes('counterspell')) {
                             interactionCards.counterspells++;
+                            deckCounterspells++;
                         }
                         if (boardWipeKeywords.some(kw => cardText.includes(kw))) {
                             interactionCards.boardWipes++;
+                            deckBoardWipes++;
                         }
 
                         // Detect ramp cards
                         if (rampKeywords.some(kw => cardText.includes(kw) || cardName.toLowerCase().includes(kw))) {
                             rampCards++;
+                            deckRamp++;
                         }
 
                         // Detect card draw
                         if (drawKeywords.some(kw => cardText.includes(kw) || cardName.toLowerCase().includes(kw))) {
                             cardDrawCards++;
+                            deckCardDraw++;
                         }
 
                         // Detect win conditions
@@ -261,6 +327,22 @@ const getMetagameStats = async (req, res) => {
                     console.error('Error fetching/processing card details:', err.message);
                 }
             }
+
+            // Store per-deck stats
+            const deckAvgCmc = deckCardCount > 0 ? deckTotalCmc / deckCardCount : 0;
+            const deckInteraction = deckRemoval + deckCounterspells + deckBoardWipes;
+            deckStats.push({
+                deckId: deck.id,
+                deckName: deck.name,
+                commander: commanderNames[0] || 'Unknown',
+                avgCmc: parseFloat(deckAvgCmc.toFixed(2)),
+                interaction: deckInteraction,
+                removal: deckRemoval,
+                counterspells: deckCounterspells,
+                boardWipes: deckBoardWipes,
+                ramp: deckRamp,
+                cardDraw: deckCardDraw
+            });
         }
 
         // Sort and format results
@@ -598,7 +680,19 @@ const getMetagameStats = async (req, res) => {
                 totalCards: winConditions.combat + winConditions.combo + winConditions.alternate
             },
             keywords: categorizedKeywords,
-            commanderSynergies: topCommanderSynergies
+            commanderSynergies: topCommanderSynergies,
+            // Meta analytics - per-deck comparison
+            metaAnalytics: {
+                leagueAvgCmc: parseFloat((deckStats.reduce((sum, d) => sum + d.avgCmc, 0) / deckStats.length).toFixed(2)),
+                leagueAvgInteraction: parseFloat((deckStats.reduce((sum, d) => sum + d.interaction, 0) / deckStats.length).toFixed(1)),
+                deckComparison: deckStats.sort((a, b) => a.avgCmc - b.avgCmc).map(d => ({
+                    commander: d.commander,
+                    avgCmc: d.avgCmc,
+                    interaction: d.interaction,
+                    ramp: d.ramp,
+                    cardDraw: d.cardDraw
+                }))
+            }
         };
 
         res.status(200).json(response);
@@ -729,8 +823,308 @@ function getPositionLabel(position) {
     return labels[position] || `${position}th`;
 }
 
+/**
+ * Get cards for a specific category (ramp, removal, cardDraw, counterspells, boardWipes)
+ * Returns deduplicated list of cards sorted by popularity
+ * Optimized: Single batch Scryfall query instead of per-deck queries
+ */
+const getCategoryCards = async (req, res) => {
+    try {
+        const { leagueId, category } = req.params;
+
+        // Define keyword patterns for each category
+        const categoryKeywords = {
+            ramp: ['search your library for a land', 'add mana', 'ramp', 'sol ring', 'arcane signet', 'cultivate', 'kodama'],
+            cardDraw: ['draw cards', 'draw a card', 'draw two cards', 'card advantage', 'rhystic study', 'mystic remora', 'when you draw'],
+            removal: ['destroy', 'exile', 'sacrifice', 'remove', 'bounce', '-X/-X', 'dies'],
+            counterspells: ['counter target', 'counter spell'],
+            boardWipes: ['destroy all', 'exile all', 'each creature', 'all creatures']
+        };
+
+        const keywords = categoryKeywords[category];
+        if (!keywords) {
+            return res.status(400).json({ error: `Invalid category: ${category}. Valid categories: ${Object.keys(categoryKeywords).join(', ')}` });
+        }
+
+        // Get all decks for this league
+        const decksInLeague = await db('user_leagues as ul')
+            .join('decks as d', 'ul.deck_id', 'd.id')
+            .where('ul.league_id', leagueId)
+            .select('d.id', 'd.cards');
+
+        if (decksInLeague.length === 0) {
+            return res.status(200).json({ category, cards: [], totalDecks: 0 });
+        }
+
+        // Basic lands to exclude
+        const basicLandNames = [
+            'Plains', 'Island', 'Swamp', 'Mountain', 'Forest', 'Wastes',
+            'Snow-Covered Plains', 'Snow-Covered Island', 'Snow-Covered Swamp',
+            'Snow-Covered Mountain', 'Snow-Covered Forest'
+        ];
+
+        // Phase 1: Collect ALL unique card IDs and names from ALL decks
+        const allScryfallIds = new Set();
+        const allCardNames = new Set();
+        const parsedDecks = [];
+
+        for (const deck of decksInLeague) {
+            const cards = typeof deck.cards === 'string' ? JSON.parse(deck.cards) : deck.cards;
+            if (!Array.isArray(cards)) continue;
+
+            parsedDecks.push({ deckId: deck.id, cards });
+
+            for (const card of cards) {
+                if (card.scryfall_id) allScryfallIds.add(card.scryfall_id);
+                if (card.id) allScryfallIds.add(card.id);
+                if (card.name) allCardNames.add(card.name);
+            }
+        }
+
+        // Phase 2: Single batch Scryfall query for all cards
+        const cardMapById = {};
+        const cardMapByName = {};
+
+        try {
+            // Query by IDs first
+            if (allScryfallIds.size > 0) {
+                const cardDetails = await scryfallDb('cards')
+                    .whereIn('id', Array.from(allScryfallIds))
+                    .select('id', 'name', 'oracle_text', 'type_line', 'image_uris');
+
+                for (const card of cardDetails) {
+                    cardMapById[card.id] = card;
+                    cardMapByName[card.name.toLowerCase()] = card;
+                }
+            }
+
+            // Query missing cards by name
+            const missingNames = Array.from(allCardNames).filter(name =>
+                !cardMapByName[name.toLowerCase()]
+            );
+
+            if (missingNames.length > 0) {
+                const nameDetails = await scryfallDb('cards')
+                    .whereIn('name', missingNames)
+                    .select('id', 'name', 'oracle_text', 'type_line', 'image_uris');
+
+                for (const card of nameDetails) {
+                    if (!cardMapByName[card.name.toLowerCase()]) {
+                        cardMapByName[card.name.toLowerCase()] = card;
+                    }
+                }
+            }
+        } catch (err) {
+            console.error('Error fetching Scryfall data:', err.message);
+        }
+
+        // Helper to get card data
+        const getCardData = (card) => {
+            const byId = cardMapById[card.scryfall_id || card.id];
+            if (byId) return byId;
+            const byName = cardMapByName[card.name?.toLowerCase()];
+            if (byName) return byName;
+            return card;
+        };
+
+        // Phase 3: Process all decks using cached Scryfall data
+        const cardCounts = {}; // { cardName: { count: number, scryfallId: string, imageUri: string } }
+
+        for (const { cards } of parsedDecks) {
+            const seenInDeck = new Set(); // Track unique cards per deck
+
+            for (const card of cards) {
+                const fullCard = getCardData(card);
+                const cardName = fullCard.name || card.name;
+
+                // Skip basic lands
+                if (basicLandNames.includes(cardName)) continue;
+                const typeLine = (fullCard.type_line || '').toLowerCase();
+                if (typeLine.includes('basic') && typeLine.includes('land')) continue;
+
+                // Check if card matches category
+                const cardText = (fullCard.oracle_text || '').toLowerCase();
+                const matchesCategory = keywords.some(kw =>
+                    cardText.includes(kw) || cardName.toLowerCase().includes(kw)
+                );
+
+                if (matchesCategory && !seenInDeck.has(cardName)) {
+                    seenInDeck.add(cardName);
+                    if (!cardCounts[cardName]) {
+                        // Parse image_uris if string
+                        let imageUri = null;
+                        if (fullCard.image_uris) {
+                            const imageUris = typeof fullCard.image_uris === 'string'
+                                ? JSON.parse(fullCard.image_uris)
+                                : fullCard.image_uris;
+                            imageUri = imageUris?.normal || imageUris?.small || null;
+                        }
+                        cardCounts[cardName] = { count: 0, scryfallId: fullCard.id || card.scryfall_id || card.id, imageUri };
+                    }
+                    cardCounts[cardName].count++;
+                }
+            }
+        }
+
+        // Sort by count and format response
+        const cards = Object.entries(cardCounts)
+            .sort(([, a], [, b]) => b.count - a.count)
+            .map(([name, data]) => ({
+                name,
+                count: data.count,
+                percentage: ((data.count / decksInLeague.length) * 100).toFixed(1),
+                imageUri: data.imageUri
+            }));
+
+        res.status(200).json({
+            category,
+            cards,
+            totalDecks: decksInLeague.length
+        });
+    } catch (err) {
+        console.error('Error fetching category cards:', err.message);
+        res.status(500).json({ error: 'Failed to fetch category cards.' });
+    }
+};
+
+/**
+ * Get commander matchup statistics
+ * Shows win rates when specific commanders face each other in pods
+ */
+const getCommanderMatchups = async (req, res) => {
+    try {
+        const { leagueId } = req.params;
+
+        // Get all completed pods with player results and commander info
+        const completedPods = await db('game_pods as gp')
+            .join('game_players as pl', 'gp.id', 'pl.pod_id')
+            .join('user_leagues as ul', function() {
+                this.on('pl.player_id', '=', 'ul.user_id')
+                    .andOn('gp.league_id', '=', 'ul.league_id');
+            })
+            .join('decks as d', 'ul.deck_id', 'd.id')
+            .where('gp.league_id', leagueId)
+            .where('gp.confirmation_status', 'complete')
+            .whereNotNull('pl.result')
+            .select(
+                'gp.id as pod_id',
+                'pl.player_id',
+                'pl.result',
+                'd.commanders'
+            );
+
+        if (completedPods.length === 0) {
+            return res.status(200).json({
+                message: 'No completed games found',
+                matchups: [],
+                totalGames: 0
+            });
+        }
+
+        // Group by pod
+        const podMap = {};
+        for (const row of completedPods) {
+            if (!podMap[row.pod_id]) {
+                podMap[row.pod_id] = [];
+            }
+            const commanders = typeof row.commanders === 'string' ? JSON.parse(row.commanders) : row.commanders;
+            const commanderName = Array.isArray(commanders) && commanders.length > 0
+                ? (commanders[0].name || commanders[0])
+                : 'Unknown';
+            podMap[row.pod_id].push({
+                playerId: row.player_id,
+                commander: commanderName,
+                result: row.result
+            });
+        }
+
+        // Calculate matchup stats
+        const matchupStats = {}; // { "CmdA vs CmdB": { wins: { A: x, B: y }, games: n } }
+        const commanderStats = {}; // { commander: { wins: x, games: y } }
+
+        for (const players of Object.values(podMap)) {
+            // Get the winner
+            const winner = players.find(p => p.result === 'win');
+            if (!winner) continue; // Skip draws
+
+            // Track individual commander stats
+            for (const player of players) {
+                if (!commanderStats[player.commander]) {
+                    commanderStats[player.commander] = { wins: 0, games: 0 };
+                }
+                commanderStats[player.commander].games++;
+                if (player.result === 'win') {
+                    commanderStats[player.commander].wins++;
+                }
+            }
+
+            // Track head-to-head matchups
+            for (let i = 0; i < players.length; i++) {
+                for (let j = i + 1; j < players.length; j++) {
+                    const cmd1 = players[i].commander;
+                    const cmd2 = players[j].commander;
+                    if (cmd1 === cmd2) continue; // Skip same commander
+
+                    // Create consistent key (alphabetical order)
+                    const [first, second] = [cmd1, cmd2].sort();
+                    const key = `${first}|||${second}`;
+
+                    if (!matchupStats[key]) {
+                        matchupStats[key] = {
+                            commanders: [first, second],
+                            wins: { [first]: 0, [second]: 0 },
+                            games: 0
+                        };
+                    }
+
+                    matchupStats[key].games++;
+                    if (players[i].result === 'win') {
+                        matchupStats[key].wins[cmd1]++;
+                    } else if (players[j].result === 'win') {
+                        matchupStats[key].wins[cmd2]++;
+                    }
+                }
+            }
+        }
+
+        // Format commander stats
+        const commanderOverview = Object.entries(commanderStats)
+            .map(([commander, stats]) => ({
+                commander,
+                wins: stats.wins,
+                games: stats.games,
+                winRate: stats.games > 0 ? Math.round((stats.wins / stats.games) * 100) : 0
+            }))
+            .sort((a, b) => b.winRate - a.winRate);
+
+        // Format matchup data (only show matchups with 2+ games)
+        const matchups = Object.values(matchupStats)
+            .filter(m => m.games >= 2)
+            .map(m => ({
+                commanders: m.commanders,
+                games: m.games,
+                winRates: {
+                    [m.commanders[0]]: m.games > 0 ? Math.round((m.wins[m.commanders[0]] / m.games) * 100) : 0,
+                    [m.commanders[1]]: m.games > 0 ? Math.round((m.wins[m.commanders[1]] / m.games) * 100) : 0
+                }
+            }))
+            .sort((a, b) => b.games - a.games);
+
+        res.status(200).json({
+            commanderOverview,
+            matchups,
+            totalGames: Object.keys(podMap).length
+        });
+    } catch (err) {
+        console.error('Error fetching commander matchups:', err.message);
+        res.status(500).json({ error: 'Failed to fetch commander matchups.' });
+    }
+};
+
 module.exports = {
     getMetagameStats,
     getCardStats,
-    getTurnOrderStats
+    getTurnOrderStats,
+    getCategoryCards,
+    getCommanderMatchups
 };

@@ -55,17 +55,19 @@ const fetchArchidektDeck = async (deckId) => {
     );
 
     // Extract commanders based on the "categories" field
+    // Use card.card.uid (printing's Scryfall ID) not card.card.oracleCard.uid (oracle ID)
     const commanders = response.data.cards
         .filter((card) => card.categories && card.categories.includes('Commander'))
         .map((card) => ({
             name: card.card.oracleCard.name,
-            scryfall_id: card.card.oracleCard.uid,
+            scryfall_id: card.card.uid,
         }));
 
     // Extract all cards in the deck
+    // Use card.card.uid (printing's Scryfall ID) which matches our Scryfall database
     const cards = response.data.cards.map((card) => ({
         name: card.card.oracleCard.name,
-        scryfall_id: card.card.oracleCard.uid,
+        scryfall_id: card.card.uid,
     }));
 
     return standardizeDeckData(
