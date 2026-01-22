@@ -29,7 +29,7 @@ const TurnstileWidget = ({ onVerify, onError, onExpire }) => {
                 onExpire={onExpire}
                 options={{
                     theme: 'auto',      // Adapts to light/dark mode
-                    size: 'flexible'    // Adjusts width to container
+                    size: 'compact'     // Smaller widget (150x140 vs 300x65)
                 }}
             />
         </div>

@@ -13,11 +13,12 @@ const GoogleSignInButton = ({ onSuccess }) => {
                 window.google.accounts.id.renderButton(
                     buttonRef.current,
                     {
-                        theme: 'outline',
+                        theme: 'filled_black',
                         size: 'large',
-                        width: 336,  // Fixed width to match card content (400px - 2*32px padding)
+                        width: 336,
                         text: 'continue_with',
-                        logo_alignment: 'center'
+                        shape: 'rectangular',
+                        logo_alignment: 'left'
                     }
                 );
             }
