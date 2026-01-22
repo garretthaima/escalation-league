@@ -178,9 +178,9 @@ axiosInstance.interceptors.response.use(
 
         // Check if this is a 401 error and we haven't already retried
         if (error.response?.status === 401 && !originalRequest._retry) {
-            // Don't retry the refresh endpoint itself
-            if (originalRequest.url?.includes('/auth/refresh')) {
-                return handleAuthFailure();
+            // Don't retry auth endpoints - they're expected to return 401 on bad credentials
+            if (originalRequest.url?.includes('/auth/')) {
+                return Promise.reject(error);
             }
 
             // If already refreshing, queue this request to wait for the result

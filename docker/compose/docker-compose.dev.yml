@@ -67,6 +67,11 @@ services:
       DISCORD_GUILD_ID: ${DISCORD_GUILD_ID}
       DISCORD_ATTENDANCE_CHANNEL_ID: ${DISCORD_ATTENDANCE_CHANNEL_ID}
       DISCORD_RECAP_CHANNEL_ID: ${DISCORD_RECAP_CHANNEL_ID}
+      # Cloudflare Turnstile
+      TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY}
+      # Resend email
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      FROM_EMAIL: ${FROM_EMAIL}
 
       # Debug
       DEBUG: "socket.io:*,engine:*"
@@ -116,6 +121,7 @@ services:
         REACT_APP_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
         REACT_APP_SCRYFALL_USER_AGENT: EscalationLeague-Dev/1.0; garretthaima@gmail.com
         REACT_APP_ENV: development
+        REACT_APP_TURNSTILE_SITE_KEY: ${REACT_APP_TURNSTILE_SITE_KEY}
     container_name: escalation-league-frontend-dev
     networks:
       - default

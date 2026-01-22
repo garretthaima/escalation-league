@@ -85,3 +85,27 @@ export const checkAuthorization = async (requiredPermissions) => {
     const response = await axiosInstance.post('/auth/authorize', { requiredPermissions });
     return response.data.authorized; // Returns true if authorized
 };
+
+// Email verification
+export const verifyEmail = async (token) => {
+    const response = await axiosInstance.post('/auth/verify-email', { token });
+    return response.data;
+};
+
+// Resend verification email
+export const resendVerificationEmail = async (email) => {
+    const response = await axiosInstance.post('/auth/resend-verification', { email });
+    return response.data;
+};
+
+// Request password reset
+export const requestPasswordReset = async (email, turnstileToken) => {
+    const response = await axiosInstance.post('/auth/forgot-password', { email, turnstileToken });
+    return response.data;
+};
+
+// Reset password with token
+export const resetPassword = async (token, newPassword) => {
+    const response = await axiosInstance.post('/auth/reset-password', { token, newPassword });
+    return response.data;
+};

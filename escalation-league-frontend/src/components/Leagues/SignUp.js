@@ -184,7 +184,7 @@ const SignUp = () => {
 
     useEffect(() => {
         if (activeLeague) {
-            navigate('/current-league');
+            navigate('/leagues');
         }
     }, [activeLeague, navigate]);
 
