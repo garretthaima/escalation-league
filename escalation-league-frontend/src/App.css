@@ -62,6 +62,32 @@ body.dark-mode {
   background-size: 40px 40px;
 }
 
+/* Dark mode scrollbar styling */
+body.dark-mode ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+body.dark-mode ::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+  border-radius: 4px;
+}
+
+body.dark-mode ::-webkit-scrollbar-thumb {
+  background: var(--brand-purple-light);
+  border-radius: 4px;
+}
+
+body.dark-mode ::-webkit-scrollbar-thumb:hover {
+  background: var(--brand-purple);
+}
+
+/* Firefox scrollbar styling */
+body.dark-mode * {
+  scrollbar-width: thin;
+  scrollbar-color: var(--brand-purple-light) var(--bg-secondary);
+}
+
 /* ===========================
    Unified Card System
    Consistent card styling across the app
