@@ -1,9 +1,9 @@
 /* Skeleton Loader Styles */
 .skeleton {
-    background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+    background: linear-gradient(90deg, var(--gray-200) 25%, var(--gray-100) 50%, var(--gray-200) 75%);
     background-size: 200% 100%;
     animation: skeleton-shimmer 1.5s infinite;
-    border-radius: 4px;
+    border-radius: 6px;
 }
 
 @keyframes skeleton-shimmer {
@@ -17,7 +17,7 @@
 
 /* Dark mode skeleton */
 body.dark-mode .skeleton {
-    background: linear-gradient(90deg, #3a3a3a 25%, #4a4a4a 50%, #3a3a3a 75%);
+    background: linear-gradient(90deg, var(--gray-800) 25%, var(--gray-700) 50%, var(--gray-800) 75%);
     background-size: 200% 100%;
 }
 
@@ -63,15 +63,11 @@ body.dark-mode .skeleton {
 
 /* Skeleton Card */
 .skeleton-card {
-    padding: 1rem;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    background: #fff;
-}
-
-body.dark-mode .skeleton-card {
-    border-color: #444;
-    background: #2a2a2a;
+    padding: 1.25rem;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--bg-primary);
+    box-shadow: 0 4px 24px var(--shadow);
 }
 
 .skeleton-card-header {
@@ -97,11 +93,7 @@ body.dark-mode .skeleton-card {
     align-items: center;
     gap: 1rem;
     padding: 0.75rem 0;
-    border-bottom: 1px solid #e0e0e0;
-}
-
-body.dark-mode .skeleton-table-row {
-    border-bottom-color: #444;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .skeleton-table-cell {
@@ -114,12 +106,8 @@ body.dark-mode .skeleton-table-row {
     flex-direction: column;
     gap: 0.5rem;
     padding: 1rem;
-    border-radius: 8px;
-    background: #f8f9fa;
-}
-
-body.dark-mode .skeleton-stat-card {
-    background: #2a2a2a;
+    border-radius: 10px;
+    background: var(--bg-secondary);
 }
 
 /* Width utilities */
@@ -134,11 +122,7 @@ body.dark-mode .skeleton-stat-card {
     align-items: center;
     gap: 1rem;
     padding: 0.75rem 1rem;
-    border-bottom: 1px solid #e0e0e0;
-}
-
-body.dark-mode .skeleton-leaderboard-row {
-    border-bottom-color: #444;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .skeleton-leaderboard-row .skeleton-rank {

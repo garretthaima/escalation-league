@@ -1,0 +1,177 @@
+.loading-spinner-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.branded-spinner {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Size variants */
+.branded-spinner.spinner-sm {
+    width: 32px;
+    height: 32px;
+}
+
+.branded-spinner.spinner-md {
+    width: 48px;
+    height: 48px;
+}
+
+.branded-spinner.spinner-lg {
+    width: 64px;
+    height: 64px;
+}
+
+/* Spinning rings */
+.spinner-ring {
+    position: absolute;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    animation: spin 1.2s linear infinite;
+}
+
+.branded-spinner.spinner-sm .spinner-ring {
+    border-width: 2px;
+}
+
+.branded-spinner.spinner-md .spinner-ring {
+    border-width: 2px;
+}
+
+.branded-spinner.spinner-lg .spinner-ring {
+    border-width: 3px;
+}
+
+/* Ring sizes and colors */
+.spinner-ring:nth-child(1) {
+    width: 100%;
+    height: 100%;
+    border-top-color: var(--brand-purple, #4a2f70);
+    animation-duration: 1s;
+}
+
+.spinner-ring:nth-child(2) {
+    width: 80%;
+    height: 80%;
+    border-right-color: var(--brand-gold, #d4af37);
+    animation-duration: 1.5s;
+    animation-direction: reverse;
+}
+
+/* Mana symbol container */
+.mana-symbol-container {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: mana-pulse 0.4s ease-in-out;
+}
+
+/* Mana SVG styling */
+.mana-svg {
+    border-radius: 50%;
+    box-shadow:
+        0 2px 4px rgba(0, 0, 0, 0.3),
+        inset 0 1px 2px rgba(255, 255, 255, 0.2);
+    transition: opacity 0.15s ease-in-out;
+}
+
+/* Size variants for mana symbol */
+.branded-spinner.spinner-sm .mana-symbol-container {
+    width: 18px;
+    height: 18px;
+}
+
+.branded-spinner.spinner-sm .mana-svg {
+    width: 18px;
+    height: 18px;
+}
+
+.branded-spinner.spinner-md .mana-symbol-container {
+    width: 28px;
+    height: 28px;
+}
+
+.branded-spinner.spinner-md .mana-svg {
+    width: 28px;
+    height: 28px;
+}
+
+.branded-spinner.spinner-lg .mana-symbol-container {
+    width: 38px;
+    height: 38px;
+}
+
+.branded-spinner.spinner-lg .mana-svg {
+    width: 38px;
+    height: 38px;
+}
+
+/* Loading text */
+.spinner-text {
+    color: var(--text-secondary, #6c757d);
+    font-size: 0.875rem;
+    margin: 0;
+    animation: fade 1.5s ease-in-out infinite;
+}
+
+/* Animations */
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes mana-pulse {
+    0% {
+        transform: scale(0.8);
+        opacity: 0.5;
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes fade {
+    0%, 100% {
+        opacity: 0.6;
+    }
+    50% {
+        opacity: 1;
+    }
+}
+
+/* Dark mode enhancements */
+body.dark-mode .spinner-text {
+    color: var(--text-muted, #9ca3af);
+}
+
+body.dark-mode .mana-svg {
+    box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.5),
+        0 0 12px rgba(212, 175, 55, 0.2),
+        inset 0 1px 2px rgba(255, 255, 255, 0.3);
+}
+
+body.dark-mode .spinner-ring:nth-child(1) {
+    box-shadow: 0 0 8px rgba(74, 47, 112, 0.3);
+}
+
+body.dark-mode .spinner-ring:nth-child(2) {
+    box-shadow: 0 0 8px rgba(212, 175, 55, 0.3);
+}

@@ -1,22 +1,23 @@
 .metagame-dashboard {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    /* Font inherited from global CSS variable */
 }
 
 .metagame-dashboard .card {
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    transition: box-shadow 0.3s ease;
+    border-radius: 12px;
+    box-shadow: 0 4px 24px var(--shadow);
+    border: 1px solid var(--border-color);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .metagame-dashboard .card:hover {
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 6px 32px var(--shadow);
 }
 
 .metagame-dashboard .card-title {
-    color: #495057;
+    color: var(--text-primary);
     font-weight: 600;
     margin-bottom: 1rem;
-    border-bottom: 2px solid #e9ecef;
+    border-bottom: 1px solid var(--border-color);
     padding-bottom: 0.5rem;
 }
 
@@ -25,7 +26,7 @@
 }
 
 .metagame-dashboard .table-hover tbody tr:hover {
-    background-color: #f8f9fa;
+    background-color: var(--bg-secondary);
     cursor: pointer;
 }
 
@@ -35,11 +36,11 @@
 }
 
 .metagame-dashboard .nav-tabs {
-    border-bottom: 2px solid #dee2e6;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .metagame-dashboard .nav-tabs .nav-link {
-    color: #6c757d;
+    color: var(--text-secondary);
     border: none;
     border-bottom: 2px solid transparent;
     padding: 0.75rem 1.25rem;
@@ -47,19 +48,16 @@
 
 .metagame-dashboard .nav-tabs .nav-link:hover {
     border-color: transparent;
-    color: #495057;
+    color: var(--text-primary);
 }
 
 .metagame-dashboard .nav-tabs .nav-link.active {
-    color: #0d6efd;
-    border-bottom: 2px solid #0d6efd;
+    color: var(--brand-purple);
+    border-bottom: 2px solid var(--brand-purple);
     background-color: transparent;
 }
 
-/* Dark mode styles */
-body.dark-mode .metagame-dashboard .card-title {
-    color: #f8f9fa;
-}
+/* Dark mode handled automatically via CSS variables */
 
 body.dark-mode .mana-curve-chart small {
     color: #f8f9fa !important;

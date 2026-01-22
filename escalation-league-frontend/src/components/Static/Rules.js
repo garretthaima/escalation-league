@@ -2,118 +2,339 @@ import React from 'react';
 
 const Rules = () => {
     return (
-        <div className="container mt-4">
-            <h1 className="text-center mb-4">Escalation League Rules</h1>
-
-            <section className="mb-4">
-                <h2>League Entry</h2>
-                <p>
-                    <strong>Entry Fee:</strong> $30
+        <div className="container mt-4 mb-5">
+            {/* Hero Section */}
+            <div className="text-center mb-5">
+                <h1 className="mb-3">
+                    <i className="fas fa-scroll me-3"></i>
+                    Escalation League Rules
+                </h1>
+                <p className="text-muted lead">
+                    Everything you need to know about competing in the Escalation League
                 </p>
-                <p>
-                    Payment is due during your first EL game night. Accepted payment methods: Cash or Venmo to the league commissioner.
-                </p>
-            </section>
+            </div>
 
-            <section className="mb-4">
-                <h2>Deck Requirements</h2>
-                <ul>
-                    <li><strong>Starting Budget:</strong> Maximum $75 (TCG Market low pricing)</li>
-                    <li><strong>Basic Lands:</strong> Do not count toward budget</li>
-                    <li><strong>Banned Commanders:</strong> See list at bottom of page</li>
-                    <li><strong>Banned Cards:</strong> Follow official <a href="https://magic.wizards.com/en/banned-restricted-list" target="_blank" rel="noopener noreferrer">Commander Ban List</a></li>
-                    <li><strong>Proxies:</strong> Color-only printed proxies are allowed</li>
-                </ul>
-            </section>
+            <div className="row g-4">
+                {/* League Entry */}
+                <div className="col-md-6">
+                    <div className="card h-100">
+                        <div className="card-header">
+                            <h5 className="mb-0">
+                                <i className="fas fa-ticket-alt me-2"></i>
+                                League Entry
+                            </h5>
+                        </div>
+                        <div className="card-body">
+                            <div className="d-flex align-items-center mb-3">
+                                <span className="badge bg-success fs-5 me-3">$30</span>
+                                <span>Entry Fee</span>
+                            </div>
+                            <p className="text-muted mb-0">
+                                Payment is due during your first EL game night. Accepted payment methods: Cash or Venmo to the league commissioner.
+                            </p>
+                        </div>
+                    </div>
+                </div>
 
-            <section className="mb-4">
-                <h2>Deck Lock-In Process</h2>
-                <ul>
-                    <li>Lock in your deck anytime before the season starts by taking a cost screenshot</li>
-                    <li>Decklists are posted on season start day and cannot be modified after <strong>12 PM</strong></li>
-                    <li>Update your decklist weekly before your first game of the week</li>
-                    <li>Decklist links must remain accessible to the group for the entire season</li>
-                    <li><strong>Tip:</strong> Use Moxfield's "Update to lowest pricing" option</li>
-                </ul>
-            </section>
+                {/* Season Structure */}
+                <div className="col-md-6">
+                    <div className="card h-100">
+                        <div className="card-header">
+                            <h5 className="mb-0">
+                                <i className="fas fa-calendar-alt me-2"></i>
+                                Season Structure
+                            </h5>
+                        </div>
+                        <div className="card-body">
+                            <div className="row text-center mb-3">
+                                <div className="col-4">
+                                    <div className="fs-3 fw-bold" style={{ color: 'var(--brand-gold)' }}>16</div>
+                                    <small className="text-muted">Weeks</small>
+                                </div>
+                                <div className="col-4">
+                                    <div className="fs-3 fw-bold" style={{ color: 'var(--brand-gold)' }}>3+</div>
+                                    <small className="text-muted">Min Pod Size</small>
+                                </div>
+                                <div className="col-4">
+                                    <div className="fs-3 fw-bold" style={{ color: 'var(--brand-gold)' }}>Thu-Wed</div>
+                                    <small className="text-muted">Week Cycle</small>
+                                </div>
+                            </div>
+                            <p className="text-muted small mb-0">
+                                Non-Thursday games can be arranged with provisions. All players must certify a game for points to be distributed.
+                            </p>
+                        </div>
+                    </div>
+                </div>
 
-            <section className="mb-4">
-                <h2>Weekly Budget</h2>
-                <ul>
-                    <li>Add <strong>$11</strong> worth of cards each week (TCG Market low pricing)</li>
-                    <li>Unused budget accumulates week over week</li>
-                    <li>Commanders can be switched anytime using accumulated budget</li>
-                </ul>
-            </section>
+                {/* Deck Requirements */}
+                <div className="col-lg-6">
+                    <div className="card h-100">
+                        <div className="card-header">
+                            <h5 className="mb-0">
+                                <i className="fas fa-layer-group me-2"></i>
+                                Deck Requirements
+                            </h5>
+                        </div>
+                        <div className="card-body">
+                            <ul className="list-unstyled mb-0">
+                                <li className="d-flex align-items-start mb-2">
+                                    <i className="fas fa-dollar-sign text-success me-3 mt-1"></i>
+                                    <div>
+                                        <strong>Starting Budget:</strong> Maximum $75 (TCG Market low pricing)
+                                    </div>
+                                </li>
+                                <li className="d-flex align-items-start mb-2">
+                                    <i className="fas fa-mountain text-secondary me-3 mt-1"></i>
+                                    <div>
+                                        <strong>Basic Lands:</strong> Do not count toward budget
+                                    </div>
+                                </li>
+                                <li className="d-flex align-items-start mb-2">
+                                    <i className="fas fa-ban text-danger me-3 mt-1"></i>
+                                    <div>
+                                        <strong>Banned Cards:</strong> Follow official{' '}
+                                        <a href="https://magic.wizards.com/en/banned-restricted-list" target="_blank" rel="noopener noreferrer">
+                                            Commander Ban List
+                                        </a>
+                                    </div>
+                                </li>
+                                <li className="d-flex align-items-start">
+                                    <i className="fas fa-copy text-info me-3 mt-1"></i>
+                                    <div>
+                                        <strong>Proxies:</strong> Color-only printed proxies are allowed
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
 
-            <section className="mb-4">
-                <h2>Season Structure</h2>
-                <ul>
-                    <li><strong>Duration:</strong> 16 weeks</li>
-                    <li><strong>Week Schedule:</strong> Thursday through Wednesday</li>
-                    <li>Non-Thursday games can be arranged with provisions</li>
-                    <li><strong>Minimum Pod Size:</strong> 3 players for game to count</li>
-                    <li><strong>Certification:</strong> All players must certify a game for points to be distributed</li>
-                </ul>
-            </section>
+                {/* Weekly Budget */}
+                <div className="col-lg-6">
+                    <div className="card h-100">
+                        <div className="card-header">
+                            <h5 className="mb-0">
+                                <i className="fas fa-coins me-2"></i>
+                                Weekly Budget
+                            </h5>
+                        </div>
+                        <div className="card-body">
+                            <div className="text-center mb-3">
+                                <span className="badge fs-4 px-4 py-2" style={{ background: 'var(--brand-gold)', color: '#000' }}>
+                                    +$11 / week
+                                </span>
+                            </div>
+                            <ul className="list-unstyled mb-0">
+                                <li className="d-flex align-items-start mb-2">
+                                    <i className="fas fa-check text-success me-3 mt-1"></i>
+                                    <span>TCG Market low pricing</span>
+                                </li>
+                                <li className="d-flex align-items-start mb-2">
+                                    <i className="fas fa-check text-success me-3 mt-1"></i>
+                                    <span>Unused budget accumulates week over week</span>
+                                </li>
+                                <li className="d-flex align-items-start">
+                                    <i className="fas fa-check text-success me-3 mt-1"></i>
+                                    <span>Commanders can be switched using accumulated budget</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
 
-            <section className="mb-4">
-                <h2>Scoring System</h2>
-                <ul>
-                    <li><strong>Win:</strong> 4 points</li>
-                    <li><strong>Non-Win Game:</strong> 1 point</li>
-                    <li><strong>Scoop:</strong> 0 points</li>
-                </ul>
-            </section>
+                {/* Deck Lock-In Process */}
+                <div className="col-12">
+                    <div className="card">
+                        <div className="card-header">
+                            <h5 className="mb-0">
+                                <i className="fas fa-lock me-2"></i>
+                                Deck Lock-In Process
+                            </h5>
+                        </div>
+                        <div className="card-body">
+                            <div className="row">
+                                <div className="col-md-6">
+                                    <ul className="list-unstyled mb-0">
+                                        <li className="d-flex align-items-start mb-2">
+                                            <span className="badge bg-primary me-3">1</span>
+                                            <span>Lock in your deck anytime before the season starts by taking a cost screenshot</span>
+                                        </li>
+                                        <li className="d-flex align-items-start mb-2">
+                                            <span className="badge bg-primary me-3">2</span>
+                                            <span>Decklists are posted on season start day and cannot be modified after <strong>12 PM</strong></span>
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div className="col-md-6">
+                                    <ul className="list-unstyled mb-0">
+                                        <li className="d-flex align-items-start mb-2">
+                                            <span className="badge bg-primary me-3">3</span>
+                                            <span>Update your decklist weekly before your first game of the week</span>
+                                        </li>
+                                        <li className="d-flex align-items-start mb-2">
+                                            <span className="badge bg-primary me-3">4</span>
+                                            <span>Decklist links must remain accessible for the entire season</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div className="alert alert-info mt-3 mb-0">
+                                <i className="fas fa-lightbulb me-2"></i>
+                                <strong>Tip:</strong> Use Moxfield's "Update to lowest pricing" option
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-            <section className="mb-4">
-                <h2>Playoff Qualification</h2>
-                <ul>
-                    <li>Top <strong>75%</strong> of players by total points qualify</li>
-                    <li>Odd numbers round up (adds one extra player)</li>
-                    <li><strong>Tiebreaker Order:</strong> Points → Win Rate → Games Won → Games Played → Arm Wrestle</li>
-                </ul>
-            </section>
+                {/* Scoring System */}
+                <div className="col-md-6">
+                    <div className="card h-100">
+                        <div className="card-header">
+                            <h5 className="mb-0">
+                                <i className="fas fa-star me-2"></i>
+                                Scoring System
+                            </h5>
+                        </div>
+                        <div className="card-body">
+                            <div className="d-flex justify-content-around text-center">
+                                <div>
+                                    <div className="fs-2 fw-bold text-success">4</div>
+                                    <div className="text-muted">Win</div>
+                                </div>
+                                <div className="border-start"></div>
+                                <div>
+                                    <div className="fs-2 fw-bold text-secondary">1</div>
+                                    <div className="text-muted">Non-Win</div>
+                                </div>
+                                <div className="border-start"></div>
+                                <div>
+                                    <div className="fs-2 fw-bold text-danger">0</div>
+                                    <div className="text-muted">Scoop</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-            <section className="mb-4">
-                <h2>Final Tournament</h2>
-                <ul>
-                    <li><strong>Format:</strong> 4 rounds</li>
-                    <li><strong>Championship:</strong> Top 4 players by points/wins play single elimination</li>
-                    <li><strong>Scoring:</strong> Win = 4 points, Non-Win = 1 point, Scoop = 0 points</li>
-                    <li><strong>Tiebreaker Order:</strong> Points → Win Rate → Games Won → Games Played → Arm Wrestle</li>
-                </ul>
-            </section>
+                {/* Playoff Qualification */}
+                <div className="col-md-6">
+                    <div className="card h-100">
+                        <div className="card-header">
+                            <h5 className="mb-0">
+                                <i className="fas fa-trophy me-2"></i>
+                                Playoff Qualification
+                            </h5>
+                        </div>
+                        <div className="card-body">
+                            <div className="text-center mb-3">
+                                <span className="badge fs-5 px-4 py-2" style={{ background: 'var(--brand-purple)', color: '#fff' }}>
+                                    Top 75% Qualify
+                                </span>
+                            </div>
+                            <p className="text-muted small mb-2">Odd numbers round up (adds one extra player)</p>
+                            <p className="mb-0">
+                                <strong>Tiebreaker Order:</strong><br />
+                                <small className="text-muted">Points → Win Rate → Games Won → Games Played → Arm Wrestle</small>
+                            </p>
+                        </div>
+                    </div>
+                </div>
 
-            <section className="mb-4">
-                <h2>Prize Support</h2>
-                <p className="text-muted small">
-                    <em>All prizes subject to season budget and commissioner discretion</em>
-                </p>
-                
-                <h5 className="mt-3">Placement Prizes</h5>
-                <ul>
-                    <li><strong>1st Place:</strong> 1 Set Box (commissioner's choice)</li>
-                    <li><strong>2nd-4th Place:</strong> Split 1 Set Box (commissioner's choice)</li>
-                </ul>
+                {/* Final Tournament */}
+                <div className="col-lg-6">
+                    <div className="card h-100">
+                        <div className="card-header">
+                            <h5 className="mb-0">
+                                <i className="fas fa-crown me-2"></i>
+                                Final Tournament
+                            </h5>
+                        </div>
+                        <div className="card-body">
+                            <ul className="list-unstyled mb-0">
+                                <li className="d-flex align-items-start mb-2">
+                                    <i className="fas fa-gamepad me-3 mt-1" style={{ color: 'var(--brand-gold)' }}></i>
+                                    <div>
+                                        <strong>Format:</strong> 4 rounds
+                                    </div>
+                                </li>
+                                <li className="d-flex align-items-start mb-2">
+                                    <i className="fas fa-medal me-3 mt-1" style={{ color: 'var(--brand-gold)' }}></i>
+                                    <div>
+                                        <strong>Championship:</strong> Top 4 players play single elimination
+                                    </div>
+                                </li>
+                                <li className="d-flex align-items-start mb-2">
+                                    <i className="fas fa-calculator me-3 mt-1" style={{ color: 'var(--brand-gold)' }}></i>
+                                    <div>
+                                        <strong>Scoring:</strong> Win = 4, Non-Win = 1, Scoop = 0
+                                    </div>
+                                </li>
+                                <li className="d-flex align-items-start">
+                                    <i className="fas fa-sort-amount-down me-3 mt-1" style={{ color: 'var(--brand-gold)' }}></i>
+                                    <div>
+                                        <strong>Tiebreaker:</strong> Points → Win Rate → Games Won → Arm Wrestle
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
 
-                <h5 className="mt-3">Voted Awards</h5>
-                <p>All players vote on the following categories:</p>
-                <ul>
-                    <li>League's MVP</li>
-                    <li>Coolest Deck</li>
-                    <li>Deck You Hate the Most</li>
-                    <li>Most Improved Player</li>
-                    <li>Highest Win Rate (outside final tournament)</li>
-                </ul>
-            </section>
+                {/* Prize Support */}
+                <div className="col-lg-6">
+                    <div className="card h-100">
+                        <div className="card-header">
+                            <h5 className="mb-0">
+                                <i className="fas fa-gift me-2"></i>
+                                Prize Support
+                            </h5>
+                        </div>
+                        <div className="card-body">
+                            <h6 className="mb-3">Placement Prizes</h6>
+                            <ul className="list-unstyled mb-3">
+                                <li className="d-flex align-items-center mb-2">
+                                    <span className="badge bg-warning text-dark me-3">1st</span>
+                                    <span>1 Set Box (commissioner's choice)</span>
+                                </li>
+                                <li className="d-flex align-items-center">
+                                    <span className="badge bg-secondary me-3">2nd-4th</span>
+                                    <span>Split 1 Set Box (commissioner's choice)</span>
+                                </li>
+                            </ul>
+                            <h6 className="mb-2">Voted Awards</h6>
+                            <div className="d-flex flex-wrap gap-2">
+                                <span className="badge bg-primary">MVP</span>
+                                <span className="badge bg-primary">Coolest Deck</span>
+                                <span className="badge bg-primary">Most Hated Deck</span>
+                                <span className="badge bg-primary">Most Improved</span>
+                                <span className="badge bg-primary">Highest Win Rate</span>
+                            </div>
+                            <p className="text-muted small mt-3 mb-0">
+                                <em>All prizes subject to season budget and commissioner discretion</em>
+                            </p>
+                        </div>
+                    </div>
+                </div>
 
-            <section className="mb-4">
-                <h2>Banned Commanders</h2>
-                <p className="text-muted">
-                    <em>The banned commander list will be provided by the league commissioner. Please refer to official league documentation for the current list.</em>
-                </p>
-            </section>
+                {/* Banned Commanders */}
+                <div className="col-12">
+                    <div className="card">
+                        <div className="card-header">
+                            <h5 className="mb-0">
+                                <i className="fas fa-ban me-2"></i>
+                                Banned Commanders
+                            </h5>
+                        </div>
+                        <div className="card-body text-center">
+                            <p className="text-muted mb-0">
+                                <i className="fas fa-info-circle me-2"></i>
+                                The banned commander list will be provided by the league commissioner. Please refer to official league documentation for the current list.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };

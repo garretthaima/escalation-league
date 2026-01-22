@@ -1,10 +1,13 @@
 .pod-suggestion-card {
-    transition: transform 0.2s, box-shadow 0.2s;
+    border-radius: 12px;
+    box-shadow: 0 4px 24px var(--shadow);
+    border: 1px solid var(--border-color);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .pod-suggestion-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 6px 32px var(--shadow);
 }
 
 .pairings-list {
@@ -13,7 +16,7 @@
 
 .pairing-row {
     padding: 0.25rem 0;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .pairing-row:last-child {
@@ -22,20 +25,21 @@
 
 /* Turn Order Styles */
 .turn-order-list {
-    background: var(--bs-light, #f8f9fa);
-    border-radius: 0.375rem;
+    background: var(--bg-secondary);
+    border-radius: 8px;
     padding: 0.5rem;
 }
 
 .turn-order-item {
-    background: white;
-    border: 1px solid #dee2e6;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
     cursor: move;
     transition: background-color 0.2s, transform 0.1s;
 }
 
 .turn-order-item:hover {
-    background-color: #f8f9fa;
+    background-color: var(--bg-secondary);
 }
 
 .turn-order-item.dragging {
@@ -48,16 +52,4 @@
     text-align: center;
 }
 
-/* Dark mode support */
-[data-bs-theme="dark"] .turn-order-list {
-    background: var(--bs-dark, #212529);
-}
-
-[data-bs-theme="dark"] .turn-order-item {
-    background: var(--bs-gray-800, #343a40);
-    border-color: var(--bs-gray-700, #495057);
-}
-
-[data-bs-theme="dark"] .turn-order-item:hover {
-    background-color: var(--bs-gray-700, #495057);
-}
+/* Dark mode handled automatically via CSS variables */

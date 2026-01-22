@@ -67,14 +67,16 @@ export const WebSocketProvider = ({ children }) => {
             reconnectAttempts.current = 0;
         });
 
-        newSocket.on('disconnect', (reason) => {
+        newSocket.on('disconnect', async (reason) => {
             setConnected(false);
             // If server disconnected us, try to reconnect with fresh token
-            if (reason === 'io server disconnect') {
-                const freshToken = localStorage.getItem('token');
-                if (freshToken) {
-                    newSocket.auth = { token: freshToken };
-                    setTimeout(() => newSocket.connect(), 1000);
+            if (reason === 'io server disconnect' || reason === 'transport close') {
+                // Wait for any in-progress token refresh to complete
+                // This handles the race condition where axios interceptor is refreshing
+                const newToken = await performTokenRefresh();
+                if (newToken) {
+                    newSocket.auth = { token: newToken };
+                    setTimeout(() => newSocket.connect(), 500);
                 }
             }
         });

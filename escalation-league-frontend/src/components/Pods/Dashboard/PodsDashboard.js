@@ -6,6 +6,7 @@ import { usePermissions } from '../../context/PermissionsProvider';
 import { useToast } from '../../context/ToastContext';
 import { useWebSocket } from '../../context/WebSocketProvider';
 import CollapsibleSection from '../../Shared/CollapsibleSection';
+import LoadingSpinner from '../../Shared/LoadingSpinner';
 import GameCard from './GameCard';
 import ConfirmationCard from './ConfirmationCard';
 import CreateGameModal from './CreateGameModal';
@@ -238,9 +239,7 @@ const PodsDashboard = () => {
         return (
             <div className="container mt-4">
                 <div className="text-center py-5">
-                    <div className="spinner-border" role="status">
-                        <span className="visually-hidden">Loading...</span>
-                    </div>
+                    <LoadingSpinner size="lg" />
                 </div>
             </div>
         );
@@ -265,10 +264,10 @@ const PodsDashboard = () => {
     return (
         <div className="container mt-4">
             {/* Header */}
-            <div className="d-flex justify-content-between align-items-center mb-4">
+            <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
                 <div>
                     <h2 className="mb-1">Pods & Games</h2>
-                    <div className="d-flex gap-3 text-muted">
+                    <div className="d-flex gap-3 text-muted" style={{ fontSize: '0.9rem' }}>
                         <span>
                             <i className="fas fa-gamepad me-1"></i>
                             {activeCount} Active
@@ -283,6 +282,7 @@ const PodsDashboard = () => {
                     <button
                         className="btn btn-primary"
                         onClick={() => setShowCreateModal(true)}
+                        style={{ whiteSpace: 'nowrap' }}
                     >
                         <i className="fas fa-plus me-2"></i>
                         Create Game
@@ -348,7 +348,7 @@ const PodsDashboard = () => {
                 ) : (
                     <div className="row g-3">
                         {pendingPods.map(pod => (
-                            <div key={pod.id} className="col-md-6">
+                            <div key={pod.id} className="col-md-6 col-lg-4">
                                 <ConfirmationCard
                                     pod={pod}
                                     userId={userId}
@@ -368,7 +368,11 @@ const PodsDashboard = () => {
                 id="completed-games"
                 defaultOpen={false}
                 actions={
-                    <Link to="/pods/history" className="btn btn-sm btn-outline-primary">
+                    <Link
+                        to="/pods/history"
+                        className="text-decoration-none small"
+                        style={{ color: 'var(--text-secondary)' }}
+                    >
                         View All
                     </Link>
                 }

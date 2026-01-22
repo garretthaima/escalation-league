@@ -1,6 +1,5 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { getResultBadge, getConfirmationBadge } from '../../../utils/badgeHelpers';
 
 /**
  * Card component for games pending confirmation
@@ -22,61 +21,132 @@ const ConfirmationCard = ({ pod, userId, onConfirm }) => {
     const confirmedCount = participants.filter(p => p.confirmed === 1).length;
     const totalCount = participants.length;
 
+    // 2x2 grid layout for participants
+    const sortedParticipants = [...participants].sort((a, b) =>
+        (a.turn_order || 999) - (b.turn_order || 999)
+    );
+    const paddedParticipants = [...sortedParticipants];
+    while (paddedParticipants.length < 4) {
+        paddedParticipants.push(null);
+    }
+    const gridOrder = [0, 1, 3, 2]; // Clockwise
+
     return (
-        <div className="card h-100 border-warning">
-            <div className="card-header bg-warning bg-opacity-25 d-flex justify-content-between align-items-center">
-                <span>
-                    <i className="fas fa-clock me-2"></i>
-                    Pod #{pod.id}
-                </span>
-                <span className="badge bg-secondary">
-                    {confirmedCount}/{totalCount} confirmed
-                </span>
-            </div>
-            <div className="card-body">
-                {/* Result Declaration */}
-                <div className="alert alert-info py-2 mb-3">
-                    <strong>
-                        {declarer ? (
-                            <>
-                                {declarer.firstname} {declarer.lastname}
-                                {' '}declared{' '}
-                                {isDraw ? (
-                                    <span className="badge bg-secondary">DRAW</span>
-                                ) : isWin ? (
-                                    <span className="badge bg-success">WINNER</span>
-                                ) : (
-                                    <span className="badge bg-secondary">{declarer.result}</span>
-                                )}
-                            </>
-                        ) : (
-                            'Result pending...'
-                        )}
-                    </strong>
+        <div className="card h-100">
+            <div className="card-body py-3">
+                {/* Header row with declaration */}
+                <div className="d-flex justify-content-between align-items-center mb-2">
+                    <h6 className="card-title mb-0">
+                        <i className="fas fa-clock me-2" style={{ color: 'var(--brand-gold)' }}></i>
+                        Pod #{pod.id}
+                    </h6>
+                    <span
+                        style={{
+                            fontSize: '0.7rem',
+                            padding: '3px 8px',
+                            borderRadius: '10px',
+                            background: 'var(--bg-secondary)',
+                            color: 'var(--text-secondary)'
+                        }}
+                    >
+                        {confirmedCount}/{totalCount}
+                    </span>
                 </div>
 
-                {/* Participants List */}
-                <div className="mb-3">
-                    {participants.map((participant) => {
+                {/* Compact declaration line */}
+                <div
+                    style={{
+                        padding: '6px 10px',
+                        borderRadius: '6px',
+                        background: 'var(--brand-purple)',
+                        marginBottom: '10px',
+                        fontSize: '0.8rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                    }}
+                >
+                    {declarer ? (
+                        <>
+                            <span style={{ color: '#fff' }}>
+                                {declarer.firstname} declared
+                            </span>
+                            <span
+                                style={{
+                                    background: isWin ? 'var(--brand-gold)' : 'rgba(255,255,255,0.2)',
+                                    color: isWin ? '#1a1a2e' : '#fff',
+                                    padding: '1px 8px',
+                                    borderRadius: '4px',
+                                    fontSize: '0.7rem',
+                                    fontWeight: 600
+                                }}
+                            >
+                                {isDraw ? 'DRAW' : 'WIN'}
+                            </span>
+                        </>
+                    ) : (
+                        <span style={{ color: 'rgba(255,255,255,0.8)' }}>Pending...</span>
+                    )}
+                </div>
+
+                {/* 2x2 Grid */}
+                <div
+                    style={{
+                        display: 'grid',
+                        gridTemplateColumns: '1fr 1fr',
+                        gap: '6px',
+                        marginBottom: needsConfirmation ? '10px' : 0
+                    }}
+                >
+                    {gridOrder.map((idx) => {
+                        const participant = paddedParticipants[idx];
+                        if (!participant) {
+                            return (
+                                <div
+                                    key={`empty-${idx}`}
+                                    style={{
+                                        padding: '6px 8px',
+                                        borderRadius: '6px',
+                                        background: 'var(--bg-secondary)',
+                                        opacity: 0.3,
+                                        textAlign: 'center',
+                                        fontSize: '0.75rem'
+                                    }}
+                                >
+                                    —
+                                </div>
+                            );
+                        }
+
                         const isCurrentUser = String(participant.player_id) === String(userId);
                         const isConfirmed = participant.confirmed === 1;
+                        const hasWin = participant.result === 'win';
 
                         return (
                             <div
                                 key={participant.player_id}
-                                className={`d-flex justify-content-between align-items-center py-2 px-2 rounded mb-1 ${isConfirmed ? 'bg-success bg-opacity-10' : ''
-                                    }`}
+                                style={{
+                                    padding: '6px 8px',
+                                    borderRadius: '6px',
+                                    background: isCurrentUser ? 'rgba(74, 47, 112, 0.2)' : 'var(--bg-secondary)',
+                                    border: isCurrentUser ? '2px solid var(--brand-purple)' : '2px solid transparent',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    fontSize: '0.8rem'
+                                }}
                             >
-                                <span>
-                                    {participant.firstname} {participant.lastname}
-                                    {isCurrentUser && (
-                                        <span className="badge bg-info ms-2">You</span>
-                                    )}
+                                <span style={{ fontWeight: isCurrentUser ? 600 : 400 }}>
+                                    {hasWin && <i className="fas fa-trophy me-1" style={{ color: 'var(--brand-gold)', fontSize: '0.7rem' }}></i>}
+                                    {participant.firstname}
                                 </span>
-                                <div className="d-flex align-items-center gap-2">
-                                    {participant.result && getResultBadge(participant.result)}
-                                    {getConfirmationBadge(participant.confirmed)}
-                                </div>
+                                <i
+                                    className={`fas ${isConfirmed ? 'fa-check' : 'fa-clock'}`}
+                                    style={{
+                                        fontSize: '0.65rem',
+                                        color: isConfirmed ? '#28a745' : 'var(--text-muted)'
+                                    }}
+                                ></i>
                             </div>
                         );
                     })}
@@ -87,9 +157,10 @@ const ConfirmationCard = ({ pod, userId, onConfirm }) => {
                     <button
                         className="btn btn-success w-100"
                         onClick={() => onConfirm(pod.id)}
+                        style={{ fontSize: '0.85rem' }}
                     >
                         <i className="fas fa-check-circle me-2"></i>
-                        Confirm Result
+                        Confirm
                     </button>
                 )}
             </div>

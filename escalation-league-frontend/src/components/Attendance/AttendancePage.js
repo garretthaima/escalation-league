@@ -3,6 +3,7 @@ import { getActivePollSession, getTodaySession, checkIn, checkOut } from '../../
 import { usePermissions } from '../context/PermissionsProvider';
 import { useToast } from '../context/ToastContext';
 import { useWebSocket } from '../context/WebSocketProvider';
+import LoadingSpinner from '../Shared/LoadingSpinner';
 import './AttendancePage.css';
 
 const AttendancePage = () => {
@@ -138,10 +139,8 @@ const AttendancePage = () => {
 
     if (loading) {
         return (
-            <div className="container mt-4 text-center">
-                <div className="spinner-border text-primary" role="status">
-                    <span className="visually-hidden">Loading...</span>
-                </div>
+            <div className="container mt-4 text-center py-5">
+                <LoadingSpinner size="lg" />
             </div>
         );
     }

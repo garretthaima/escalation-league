@@ -33,7 +33,7 @@ export const PermissionsProvider = ({ children }) => {
             const profileData = await getUserProfile();
             setUser(profileData.user); // Store the full user object
 
-            // Fetch user settings (including dark mode)
+            // Fetch user settings (dark mode)
             const darkModeSetting = await getUserSetting('dark_mode'); // Fetch dark_mode setting
             setDarkMode(darkModeSetting.value === 'true'); // Set dark mode based on the backend value
 

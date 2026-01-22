@@ -53,6 +53,141 @@ body.dark-mode {
   --accent-hover: #b8941f;
   --brand-primary: #4a2f70;
   --brand-secondary: #0a0a0a;
+
+  /* Grid background pattern - applied globally in dark mode */
+  background-color: #0a0a0a;
+  background-image:
+    linear-gradient(rgba(74, 47, 112, 0.4) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(74, 47, 112, 0.4) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Dark mode scrollbar styling */
+body.dark-mode ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+body.dark-mode ::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+  border-radius: 4px;
+}
+
+body.dark-mode ::-webkit-scrollbar-thumb {
+  background: var(--brand-purple-light);
+  border-radius: 4px;
+}
+
+body.dark-mode ::-webkit-scrollbar-thumb:hover {
+  background: var(--brand-purple);
+}
+
+/* Firefox scrollbar styling */
+body.dark-mode * {
+  scrollbar-width: thin;
+  scrollbar-color: var(--brand-purple-light) var(--bg-secondary);
+}
+
+/* ===========================
+   Unified Card System
+   Consistent card styling across the app
+=========================== */
+
+/* Standard card - primary style matching Auth.css */
+.card-unified {
+  background: var(--bg-primary);
+  border-radius: 12px;
+  box-shadow: 0 4px 24px var(--shadow);
+  padding: 1.5rem;
+  border: 1px solid var(--border-color);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.card-unified:hover {
+  box-shadow: 0 6px 32px var(--shadow);
+}
+
+/* Interactive card - for clickable cards */
+.card-unified.card-interactive:hover {
+  transform: translateY(-2px);
+  cursor: pointer;
+}
+
+/* Compact variant - for smaller cards */
+.card-unified.card-compact {
+  padding: 1rem;
+  border-radius: 10px;
+  box-shadow: 0 2px 16px var(--shadow);
+}
+
+/* Small variant - for inline cards, list items */
+.card-unified.card-sm {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px var(--shadow);
+}
+
+/* Flat variant - no shadow, subtle border */
+.card-unified.card-flat {
+  box-shadow: none;
+}
+
+.card-unified.card-flat:hover {
+  box-shadow: 0 2px 8px var(--shadow);
+}
+
+/* Card header styling */
+.card-unified .card-header-unified {
+  margin: -1.5rem -1.5rem 1rem -1.5rem;
+  padding: 1rem 1.5rem;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  border-radius: 12px 12px 0 0;
+}
+
+.card-unified.card-compact .card-header-unified {
+  margin: -1rem -1rem 0.75rem -1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 10px 10px 0 0;
+}
+
+/* Card title styling */
+.card-unified .card-title-unified {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+/* Card footer styling */
+.card-unified .card-footer-unified {
+  margin: 1rem -1.5rem -1.5rem -1.5rem;
+  padding: 1rem 1.5rem;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+  border-radius: 0 0 12px 12px;
+}
+
+/* Bootstrap overrides moved to brand.css for proper specificity */
+
+/* Mobile adjustments for card-unified class */
+@media (max-width: 576px) {
+  .card-unified {
+    padding: 1rem;
+    border-radius: 10px;
+  }
+
+  .card-unified .card-header-unified {
+    margin: -1rem -1rem 0.75rem -1rem;
+    padding: 0.75rem 1rem;
+    border-radius: 10px 10px 0 0;
+  }
+
+  .card-unified .card-footer-unified {
+    margin: 0.75rem -1rem -1rem -1rem;
+    padding: 0.75rem 1rem;
+    border-radius: 0 0 10px 10px;
+  }
 }
 
 /* Light mode - Bootstrap Tabs */
@@ -100,7 +235,7 @@ body.dark-mode .nav-tabs .nav-link.active {
 =========================== */
 html,
 body {
-  font-family: Arial, sans-serif;
+  /* Font is set via CSS variable in index.css and brand.css */
   margin: 0;
   padding: 0;
   height: 100%;
@@ -334,6 +469,23 @@ body.dark-mode .card-footer {
   background-color: #2a2a2a;
   border-color: #444;
   color: #e0e0e0;
+}
+
+/* Dark Mode for Breadcrumbs */
+body.dark-mode .breadcrumb {
+  background: transparent;
+}
+
+body.dark-mode .breadcrumb-item a {
+  color: var(--brand-purple-light, #7c5cba);
+}
+
+body.dark-mode .breadcrumb-item.active {
+  color: var(--text-secondary, #a0a0a0);
+}
+
+body.dark-mode .breadcrumb-item + .breadcrumb-item::before {
+  color: var(--text-muted, #666);
 }
 
 /* Dark Mode for Modals */

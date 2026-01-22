@@ -19,6 +19,7 @@ import { getLeagueParticipants } from '../../api/userLeaguesApi';
 import { usePermissions } from '../context/PermissionsProvider';
 import { useToast } from '../context/ToastContext';
 import { useWebSocket } from '../context/WebSocketProvider';
+import LoadingSpinner from '../Shared/LoadingSpinner';
 
 const AttendanceAdminPage = () => {
     const { activeLeague } = usePermissions();
@@ -512,9 +513,7 @@ const AttendanceAdminPage = () => {
                     ) : loading ? (
                         <div className="card">
                             <div className="card-body text-center py-5">
-                                <div className="spinner-border text-primary" role="status">
-                                    <span className="visually-hidden">Loading...</span>
-                                </div>
+                                <LoadingSpinner size="lg" />
                             </div>
                         </div>
                     ) : (
@@ -666,10 +665,7 @@ const AttendanceAdminPage = () => {
                                     <div className="card-body">
                                         {loadingPodSuggestions ? (
                                             <div className="text-center py-4">
-                                                <div className="spinner-border text-primary" role="status">
-                                                    <span className="visually-hidden">Loading...</span>
-                                                </div>
-                                                <p className="text-muted mt-2">Calculating optimal pods...</p>
+                                                <LoadingSpinner size="md" showText text="Calculating optimal pods..." />
                                             </div>
                                         ) : !podSuggestions ? (
                                             <div className="text-center py-4">

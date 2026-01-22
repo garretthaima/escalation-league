@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { getPods } from '../../../api/podsApi';
 import { getUserProfile } from '../../../api/usersApi';
 import { usePermissions } from '../../context/PermissionsProvider';
+import LoadingSpinner from '../../Shared/LoadingSpinner';
 
 /**
  * Full completed games page with filtering and export
@@ -14,6 +15,7 @@ const PodsHistory = () => {
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(true);
     const [viewMode, setViewMode] = useState('table');
+    const [expandedRow, setExpandedRow] = useState(null);
     const { permissions } = usePermissions();
     const isAdmin = permissions.some(p => p.name === 'admin_pod_update');
 
@@ -120,9 +122,7 @@ const PodsHistory = () => {
         return (
             <div className="container mt-4">
                 <div className="text-center py-5">
-                    <div className="spinner-border" role="status">
-                        <span className="visually-hidden">Loading...</span>
-                    </div>
+                    <LoadingSpinner size="lg" />
                 </div>
             </div>
         );
@@ -233,14 +233,14 @@ const PodsHistory = () => {
                 </div>
             ) : viewMode === 'table' ? (
                 <div className="table-responsive">
-                    <table className="table table-striped table-hover">
+                    <table className="table table-hover">
                         <thead>
                             <tr>
-                                <th>Pod #</th>
-                                <th>Date</th>
+                                <th style={{ width: '70px' }}>Pod #</th>
+                                <th style={{ width: '100px' }}>Date</th>
                                 <th>Winner</th>
-                                <th>Your Result</th>
-                                <th>Participants</th>
+                                <th className="text-center d-none d-sm-table-cell" style={{ width: '100px' }}>Your Result</th>
+                                <th className="d-none d-md-table-cell">Participants</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -248,41 +248,89 @@ const PodsHistory = () => {
                                 const userParticipant = game.participants?.find(p => p.player_id === userId);
                                 const winner = game.participants?.find(p => p.result === 'win');
                                 const isDraw = game.participants?.some(p => p.result === 'draw');
+                                const isExpanded = expandedRow === game.id;
 
                                 return (
-                                    <tr key={game.id}>
-                                        <td>#{game.id}</td>
-                                        <td>{new Date(game.created_at).toLocaleDateString()}</td>
-                                        <td>
-                                            {isDraw ? (
-                                                <span className="text-muted">Draw</span>
-                                            ) : winner ? (
-                                                <span>
-                                                    <i className="fas fa-trophy text-warning me-1"></i>
-                                                    {winner.firstname} {winner.lastname}
-                                                </span>
-                                            ) : '-'}
-                                        </td>
-                                        <td>
-                                            {userParticipant ? (
-                                                <span className={`badge ${userParticipant.result === 'win' ? 'bg-success' : userParticipant.result === 'draw' ? 'bg-secondary' : 'bg-danger'}`}>
-                                                    {userParticipant.result}
-                                                </span>
-                                            ) : (
-                                                <span className="badge bg-light text-muted">-</span>
-                                            )}
-                                        </td>
-                                        <td>
-                                            {game.participants?.map((p, idx) => (
-                                                <span key={p.player_id}>
-                                                    <Link to={`/leagues/${game.league_id}/profile/${p.player_id}`}>
-                                                        {p.firstname} {p.lastname}
-                                                    </Link>
-                                                    {idx < game.participants.length - 1 ? ', ' : ''}
-                                                </span>
-                                            ))}
-                                        </td>
-                                    </tr>
+                                    <React.Fragment key={game.id}>
+                                        <tr
+                                            onClick={() => window.innerWidth < 768 && setExpandedRow(isExpanded ? null : game.id)}
+                                            style={{ cursor: window.innerWidth < 768 ? 'pointer' : 'default' }}
+                                        >
+                                            <td>#{game.id}</td>
+                                            <td>{new Date(game.created_at).toLocaleDateString()}</td>
+                                            <td>
+                                                {isDraw ? (
+                                                    <span className="text-muted">Draw</span>
+                                                ) : winner ? (
+                                                    <span>
+                                                        <i className="fas fa-trophy text-warning me-1"></i>
+                                                        <span className="d-none d-sm-inline">{winner.firstname} {winner.lastname}</span>
+                                                        <span className="d-sm-none">{winner.firstname}</span>
+                                                    </span>
+                                                ) : '-'}
+                                            </td>
+                                            <td className="text-center d-none d-sm-table-cell">
+                                                {userParticipant ? (
+                                                    <span className={`badge ${userParticipant.result === 'win' ? 'bg-success' : userParticipant.result === 'draw' ? 'bg-secondary' : 'bg-danger'}`}>
+                                                        {userParticipant.result}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-muted">-</span>
+                                                )}
+                                            </td>
+                                            <td className="d-none d-md-table-cell">
+                                                {game.participants?.map((p, idx) => (
+                                                    <span key={p.player_id}>
+                                                        <Link
+                                                            to={`/leagues/${game.league_id}/profile/${p.player_id}`}
+                                                            onClick={(e) => e.stopPropagation()}
+                                                        >
+                                                            {p.firstname} {p.lastname}
+                                                        </Link>
+                                                        {idx < game.participants.length - 1 ? ', ' : ''}
+                                                    </span>
+                                                ))}
+                                            </td>
+                                        </tr>
+                                        {/* Mobile expanded details */}
+                                        {isExpanded && (
+                                            <tr className="d-md-none" style={{ background: 'var(--bg-secondary)' }}>
+                                                <td colSpan="3" style={{ padding: '0.75rem 1rem' }}>
+                                                    <div style={{ fontSize: '0.85rem' }}>
+                                                        {userParticipant && (
+                                                            <div className="mb-2">
+                                                                <span className="text-muted">Your Result: </span>
+                                                                <span className={`badge ${userParticipant.result === 'win' ? 'bg-success' : userParticipant.result === 'draw' ? 'bg-secondary' : 'bg-danger'}`}>
+                                                                    {userParticipant.result}
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                        <div>
+                                                            <span className="text-muted d-block mb-1">Participants:</span>
+                                                            <div className="d-flex flex-wrap gap-1">
+                                                                {game.participants?.map((p) => (
+                                                                    <Link
+                                                                        key={p.player_id}
+                                                                        to={`/leagues/${game.league_id}/profile/${p.player_id}`}
+                                                                        className="badge text-decoration-none"
+                                                                        style={{
+                                                                            background: p.result === 'win' ? 'var(--brand-gold)' : 'var(--bg-primary)',
+                                                                            color: p.result === 'win' ? '#1a1a2e' : 'var(--text-primary)',
+                                                                            border: '1px solid var(--border-color)'
+                                                                        }}
+                                                                        onClick={(e) => e.stopPropagation()}
+                                                                    >
+                                                                        {p.result === 'win' && <i className="fas fa-trophy me-1"></i>}
+                                                                        {p.firstname} {p.lastname}
+                                                                    </Link>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </React.Fragment>
                                 );
                             })}
                         </tbody>
@@ -293,6 +341,10 @@ const PodsHistory = () => {
                     {filteredGames.map(game => {
                         const winner = game.participants?.find(p => p.result === 'win');
                         const isDraw = game.participants?.some(p => p.result === 'draw');
+                        // Sort participants by turn order
+                        const sortedParticipants = [...(game.participants || [])].sort((a, b) =>
+                            (a.turn_order || 999) - (b.turn_order || 999)
+                        );
 
                         return (
                             <div key={game.id} className="col-md-6 col-lg-4">
@@ -315,8 +367,18 @@ const PodsHistory = () => {
                                             )}
                                         </div>
                                         <ul className="list-unstyled mb-0 small">
-                                            {game.participants?.map(p => (
-                                                <li key={p.player_id} className="mb-1">
+                                            {sortedParticipants.map((p, idx) => (
+                                                <li key={p.player_id} className="mb-1 d-flex align-items-center">
+                                                    <span
+                                                        className="badge me-2"
+                                                        style={{
+                                                            background: 'var(--bg-secondary)',
+                                                            color: 'var(--text-secondary)',
+                                                            minWidth: '20px'
+                                                        }}
+                                                    >
+                                                        {idx + 1}
+                                                    </span>
                                                     <Link to={`/leagues/${game.league_id}/profile/${p.player_id}`}>
                                                         {p.firstname} {p.lastname}
                                                     </Link>

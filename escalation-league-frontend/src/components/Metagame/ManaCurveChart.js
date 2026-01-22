@@ -33,11 +33,12 @@ const ManaCurveChart = ({ curve }) => {
                                 <small style={{ color: '#6c757d' }}>{countValue}</small>
                             </div>
                             <div
-                                className="bg-primary rounded-top mx-2"
+                                className="rounded-top mx-2"
                                 style={{
                                     height: `${height}px`,
                                     minHeight: countValue > 0 ? '10px' : '0',
-                                    transition: 'height 0.3s ease'
+                                    transition: 'height 0.3s ease',
+                                    background: 'linear-gradient(180deg, var(--brand-purple-light, #4a2f70) 0%, var(--brand-purple, #2d1b4e) 100%)'
                                 }}
                                 title={`CMC ${cmc}: ${countValue} cards`}
                             />

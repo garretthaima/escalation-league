@@ -252,7 +252,7 @@ const PodAdminPage = () => {
                 </div>
                 <div className="col-md-2">
                     <button
-                        className="btn btn-secondary w-100"
+                        className="btn btn-primary w-100"
                         onClick={() => {
                             setSearchTerm('');
                             setStatusFilter('all');
@@ -272,8 +272,8 @@ const PodAdminPage = () => {
                     <SkeletonTable rows={10} cols={8} />
                 </div>
             ) : (
-            <div className="table-responsive pod-table-desktop">
-                <table className="table table-hover">
+            <div className="pod-table-desktop">
+                <table className="table table-striped table-hover">
                     <thead>
                         <tr>
                             <th>Pod #</th>

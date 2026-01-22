@@ -5,6 +5,7 @@ import { getPods } from '../../api/podsApi';
 import { getLeagueParticipants } from '../../api/userLeaguesApi';
 import { useToast } from '../context/ToastContext';
 import ConfirmModal from '../Shared/ConfirmModal';
+import LoadingSpinner from '../Shared/LoadingSpinner';
 import './EditPodPage.css';
 
 const EditPodPage = () => {
@@ -30,6 +31,8 @@ const EditPodPage = () => {
     const [originalIsDraw, setOriginalIsDraw] = useState(false);
     const [turnOrder, setTurnOrder] = useState([]); // Track turn order as array of player_ids
     const [originalTurnOrder, setOriginalTurnOrder] = useState([]); // Track original turn order
+    const [draggedId, setDraggedId] = useState(null); // Track dragged player for drag-and-drop
+    const [dragOverId, setDragOverId] = useState(null); // Track drag-over target
 
     useEffect(() => {
         const fetchPodDetails = async () => {
@@ -175,6 +178,47 @@ const EditPodPage = () => {
         return participants.find(p => p.player_id === playerId) ||
                pendingAdditions.find(p => p.player_id === playerId);
     }, [participants, pendingAdditions]);
+
+    // Drag and drop handlers for turn order
+    const handleDragStart = useCallback((e, playerId) => {
+        setDraggedId(playerId);
+        e.dataTransfer.effectAllowed = 'move';
+    }, []);
+
+    const handleDragOver = useCallback((e, playerId) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        if (playerId !== draggedId) {
+            setDragOverId(playerId);
+        }
+    }, [draggedId]);
+
+    const handleDragLeave = useCallback(() => {
+        setDragOverId(null);
+    }, []);
+
+    const handleDrop = useCallback((e, targetId) => {
+        e.preventDefault();
+        if (draggedId && draggedId !== targetId) {
+            setTurnOrder(prev => {
+                const order = [...prev];
+                const draggedIndex = order.indexOf(draggedId);
+                const targetIndex = order.indexOf(targetId);
+                if (draggedIndex !== -1 && targetIndex !== -1) {
+                    order.splice(draggedIndex, 1);
+                    order.splice(targetIndex, 0, draggedId);
+                }
+                return order;
+            });
+        }
+        setDraggedId(null);
+        setDragOverId(null);
+    }, [draggedId]);
+
+    const handleDragEnd = useCallback(() => {
+        setDraggedId(null);
+        setDragOverId(null);
+    }, []);
 
     const handleRemoveParticipant = (participantId) => {
         // Mark for removal instead of actually removing from state
@@ -378,10 +422,8 @@ const EditPodPage = () => {
     if (loading) {
         return (
             <div className="container mt-4">
-                <div className="text-center">
-                    <div className="spinner-border" role="status">
-                        <span className="visually-hidden">Loading...</span>
-                    </div>
+                <div className="text-center py-5">
+                    <LoadingSpinner size="lg" />
                 </div>
             </div>
         );
@@ -397,8 +439,14 @@ const EditPodPage = () => {
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <div>
                     <button
-                        className="btn btn-link text-decoration-none p-0 mb-2"
+                        className="text-decoration-none p-0 mb-2"
                         onClick={() => navigate('/admin/pods')}
+                        style={{
+                            color: 'var(--text-primary)',
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer'
+                        }}
                     >
                         <i className="fas fa-arrow-left me-2"></i>
                         Back to Pods
@@ -598,16 +646,26 @@ const EditPodPage = () => {
                                 Turn Order
                             </h5>
                             <button
-                                className="btn btn-sm btn-outline-secondary"
+                                className="btn btn-sm"
                                 onClick={randomizeTurnOrder}
                                 title="Randomize turn order"
                                 disabled={turnOrder.length < 2}
+                                style={{
+                                    background: 'var(--bg-secondary)',
+                                    border: '1px solid var(--border-color)',
+                                    color: 'var(--text-secondary)'
+                                }}
                             >
                                 <i className="fas fa-random me-1"></i>
                                 Randomize
                             </button>
                         </div>
                         <div className="card-body">
+                            <p className="text-muted small mb-2">
+                                <span className="d-none d-md-inline">Drag to reorder or use </span>
+                                <span className="d-md-none">Use </span>
+                                arrows to reorder
+                            </p>
                             {turnOrder.length === 0 ? (
                                 <p className="text-muted mb-0">No players in pod yet.</p>
                             ) : (
@@ -618,21 +676,49 @@ const EditPodPage = () => {
 
                                         const isPendingRemoval = pendingRemovals.includes(playerId);
                                         const isNew = pendingAdditions.some(p => p.player_id === playerId);
+                                        const isDragging = draggedId === playerId;
+                                        const isDragOver = dragOverId === playerId;
 
                                         return (
                                             <div
                                                 key={playerId}
+                                                draggable={!isPendingRemoval}
+                                                onDragStart={(e) => handleDragStart(e, playerId)}
+                                                onDragOver={(e) => handleDragOver(e, playerId)}
+                                                onDragLeave={handleDragLeave}
+                                                onDrop={(e) => handleDrop(e, playerId)}
+                                                onDragEnd={handleDragEnd}
                                                 className={`turn-order-item d-flex align-items-center justify-content-between p-2 mb-1 rounded ${
                                                     isPendingRemoval ? 'opacity-50' : ''
                                                 }`}
+                                                style={{
+                                                    background: isDragOver ? 'rgba(45, 27, 78, 0.2)' : index === 0 ? 'rgba(212, 175, 55, 0.15)' : 'var(--bg-primary)',
+                                                    border: `1px solid ${isDragOver ? 'var(--brand-purple)' : index === 0 ? 'var(--brand-gold)' : 'var(--border-color)'}`,
+                                                    opacity: isDragging ? 0.5 : isPendingRemoval ? 0.5 : 1,
+                                                    cursor: isPendingRemoval ? 'default' : 'grab',
+                                                    transition: 'background 0.15s, border-color 0.15s'
+                                                }}
                                             >
                                                 <div className="d-flex align-items-center">
-                                                    <span className={`turn-number badge ${index === 0 ? 'bg-warning text-dark' : 'bg-secondary'} me-2`}>
+                                                    <i className="fas fa-grip-vertical text-muted me-2 d-none d-md-inline" style={{ cursor: isPendingRemoval ? 'default' : 'grab' }}></i>
+                                                    <span
+                                                        className="badge me-2"
+                                                        style={{
+                                                            background: index === 0 ? 'var(--brand-gold)' : 'var(--bg-secondary)',
+                                                            color: index === 0 ? '#1a1a2e' : 'var(--text-primary)'
+                                                        }}
+                                                    >
                                                         {index + 1}
                                                     </span>
                                                     <span>{participant.firstname} {participant.lastname}</span>
                                                     {index === 0 && (
-                                                        <span className="badge bg-warning text-dark ms-2">
+                                                        <span
+                                                            className="badge ms-2"
+                                                            style={{
+                                                                background: 'var(--brand-gold)',
+                                                                color: '#1a1a2e'
+                                                            }}
+                                                        >
                                                             <i className="fas fa-play-circle me-1"></i>
                                                             First
                                                         </span>
@@ -643,18 +729,28 @@ const EditPodPage = () => {
                                                 </div>
                                                 <div className="btn-group btn-group-sm">
                                                     <button
-                                                        className="btn btn-outline-secondary"
+                                                        className="btn btn-sm px-2"
                                                         onClick={() => movePlayerUp(playerId)}
                                                         disabled={index === 0}
                                                         title="Move up"
+                                                        style={{
+                                                            background: 'var(--bg-secondary)',
+                                                            border: '1px solid var(--border-color)',
+                                                            color: 'var(--text-secondary)'
+                                                        }}
                                                     >
                                                         <i className="fas fa-chevron-up"></i>
                                                     </button>
                                                     <button
-                                                        className="btn btn-outline-secondary"
+                                                        className="btn btn-sm px-2"
                                                         onClick={() => movePlayerDown(playerId)}
                                                         disabled={index === turnOrder.length - 1}
                                                         title="Move down"
+                                                        style={{
+                                                            background: 'var(--bg-secondary)',
+                                                            border: '1px solid var(--border-color)',
+                                                            color: 'var(--text-secondary)'
+                                                        }}
                                                     >
                                                         <i className="fas fa-chevron-down"></i>
                                                     </button>
@@ -666,7 +762,8 @@ const EditPodPage = () => {
                             )}
                             <small className="text-muted d-block mt-2">
                                 <i className="fas fa-info-circle me-1"></i>
-                                Use arrows to reorder or click Randomize
+                                <span className="d-none d-md-inline">Drag, use arrows, or click Randomize</span>
+                                <span className="d-md-none">Use arrows or click Randomize</span>
                             </small>
                         </div>
                     </div>
