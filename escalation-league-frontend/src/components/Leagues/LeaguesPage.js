@@ -59,15 +59,17 @@ const LeaguesPage = () => {
                                     Metagame
                                 </Link>
                             </li>
-                            <li className="nav-item">
-                                <Link
-                                    to="/leagues/tournament"
-                                    className={`nav-link ${location.pathname === '/leagues/tournament' ? 'active' : ''}`}
-                                >
-                                    <i className="fas fa-trophy me-1"></i>
-                                    Tournament
-                                </Link>
-                            </li>
+                            {(activeLeague?.league_phase === 'tournament' || activeLeague?.league_phase === 'completed') && (
+                                <li className="nav-item">
+                                    <Link
+                                        to="/leagues/tournament"
+                                        className={`nav-link ${location.pathname === '/leagues/tournament' ? 'active' : ''}`}
+                                    >
+                                        <i className="fas fa-trophy me-1"></i>
+                                        Tournament
+                                    </Link>
+                                </li>
+                            )}
                         </>
                     ) : (
                         <li className="nav-item">

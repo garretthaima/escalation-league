@@ -12,8 +12,9 @@ const Navbar = ({ handleLogout }) => {
     const location = useLocation();
     const navbarCollapseRef = useRef(null);
 
-    // Derive inLeague from context (activeLeague is the league object or null)
+    // Derive inLeague and leaguePhase from context (activeLeague is the league object or null)
     const inLeague = !!activeLeague;
+    const leaguePhase = activeLeague?.league_phase;
 
     // Collapse navbar on mobile when link is clicked (using ref instead of DOM query)
     const collapseNavbar = useCallback(() => {
@@ -38,8 +39,8 @@ const Navbar = ({ handleLogout }) => {
         collapseNavbar();
     };
 
-    // Generate navbar links dynamically based on inLeague state
-    const filteredLinks = navbarLinks(inLeague).filter((link) => {
+    // Generate navbar links dynamically based on inLeague state and league phase
+    const filteredLinks = navbarLinks(inLeague, leaguePhase).filter((link) => {
         if (link.section === 'public') return true; // Always show public links
         if (link.section === 'pods') return user && permissions.some((perm) => perm.name === 'pod_read');
         if (link.section === 'admin') {
