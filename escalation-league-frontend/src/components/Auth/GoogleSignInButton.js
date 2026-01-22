@@ -1,14 +1,24 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, memo } from 'react';
 
-const GoogleSignInButton = ({ onSuccess }) => {
+const GoogleSignInButton = memo(({ onSuccess }) => {
     const buttonRef = useRef(null);
+    const callbackRef = useRef(onSuccess);
+    const initializedRef = useRef(false);
+
+    // Keep callback ref updated without triggering re-render
+    useEffect(() => {
+        callbackRef.current = onSuccess;
+    }, [onSuccess]);
 
     useEffect(() => {
+        // Only initialize once
+        if (initializedRef.current) return;
+
         const initializeGoogleSignIn = () => {
             if (window.google && buttonRef.current) {
                 window.google.accounts.id.initialize({
                     client_id: process.env.REACT_APP_GOOGLE_CLIENT_ID,
-                    callback: onSuccess,
+                    callback: (response) => callbackRef.current(response),
                 });
                 window.google.accounts.id.renderButton(
                     buttonRef.current,
@@ -21,6 +31,7 @@ const GoogleSignInButton = ({ onSuccess }) => {
                         logo_alignment: 'left'
                     }
                 );
+                initializedRef.current = true;
             }
         };
 
@@ -35,9 +46,11 @@ const GoogleSignInButton = ({ onSuccess }) => {
             script.onload = initializeGoogleSignIn;
             document.body.appendChild(script);
         }
-    }, [onSuccess]);
+    }, []);
 
     return <div ref={buttonRef} id="google-signin-button"></div>;
-};
+});
+
+GoogleSignInButton.displayName = 'GoogleSignInButton';
 
 export default GoogleSignInButton;

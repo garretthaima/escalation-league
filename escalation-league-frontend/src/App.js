@@ -2,6 +2,9 @@ import React, { useEffect, useState } from 'react';
 import './App.css';
 import { Route, Routes, Navigate } from 'react-router-dom';
 import SignIn from './components/Auth/SignIn';
+import VerifyEmail from './components/Auth/VerifyEmail';
+import ForgotPassword from './components/Auth/ForgotPassword';
+import ResetPassword from './components/Auth/ResetPassword';
 import Profile from './components/Auth/Profile/Profile';
 import Navbar from './components/Navbar/Navbar';
 import LeagueLayout from './components/Leagues/LeagueLayout';
@@ -78,6 +81,9 @@ const App = () => {
                             {/* Public Routes */}
                             <Route path="/" element={<HomePage />} />
                             <Route path="/signin" element={<SignIn />} />
+                            <Route path="/verify-email" element={<VerifyEmail />} />
+                            <Route path="/forgot-password" element={<ForgotPassword />} />
+                            <Route path="/reset-password" element={<ResetPassword />} />
                             <Route path="/rules" element={<Rules />} />
                             <Route path="/awards" element={<Awards />} />
                             <Route path="/contact" element={<Contact />} />

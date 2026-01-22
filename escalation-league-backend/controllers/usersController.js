@@ -4,6 +4,7 @@ const redis = require('../utils/redisClient');
 const { updateStats } = require('../utils/statsUtils');
 const logger = require('../utils/logger');
 const { logProfileUpdate, logAccountDeletion, logPasswordChange } = require('../services/activityLogService');
+const { validatePassword } = require('../utils/passwordValidator');
 
 // Fetch User Profile
 const getUserProfile = async (req, res) => {
@@ -182,6 +183,15 @@ const changePassword = async (req, res) => {
     const isMatch = await bcrypt.compare(oldPassword, user.password);
     if (!isMatch) {
       return res.status(400).json({ error: 'Old password is incorrect.' });
+    }
+
+    // Validate new password strength
+    const passwordValidation = validatePassword(newPassword);
+    if (!passwordValidation.isValid) {
+      return res.status(400).json({
+        error: 'Invalid password',
+        details: passwordValidation.errors
+      });
     }
 
     // Hash the new password and update it

@@ -1,10 +1,11 @@
-import React, { useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useCallback, useRef, useMemo } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { loginUser, registerUser, googleAuth } from '../../api/authApi';
 import { usePermissions } from '../context/PermissionsProvider';
 import GoogleSignInButton from './GoogleSignInButton';
 import TurnstileWidget from './TurnstileWidget';
 import { useToast } from '../context/ToastContext';
+import { validatePassword, getPasswordStrength } from '../../utils/passwordValidation';
 import './Auth.css';
 
 const SignIn = () => {
@@ -14,9 +15,23 @@ const SignIn = () => {
     const [error, setError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [turnstileToken, setTurnstileToken] = useState(null);
+    const turnstileRef = useRef(null);
     const navigate = useNavigate();
     const { refreshUserData } = usePermissions();
     const { showToast } = useToast();
+
+    // Password validation (only matters during registration)
+    const passwordValidation = useMemo(() => {
+        if (!isRegistering || !formData.password) {
+            return { isValid: true, errors: [] };
+        }
+        return validatePassword(formData.password);
+    }, [isRegistering, formData.password]);
+
+    const passwordStrength = useMemo(() => {
+        if (!isRegistering) return null;
+        return getPasswordStrength(formData.password);
+    }, [isRegistering, formData.password]);
 
     // Turnstile handlers
     const handleTurnstileVerify = useCallback((token) => {
@@ -56,13 +71,21 @@ const SignIn = () => {
                     localStorage.setItem('refreshToken', data.refreshToken);
                 }
 
-                // Force refresh user data from backend
-                refreshUserData();
+                // Refresh user data and wait for it to complete
+                const { activeLeague } = await refreshUserData();
 
-                navigate('/profile');
+                // Redirect to league page if user is in a league, otherwise home
+                if (activeLeague?.league_id) {
+                    navigate('/leagues');
+                } else {
+                    navigate('/');
+                }
             }
         } catch (err) {
             setError(err.response?.data?.error || 'An error occurred. Please try again.');
+            // Reset Turnstile to get a fresh token for the next attempt
+            setTurnstileToken(null);
+            turnstileRef.current?.reset();
         } finally {
             setIsSubmitting(false);
         }
@@ -77,10 +100,15 @@ const SignIn = () => {
                 localStorage.setItem('refreshToken', data.refreshToken);
             }
 
-            // Force refresh user data from backend
-            refreshUserData();
+            // Refresh user data and wait for it to complete
+            const { activeLeague } = await refreshUserData();
 
-            navigate('/profile');
+            // Redirect to league page if user is in a league, otherwise home
+            if (activeLeague?.league_id) {
+                navigate('/leagues');
+            } else {
+                navigate('/');
+            }
         } catch (err) {
             console.error('Google sign-in failed:', err);
             setError('Google sign-in failed. Please try again.');
@@ -187,8 +215,49 @@ const SignIn = () => {
                         </button>
                     </div>
 
+                    {/* Forgot password link (sign-in only) */}
+                    {!isRegistering && (
+                        <div className="forgot-password-link">
+                            <Link to="/forgot-password">Forgot password?</Link>
+                        </div>
+                    )}
+
+                    {/* Password strength indicator (registration only) */}
+                    {isRegistering && formData.password && (
+                        <div className="password-feedback">
+                            <div className="password-strength">
+                                <div className="strength-bars">
+                                    {[0, 1, 2, 3, 4].map((level) => (
+                                        <div
+                                            key={level}
+                                            className={`strength-bar ${level <= passwordStrength?.level ? 'active' : ''}`}
+                                            style={{
+                                                backgroundColor: level <= passwordStrength?.level
+                                                    ? passwordStrength?.color
+                                                    : undefined
+                                            }}
+                                        />
+                                    ))}
+                                </div>
+                                {passwordStrength?.label && (
+                                    <span className="strength-label" style={{ color: passwordStrength.color }}>
+                                        {passwordStrength.label}
+                                    </span>
+                                )}
+                            </div>
+                            {passwordValidation.errors.length > 0 && (
+                                <ul className="password-errors">
+                                    {passwordValidation.errors.map((err, idx) => (
+                                        <li key={idx}>{err}</li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
+                    )}
+
                     {/* Cloudflare Turnstile verification */}
                     <TurnstileWidget
+                        ref={turnstileRef}
                         onVerify={handleTurnstileVerify}
                         onError={handleTurnstileError}
                         onExpire={handleTurnstileExpire}
@@ -197,7 +266,7 @@ const SignIn = () => {
                     <button
                         type="submit"
                         className="auth-submit"
-                        disabled={isSubmitting || !turnstileToken}
+                        disabled={isSubmitting || !turnstileToken || (isRegistering && !passwordValidation.isValid)}
                     >
                         {isSubmitting ? (
                             <>

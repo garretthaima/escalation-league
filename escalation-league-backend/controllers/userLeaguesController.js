@@ -450,7 +450,7 @@ const isUserInLeague = async (req, res) => {
         console.log('Query result:', userLeague);
 
         if (!userLeague) {
-            return res.status(404).json({ inLeague: false, message: 'User is not part of any league.' });
+            return res.status(200).json({ inLeague: false, league: null });
         }
 
         res.status(200).json({ inLeague: true, league: userLeague });

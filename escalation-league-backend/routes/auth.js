@@ -10,6 +10,10 @@ const {
     refreshAccessToken,
     logout,
     logoutAll,
+    verifyEmail,
+    resendVerificationEmail,
+    forgotPassword,
+    resetPassword,
 } = require('../controllers/authController');
 const {
     getDiscordAuthUrl,
@@ -28,6 +32,14 @@ router.post('/verify-google-token', authLimiter, verifyGoogleToken);
 router.post('/refresh', authLimiter, refreshAccessToken); // Get new access token using refresh token
 router.post('/logout', logout); // Revoke refresh token (no auth required - just needs refresh token)
 router.post('/logout-all', authenticateToken, logoutAll); // Revoke all refresh tokens (requires valid access token)
+
+// Email Verification Endpoints
+router.post('/verify-email', authLimiter, verifyEmail); // Verify email with token
+router.post('/resend-verification', authLimiter, resendVerificationEmail); // Resend verification email
+
+// Password Reset Endpoints
+router.post('/forgot-password', loginLimiter, forgotPassword); // Request password reset (uses strict limiter)
+router.post('/reset-password', authLimiter, resetPassword); // Reset password with token
 
 // Discord OAuth Endpoints
 router.get('/discord/url', authenticateToken, getDiscordAuthUrl); // Get OAuth URL (must be logged in)

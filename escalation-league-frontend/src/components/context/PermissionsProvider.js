@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { getUserPermissions, getUserProfile, getUserSetting, updateUserSetting } from '../../api/usersApi'; // Add API calls
 import { isUserInLeague } from '../../api/userLeaguesApi'; // Import the API call for activeLeague
 
@@ -11,57 +11,65 @@ export const PermissionsProvider = ({ children }) => {
     const [darkMode, setDarkMode] = useState(true); // Default to dark mode
     const [activeLeague, setActiveLeague] = useState(null); // Add activeLeague state
     const [refreshKey, setRefreshKey] = useState(0); // Add refresh mechanism
+    const refreshResolvers = useRef([]); // Store promise resolvers for refreshUserData
+
+    const fetchPermissionsAndUser = useCallback(async () => {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            // Clear all state if no token
+            setPermissions([]);
+            setUser(null);
+            setActiveLeague(null);
+            setLoading(false);
+            return { activeLeague: null };
+        }
+
+        try {
+            // Fetch permissions
+            const permissionsData = await getUserPermissions();
+            setPermissions(permissionsData.permissions);
+
+            // Fetch user profile
+            const profileData = await getUserProfile();
+            setUser(profileData.user); // Store the full user object
+
+            // Fetch user settings (including dark mode)
+            const darkModeSetting = await getUserSetting('dark_mode'); // Fetch dark_mode setting
+            setDarkMode(darkModeSetting.value === 'true'); // Set dark mode based on the backend value
+
+            // Fetch active league
+            const { inLeague, league } = await isUserInLeague();
+            const leagueData = inLeague ? league : null;
+            setActiveLeague(leagueData);
+
+            return { activeLeague: leagueData };
+        } catch (err) {
+            console.error('Failed to fetch permissions, user profile, or settings:', err);
+            // Clear state on error
+            setPermissions([]);
+            setUser(null);
+            setActiveLeague(null);
+            return { activeLeague: null };
+        } finally {
+            setLoading(false);
+        }
+    }, []);
 
     useEffect(() => {
-        const fetchPermissionsAndUser = async () => {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                // Clear all state if no token
-                setPermissions([]);
-                setUser(null);
-                setActiveLeague(null);
-                setLoading(false);
-                return;
-            }
+        fetchPermissionsAndUser().then((result) => {
+            // Resolve any pending refreshUserData promises
+            refreshResolvers.current.forEach(resolve => resolve(result));
+            refreshResolvers.current = [];
+        });
+    }, [refreshKey, fetchPermissionsAndUser]);
 
-            try {
-                // Fetch permissions
-                const permissionsData = await getUserPermissions();
-                setPermissions(permissionsData.permissions);
-
-                // Fetch user profile
-                const profileData = await getUserProfile();
-                setUser(profileData.user); // Store the full user object
-
-                // Fetch user settings (including dark mode)
-                const darkModeSetting = await getUserSetting('dark_mode'); // Fetch dark_mode setting
-                setDarkMode(darkModeSetting.value === 'true'); // Set dark mode based on the backend value
-
-                // Fetch active league
-                const { inLeague, league } = await isUserInLeague();
-                if (inLeague) {
-                    setActiveLeague(league);
-                } else {
-                    setActiveLeague(null);
-                }
-            } catch (err) {
-                console.error('Failed to fetch permissions, user profile, or settings:', err);
-                // Clear state on error
-                setPermissions([]);
-                setUser(null);
-                setActiveLeague(null);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchPermissionsAndUser();
-    }, [refreshKey]); // Re-run when refreshKey changes
-
-    // Function to force refresh user data
-    const refreshUserData = () => {
-        setRefreshKey(prev => prev + 1);
-    };
+    // Function to force refresh user data - returns a promise that resolves when data is loaded
+    const refreshUserData = useCallback(() => {
+        return new Promise((resolve) => {
+            refreshResolvers.current.push(resolve);
+            setRefreshKey(prev => prev + 1);
+        });
+    }, []);
 
     // Update dark mode setting in the backend
     const toggleDarkMode = async () => {

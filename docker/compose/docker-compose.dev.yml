@@ -69,6 +69,9 @@ services:
       DISCORD_RECAP_CHANNEL_ID: ${DISCORD_RECAP_CHANNEL_ID}
       # Cloudflare Turnstile
       TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY}
+      # Resend email
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      FROM_EMAIL: ${FROM_EMAIL}
 
       # Debug
       DEBUG: "socket.io:*,engine:*"
