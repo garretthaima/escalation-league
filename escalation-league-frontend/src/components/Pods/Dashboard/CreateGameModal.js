@@ -181,13 +181,24 @@ const CreateGameModal = ({ show, onHide, leagueId, userId, onGameCreated }) => {
                                                     <button
                                                         key={user.id}
                                                         type="button"
-                                                        className={`list-group-item list-group-item-action d-flex justify-content-between align-items-center ${isSelected ? 'active' : ''}`}
+                                                        className={`list-group-item list-group-item-action d-flex justify-content-between align-items-center`}
                                                         onClick={() => togglePlayer(user)}
+                                                        style={isSelected ? {
+                                                            background: 'var(--brand-purple)',
+                                                            borderColor: 'var(--brand-purple)',
+                                                            color: '#fff'
+                                                        } : {}}
                                                     >
                                                         <span>
                                                             {user.firstname} {user.lastname}
                                                             {isCurrentUser && (
-                                                                <span className={`badge ${isSelected ? 'bg-light text-dark' : 'bg-info'} ms-2`}>
+                                                                <span
+                                                                    className="badge ms-2"
+                                                                    style={{
+                                                                        background: isSelected ? 'var(--brand-gold)' : 'var(--brand-gold)',
+                                                                        color: '#1a1a2e'
+                                                                    }}
+                                                                >
                                                                     You
                                                                 </span>
                                                             )}
@@ -207,9 +218,14 @@ const CreateGameModal = ({ show, onHide, leagueId, userId, onGameCreated }) => {
                                                 Turn Order
                                             </h6>
                                             <button
-                                                className="btn btn-sm btn-outline-secondary"
+                                                className="btn btn-sm"
                                                 onClick={randomizeTurnOrder}
                                                 disabled={turnOrder.length < 2}
+                                                style={{
+                                                    background: 'var(--bg-secondary)',
+                                                    border: '1px solid var(--border-color)',
+                                                    color: 'var(--text-secondary)'
+                                                }}
                                             >
                                                 <i className="fas fa-random me-1"></i>
                                                 Randomize
@@ -231,10 +247,20 @@ const CreateGameModal = ({ show, onHide, leagueId, userId, onGameCreated }) => {
                                                     return (
                                                         <div
                                                             key={playerId}
-                                                            className={`list-group-item d-flex justify-content-between align-items-center py-2 ${index === 0 ? 'list-group-item-warning' : ''}`}
+                                                            className="list-group-item d-flex justify-content-between align-items-center py-2"
+                                                            style={index === 0 ? {
+                                                                background: 'rgba(212, 175, 55, 0.15)',
+                                                                borderColor: 'var(--brand-gold)'
+                                                            } : {}}
                                                         >
                                                             <div className="d-flex align-items-center flex-grow-1 min-width-0">
-                                                                <span className={`badge ${index === 0 ? 'bg-warning text-dark' : 'bg-secondary'} me-2 flex-shrink-0`}>
+                                                                <span
+                                                                    className="badge me-2 flex-shrink-0"
+                                                                    style={{
+                                                                        background: index === 0 ? 'var(--brand-gold)' : 'var(--bg-secondary)',
+                                                                        color: index === 0 ? '#1a1a2e' : 'var(--text-primary)'
+                                                                    }}
+                                                                >
                                                                     {index + 1}
                                                                 </span>
                                                                 <span className="text-truncate">
@@ -243,16 +269,26 @@ const CreateGameModal = ({ show, onHide, leagueId, userId, onGameCreated }) => {
                                                             </div>
                                                             <div className="btn-group btn-group-sm flex-shrink-0 ms-2">
                                                                 <button
-                                                                    className="btn btn-outline-secondary btn-sm px-2"
+                                                                    className="btn btn-sm px-2"
                                                                     onClick={() => moveUp(playerId)}
                                                                     disabled={index === 0}
+                                                                    style={{
+                                                                        background: 'var(--bg-secondary)',
+                                                                        border: '1px solid var(--border-color)',
+                                                                        color: 'var(--text-secondary)'
+                                                                    }}
                                                                 >
                                                                     <i className="fas fa-chevron-up"></i>
                                                                 </button>
                                                                 <button
-                                                                    className="btn btn-outline-secondary btn-sm px-2"
+                                                                    className="btn btn-sm px-2"
                                                                     onClick={() => moveDown(playerId)}
                                                                     disabled={index === turnOrder.length - 1}
+                                                                    style={{
+                                                                        background: 'var(--bg-secondary)',
+                                                                        border: '1px solid var(--border-color)',
+                                                                        color: 'var(--text-secondary)'
+                                                                    }}
                                                                 >
                                                                     <i className="fas fa-chevron-down"></i>
                                                                 </button>
@@ -276,9 +312,14 @@ const CreateGameModal = ({ show, onHide, leagueId, userId, onGameCreated }) => {
                             </button>
                             <button
                                 type="button"
-                                className="btn btn-primary"
+                                className="btn"
                                 onClick={handleCreate}
                                 disabled={selectedPlayers.length < 3 || creating}
+                                style={{
+                                    background: 'var(--brand-purple)',
+                                    borderColor: 'var(--brand-purple)',
+                                    color: '#fff'
+                                }}
                             >
                                 {creating ? (
                                     <>
