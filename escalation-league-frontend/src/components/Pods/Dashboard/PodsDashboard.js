@@ -264,10 +264,10 @@ const PodsDashboard = () => {
     return (
         <div className="container mt-4">
             {/* Header */}
-            <div className="d-flex justify-content-between align-items-center mb-4">
+            <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
                 <div>
                     <h2 className="mb-1">Pods & Games</h2>
-                    <div className="d-flex gap-3 text-muted">
+                    <div className="d-flex gap-3 text-muted" style={{ fontSize: '0.9rem' }}>
                         <span>
                             <i className="fas fa-gamepad me-1"></i>
                             {activeCount} Active
@@ -282,6 +282,7 @@ const PodsDashboard = () => {
                     <button
                         className="btn btn-primary"
                         onClick={() => setShowCreateModal(true)}
+                        style={{ whiteSpace: 'nowrap' }}
                     >
                         <i className="fas fa-plus me-2"></i>
                         Create Game
