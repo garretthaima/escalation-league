@@ -31,25 +31,15 @@ const updatePod = async (req, res) => {
 
         // If pod was complete, reverse old stats before making changes
         if (currentPod.confirmation_status === 'complete' && currentPod.league_id) {
-            // Fetch league point settings (including tournament settings)
+            // Fetch league point settings
             const league = await db('leagues')
                 .where({ id: currentPod.league_id })
-                .select('points_per_win', 'points_per_loss', 'points_per_draw',
-                    'tournament_win_points', 'tournament_non_win_points', 'tournament_dq_points')
+                .select('points_per_win', 'points_per_loss', 'points_per_draw')
                 .first();
 
             for (const p of currentParticipants) {
-                // Skip DQ'd players - they never got regular stats in the first place
+                // Skip DQ'd players - they never got stats in the first place
                 if (p.result === 'disqualified') {
-                    // But if tournament game, DQ'd players DID get tournament stats
-                    if (currentPod.is_tournament_game) {
-                        await db('user_leagues')
-                            .where({ user_id: p.player_id, league_id: currentPod.league_id })
-                            .increment({
-                                tournament_points: -(league.tournament_dq_points || 0),
-                                tournament_dqs: -1
-                            });
-                    }
                     continue;
                 }
 
@@ -85,29 +75,6 @@ const updatePod = async (req, res) => {
                         league_draws: draws,
                         total_points: points
                     });
-
-                // Reverse tournament stats if this was a tournament game
-                if (currentPod.is_tournament_game) {
-                    let tPoints = 0;
-                    let tWins = 0;
-                    let tNonWins = 0;
-
-                    if (p.result === 'win') {
-                        tPoints = -(league.tournament_win_points || 4);
-                        tWins = -1;
-                    } else {
-                        tPoints = -(league.tournament_non_win_points || 1);
-                        tNonWins = -1;
-                    }
-
-                    await db('user_leagues')
-                        .where({ user_id: p.player_id, league_id: currentPod.league_id })
-                        .increment({
-                            tournament_points: tPoints,
-                            tournament_wins: tWins,
-                            tournament_non_wins: tNonWins
-                        });
-                }
             }
         }
 
@@ -158,25 +125,15 @@ const updatePod = async (req, res) => {
             const pod = await db('game_pods').where({ id: podId }).first();
 
             if (pod && pod.league_id) {
-                // Fetch league point settings (including tournament settings)
+                // Fetch league point settings
                 const league = await db('leagues')
                     .where({ id: pod.league_id })
-                    .select('points_per_win', 'points_per_loss', 'points_per_draw',
-                        'tournament_win_points', 'tournament_non_win_points', 'tournament_dq_points')
+                    .select('points_per_win', 'points_per_loss', 'points_per_draw')
                     .first();
 
                 for (const p of newParticipants) {
-                    // Skip DQ'd players for regular stats - they don't get any stats or points
+                    // Skip DQ'd players - they don't get any stats or points
                     if (p.result === 'disqualified') {
-                        // But if tournament game, DQ'd players DO get tournament stats
-                        if (pod.is_tournament_game) {
-                            await db('user_leagues')
-                                .where({ user_id: p.player_id, league_id: pod.league_id })
-                                .increment({
-                                    tournament_points: league.tournament_dq_points || 0,
-                                    tournament_dqs: 1
-                                });
-                        }
                         continue;
                     }
 
@@ -212,29 +169,6 @@ const updatePod = async (req, res) => {
                             league_draws: draws,
                             total_points: points
                         });
-
-                    // Apply tournament stats if this is a tournament game
-                    if (pod.is_tournament_game) {
-                        let tPoints = 0;
-                        let tWins = 0;
-                        let tNonWins = 0;
-
-                        if (p.result === 'win') {
-                            tPoints = league.tournament_win_points || 4;
-                            tWins = 1;
-                        } else {
-                            tPoints = league.tournament_non_win_points || 1;
-                            tNonWins = 1;
-                        }
-
-                        await db('user_leagues')
-                            .where({ user_id: p.player_id, league_id: pod.league_id })
-                            .increment({
-                                tournament_points: tPoints,
-                                tournament_wins: tWins,
-                                tournament_non_wins: tNonWins
-                            });
-                    }
                 }
             }
         }

@@ -20,7 +20,6 @@ const axiosInstance = axios.create({
 
 // State for token refresh handling
 let isRefreshing = false;
-let refreshPromise = null; // Shared promise for concurrent refresh requests
 let failedQueue = [];
 let isRedirecting = false;
 
@@ -52,112 +51,6 @@ const handleAuthFailure = () => {
     return Promise.reject(new Error('Session expired'));
 };
 
-/**
- * Check if access token is expired by decoding JWT
- * @returns {boolean} true if token is expired or invalid
- */
-const isTokenExpired = () => {
-    const token = localStorage.getItem('token');
-    if (!token) return true;
-
-    try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        // Add 10 second buffer to account for clock skew
-        return payload.exp * 1000 < Date.now() + 10000;
-    } catch {
-        return true;
-    }
-};
-
-/**
- * Centralized token refresh function - ensures only one refresh happens at a time
- * Can be called by axios interceptor, WebSocket, or proactively on app init
- * @returns {Promise<string|null>} new access token or null if refresh failed
- */
-const performTokenRefresh = async () => {
-    // If already refreshing, return the existing promise
-    if (isRefreshing && refreshPromise) {
-        return refreshPromise;
-    }
-
-    const refreshToken = localStorage.getItem('refreshToken');
-    if (!refreshToken) {
-        return null;
-    }
-
-    isRefreshing = true;
-
-    refreshPromise = (async () => {
-        try {
-            const response = await axios.post(
-                `${API_BASE_URL}/auth/refresh`,
-                { refreshToken }
-            );
-
-            const { token, refreshToken: newRefreshToken } = response.data;
-
-            // Store new tokens
-            localStorage.setItem('token', token);
-            if (newRefreshToken) {
-                localStorage.setItem('refreshToken', newRefreshToken);
-            }
-
-            // Update axios default header
-            axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-
-            // Dispatch event for WebSocket and other components
-            window.dispatchEvent(new CustomEvent('tokenRefreshed', {
-                detail: { token }
-            }));
-
-            return token;
-        } catch (err) {
-            console.error('Token refresh failed:', err.message);
-            return null;
-        } finally {
-            isRefreshing = false;
-            refreshPromise = null;
-        }
-    })();
-
-    return refreshPromise;
-};
-
-/**
- * Proactively check and refresh token on app initialization
- * Call this early in app startup to ensure valid session
- * @returns {Promise<boolean>} true if session is valid, false if login required
- */
-const initializeAuth = async () => {
-    const token = localStorage.getItem('token');
-    const refreshToken = localStorage.getItem('refreshToken');
-
-    // No tokens at all - user needs to login
-    if (!token && !refreshToken) {
-        return false;
-    }
-
-    // Have refresh token but access token is expired or missing - try to refresh
-    if (refreshToken && (!token || isTokenExpired())) {
-        const newToken = await performTokenRefresh();
-        if (!newToken) {
-            // Refresh failed - clear everything and require login
-            localStorage.removeItem('token');
-            localStorage.removeItem('refreshToken');
-            return false;
-        }
-        return true;
-    }
-
-    // Access token exists and is not expired
-    if (token && !isTokenExpired()) {
-        axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        return true;
-    }
-
-    return false;
-};
-
 // Add a request interceptor to include the Authorization header
 axiosInstance.interceptors.request.use(
     (config) => {
@@ -183,7 +76,7 @@ axiosInstance.interceptors.response.use(
                 return handleAuthFailure();
             }
 
-            // If already refreshing, queue this request to wait for the result
+            // If already refreshing, queue this request
             if (isRefreshing) {
                 return new Promise((resolve, reject) => {
                     failedQueue.push({ resolve, reject });
@@ -196,29 +89,55 @@ axiosInstance.interceptors.response.use(
             }
 
             originalRequest._retry = true;
+            isRefreshing = true;
 
-            // Use centralized refresh function
-            const newToken = await performTokenRefresh();
-
-            if (!newToken) {
-                processQueue(new Error('Token refresh failed'), null);
+            const refreshToken = localStorage.getItem('refreshToken');
+            if (!refreshToken) {
+                isRefreshing = false;
                 return handleAuthFailure();
             }
 
-            // Update the authorization header for this request
-            originalRequest.headers.Authorization = `Bearer ${newToken}`;
+            try {
+                // Call refresh endpoint directly (bypass interceptors to avoid loops)
+                const response = await axios.post(
+                    `${API_BASE_URL}/auth/refresh`,
+                    { refreshToken }
+                );
 
-            // Process any queued requests
-            processQueue(null, newToken);
+                const { token, refreshToken: newRefreshToken } = response.data;
 
-            // Retry the original request
-            return axiosInstance(originalRequest);
+                // Store new tokens
+                localStorage.setItem('token', token);
+                if (newRefreshToken) {
+                    localStorage.setItem('refreshToken', newRefreshToken);
+                }
+
+                // Update the authorization header for this and future requests
+                axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+                originalRequest.headers.Authorization = `Bearer ${token}`;
+
+                // Process any queued requests
+                processQueue(null, token);
+
+                // Dispatch event for WebSocket and other components to update their token
+                window.dispatchEvent(new CustomEvent('tokenRefreshed', {
+                    detail: { token }
+                }));
+
+                // Retry the original request
+                return axiosInstance(originalRequest);
+            } catch (refreshError) {
+                processQueue(refreshError, null);
+                return handleAuthFailure();
+            } finally {
+                isRefreshing = false;
+            }
         }
 
         return Promise.reject(error);
     }
 );
 
-// Export the base URL and auth utilities for components that need direct access
-export { API_BASE_URL, initializeAuth, performTokenRefresh, isTokenExpired };
+// Export the base URL for components that need direct access (like WebSocket)
+export { API_BASE_URL };
 export default axiosInstance;

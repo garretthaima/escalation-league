@@ -15,47 +15,34 @@ import Rules from './components/Static/Rules';
 import Awards from './components/Static/Awards';
 import NotAuthorized from './components/Auth/NotAuthorized';
 import PublicProfile from './components/Auth/Profile/PublicProfile';
-import { LeagueAdminPage, UserRoleManagementPage, ActivityLogsPage } from './components/Admin';
+import { LeagueAdminPage, PodAdminPage, UserRoleManagementPage, AttendanceAdminPage, ActivityLogsPage } from './components/Admin';
 import EditPodPage from './components/Admin/EditPodPage';
 import { HomePage, Footer, Contact } from './components/Shared/';
 import { ToastProvider } from './components/context/ToastContext';
 import { WebSocketProvider } from './components/context/WebSocketProvider';
 import { BudgetDashboard } from './components/Budget';
 import { MetagameDashboard } from './components/Metagame';
-import { TournamentDashboard } from './components/Tournament';
-import { AttendancePage, PodSuggestionsPage } from './components/Attendance';
+import { AttendancePage, PodSuggestionsPage, MatchupMatrixPage } from './components/Attendance';
 import { logoutUser } from './api/authApi';
-import { initializeAuth } from './api/axiosConfig';
 
 const App = () => {
     const [user, setUser] = useState(null);
 
-    // Proactively check and refresh token on app initialization
     useEffect(() => {
-        const initAuth = async () => {
-            const isValid = await initializeAuth();
-
-            if (isValid) {
-                // Token is valid (or was refreshed), decode and set user
-                const token = localStorage.getItem('token');
-                if (token) {
-                    try {
-                        const tokenPayload = JSON.parse(atob(token.split('.')[1]));
-                        setUser({
-                            id: tokenPayload.id,
-                            email: tokenPayload.email,
-                            role_id: tokenPayload.role_id,
-                        });
-                    } catch (err) {
-                        console.error('Error decoding token:', err);
-                        localStorage.removeItem('token');
-                        localStorage.removeItem('refreshToken');
-                    }
-                }
+        const token = localStorage.getItem('token');
+        if (token) {
+            try {
+                const tokenPayload = JSON.parse(atob(token.split('.')[1])); // Decode JWT payload
+                setUser({
+                    id: tokenPayload.id,
+                    email: tokenPayload.email,
+                    role_id: tokenPayload.role_id,
+                });
+            } catch (err) {
+                console.error('Error decoding token:', err);
+                localStorage.removeItem('token'); // Clear invalid token
             }
-        };
-
-        initAuth();
+        }
     }, []);
 
     const handleLogout = async () => {
@@ -95,7 +82,6 @@ const App = () => {
                                 <Route path="budget" element={<BudgetDashboard />} />
                                 <Route path="price-check" element={<PriceCheckPage />} />
                                 <Route path="metagame" element={<MetagameDashboard />} />
-                                <Route path="tournament" element={<TournamentDashboard />} />
                             </Route>
 
                             {/* Legacy routes - redirect to new dashboard */}
@@ -123,15 +109,13 @@ const App = () => {
 
                             {/* Admin Section */}
                             <Route path="/admin/leagues" element={<LeagueAdminPage />} />
+                            <Route path="/admin/pods" element={<PodAdminPage />} />
                             <Route path="/admin/pods/:podId" element={<EditPodPage />} />
                             <Route path="/admin/leagues/create" element={<CreateLeaguePage />} />
                             <Route path="/admin/users" element={<UserRoleManagementPage />} />
+                            <Route path="/admin/attendance" element={<AttendanceAdminPage />} />
+                            <Route path="/admin/matchup-matrix" element={<MatchupMatrixPage />} />
                             <Route path="/admin/activity-logs" element={<ActivityLogsPage />} />
-
-                            {/* Legacy admin routes - redirect to consolidated page */}
-                            <Route path="/admin/pods" element={<Navigate to="/admin/leagues#pods" replace />} />
-                            <Route path="/admin/attendance" element={<Navigate to="/admin/leagues#attendance" replace />} />
-                            <Route path="/admin/matchup-matrix" element={<Navigate to="/admin/leagues#attendance" replace />} />
 
 
                             {/* Not Authorized Page */}

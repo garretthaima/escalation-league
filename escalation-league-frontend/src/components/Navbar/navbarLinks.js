@@ -1,16 +1,11 @@
-const getLeagueLinks = (inLeague, leaguePhase) => {
+const getLeagueLinks = (inLeague) => {
     if (inLeague) {
-        const links = [
+        return [
             { label: 'Dashboard', path: '/leagues', order: 1, icon: 'fa-home' },
             { label: 'Budget', path: '/leagues/budget', order: 2, icon: 'fa-coins' },
             { label: 'Metagame', path: '/leagues/metagame', order: 3, icon: 'fa-chart-pie' },
             { label: 'Attendance', path: '/attendance', order: 4, icon: 'fa-clipboard-check' },
         ];
-        // Only show Tournament link when league is in tournament or completed phase
-        if (leaguePhase === 'tournament' || leaguePhase === 'completed') {
-            links.push({ label: 'Tournament', path: '/leagues/tournament', order: 5, icon: 'fa-trophy' });
-        }
-        return links;
     } else {
         return [
             { label: 'Sign Up', path: '/leagues/signup', order: 1, icon: 'fa-user-plus' },
@@ -23,7 +18,7 @@ const getPodsLinks = () => [
     { label: 'Game History', path: '/pods/history', order: 2, icon: 'fa-history' },
 ];
 
-const navbarLinks = (inLeague, leaguePhase) => [
+const navbarLinks = (inLeague) => [
     {
         label: 'Leagues',
         path: '/leagues',
@@ -31,7 +26,7 @@ const navbarLinks = (inLeague, leaguePhase) => [
         section: 'public',
         type: 'dropdown',
         icon: 'fa-trophy',
-        children: getLeagueLinks(inLeague, leaguePhase),
+        children: getLeagueLinks(inLeague),
     },
     {
         label: 'Pods',
@@ -52,8 +47,11 @@ const navbarLinks = (inLeague, leaguePhase) => [
         icon: 'fa-cog',
         children: [
             { label: 'League Management', path: '/admin/leagues', order: 1, icon: 'fa-trophy' },
-            { label: 'User Roles', path: '/admin/users', order: 2, icon: 'fa-user-shield' },
-            { label: 'Activity Logs', path: '/admin/activity-logs', order: 3, icon: 'fa-history' },
+            { label: 'Pods', path: '/admin/pods', order: 2, icon: 'fa-users' },
+            { label: 'Attendance', path: '/admin/attendance', order: 3, icon: 'fa-clipboard-list' },
+            { label: 'User Roles', path: '/admin/users', order: 4, icon: 'fa-user-shield' },
+            { label: 'Matchup Matrix', path: '/admin/matchup-matrix', order: 5, icon: 'fa-th' },
+            { label: 'Activity Logs', path: '/admin/activity-logs', order: 6, icon: 'fa-history' },
         ],
     },
 ];

@@ -442,12 +442,7 @@ const isUserInLeague = async (req, res) => {
         // Check if the user is in any league (only active memberships)
         const userLeague = await db('user_leagues')
             .join('leagues', 'user_leagues.league_id', 'leagues.id')
-            .select(
-                'leagues.id as league_id',
-                'leagues.name as league_name',
-                'leagues.league_phase',
-                'user_leagues.joined_at'
-            )
+            .select('leagues.id as league_id', 'leagues.name as league_name', 'user_leagues.joined_at')
             .where('user_leagues.user_id', userId)
             .where('user_leagues.is_active', 1)
             .first();

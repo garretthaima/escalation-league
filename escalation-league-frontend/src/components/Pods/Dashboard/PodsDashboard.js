@@ -39,10 +39,6 @@ const PodsDashboard = () => {
     const canCreatePods = permissions.some(p => p.name === 'pod_create');
     const isAdmin = permissions.some(p => p.name === 'admin_pod_update');
 
-    // Disable pod creation during tournament phase (only pre-generated tournament pods allowed)
-    const isTournamentPhase = activeLeague?.league_phase === 'tournament';
-    const canCreateNewPods = canCreatePods && !isTournamentPhase;
-
     // Fetch initial data
     useEffect(() => {
         // Wait for permissions to load before checking
@@ -283,7 +279,7 @@ const PodsDashboard = () => {
                         </span>
                     </div>
                 </div>
-                {canCreateNewPods && (
+                {canCreatePods && (
                     <button
                         className="btn btn-primary"
                         onClick={() => setShowCreateModal(true)}
@@ -306,7 +302,7 @@ const PodsDashboard = () => {
                     <div className="text-center text-muted py-4">
                         <i className="fas fa-dice fa-3x mb-3"></i>
                         <p>No active games right now.</p>
-                        {canCreateNewPods && (
+                        {canCreatePods && (
                             <button
                                 className="btn btn-outline-primary"
                                 onClick={() => setShowCreateModal(true)}
