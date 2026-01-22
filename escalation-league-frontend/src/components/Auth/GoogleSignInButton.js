@@ -15,7 +15,7 @@ const GoogleSignInButton = ({ onSuccess }) => {
                     {
                         theme: 'filled_black',
                         size: 'large',
-                        width: 336,
+                        width: 332,
                         text: 'continue_with',
                         shape: 'rectangular',
                         logo_alignment: 'left'
