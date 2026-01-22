@@ -25,25 +25,37 @@ import { MetagameDashboard } from './components/Metagame';
 import { TournamentDashboard } from './components/Tournament';
 import { AttendancePage, PodSuggestionsPage } from './components/Attendance';
 import { logoutUser } from './api/authApi';
+import { initializeAuth } from './api/axiosConfig';
 
 const App = () => {
     const [user, setUser] = useState(null);
 
+    // Proactively check and refresh token on app initialization
     useEffect(() => {
-        const token = localStorage.getItem('token');
-        if (token) {
-            try {
-                const tokenPayload = JSON.parse(atob(token.split('.')[1])); // Decode JWT payload
-                setUser({
-                    id: tokenPayload.id,
-                    email: tokenPayload.email,
-                    role_id: tokenPayload.role_id,
-                });
-            } catch (err) {
-                console.error('Error decoding token:', err);
-                localStorage.removeItem('token'); // Clear invalid token
+        const initAuth = async () => {
+            const isValid = await initializeAuth();
+
+            if (isValid) {
+                // Token is valid (or was refreshed), decode and set user
+                const token = localStorage.getItem('token');
+                if (token) {
+                    try {
+                        const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+                        setUser({
+                            id: tokenPayload.id,
+                            email: tokenPayload.email,
+                            role_id: tokenPayload.role_id,
+                        });
+                    } catch (err) {
+                        console.error('Error decoding token:', err);
+                        localStorage.removeItem('token');
+                        localStorage.removeItem('refreshToken');
+                    }
+                }
             }
-        }
+        };
+
+        initAuth();
     }, []);
 
     const handleLogout = async () => {
