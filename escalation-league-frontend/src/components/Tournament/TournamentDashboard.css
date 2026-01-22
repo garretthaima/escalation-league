@@ -1,0 +1,96 @@
+/* Tournament Dashboard Styles */
+
+.tournament-dashboard .card {
+    border-radius: 8px;
+}
+
+.tournament-dashboard .card-header {
+    background-color: rgba(0, 0, 0, 0.03);
+}
+
+/* Bronze medal color */
+.text-bronze {
+    color: #cd7f32;
+}
+
+/* Championship card highlight */
+.tournament-dashboard .border-warning.border-2 {
+    box-shadow: 0 0 10px rgba(255, 193, 7, 0.3);
+}
+
+/* Stats cards */
+.tournament-dashboard .card.text-center .h3 {
+    font-weight: 700;
+}
+
+/* Qualification banner animations */
+.tournament-dashboard .alert {
+    transition: all 0.3s ease;
+}
+
+.tournament-dashboard .alert:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Champion crown animation */
+.tournament-dashboard .fa-crown {
+    animation: crown-glow 2s ease-in-out infinite;
+}
+
+@keyframes crown-glow {
+    0%, 100% {
+        filter: drop-shadow(0 0 2px rgba(255, 193, 7, 0.5));
+    }
+    50% {
+        filter: drop-shadow(0 0 8px rgba(255, 193, 7, 0.8));
+    }
+}
+
+/* Tab styling */
+.tournament-dashboard .nav-tabs .nav-link {
+    color: #6c757d;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 0.75rem 1.25rem;
+}
+
+.tournament-dashboard .nav-tabs .nav-link:hover {
+    border-color: #dee2e6;
+    color: #495057;
+}
+
+.tournament-dashboard .nav-tabs .nav-link.active {
+    color: #0d6efd;
+    border-color: #0d6efd;
+    background: transparent;
+}
+
+/* Progress bar styling */
+.tournament-dashboard .progress {
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.tournament-dashboard .progress-bar {
+    font-weight: 600;
+}
+
+/* Admin panel cards */
+.tournament-dashboard .card.border-primary,
+.tournament-dashboard .card.border-success,
+.tournament-dashboard .card.border-warning,
+.tournament-dashboard .card.border-danger {
+    border-width: 2px !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .tournament-dashboard .btn-group {
+        flex-wrap: wrap;
+    }
+
+    .tournament-dashboard .btn-group .btn {
+        margin-bottom: 0.5rem;
+    }
+}

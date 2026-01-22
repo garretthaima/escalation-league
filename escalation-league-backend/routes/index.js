@@ -139,6 +139,17 @@ try {
 }
 
 /**
+ * Mounts tournament-related routes at `/leagues/:id/tournament`.
+ * @module routes/tournament
+ */
+try {
+    const tournamentRoutes = require('./tournament');
+    router.use('/leagues', tournamentRoutes); // Tournament routes nested under leagues
+} catch (err) {
+    console.error('Error loading tournamentRoutes:', err.message);
+}
+
+/**
  * Mounts attendance-related routes at `/attendance`.
  * @module routes/attendance
  */
