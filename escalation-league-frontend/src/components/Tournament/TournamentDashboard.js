@@ -4,13 +4,12 @@ import { usePermissions } from '../context/PermissionsProvider';
 import { getTournamentStatus, getTournamentStandings, getTournamentPods } from '../../api/tournamentApi';
 import TournamentStandings from './TournamentStandings';
 import TournamentPods from './TournamentPods';
-import TournamentAdminPanel from './TournamentAdminPanel';
 import QualificationBanner from './QualificationBanner';
 import './TournamentDashboard.css';
 
 const TournamentDashboard = () => {
     const navigate = useNavigate();
-    const { user, permissions, loading: permissionsLoading, activeLeague } = usePermissions();
+    const { user, loading: permissionsLoading, activeLeague } = usePermissions();
 
     const [tournamentData, setTournamentData] = useState(null);
     const [standings, setStandings] = useState([]);
@@ -19,8 +18,6 @@ const TournamentDashboard = () => {
     const [error, setError] = useState(null);
     const [activeTab, setActiveTab] = useState('standings');
 
-    // Check permissions
-    const isAdmin = permissions.some(p => p.name === 'tournament_manage');
     const leagueId = activeLeague?.league_id;
 
     const fetchTournamentData = useCallback(async () => {
@@ -136,7 +133,6 @@ const TournamentDashboard = () => {
                 <div className="alert alert-info">
                     <i className="fas fa-info-circle me-2"></i>
                     The tournament hasn't started yet. The league is still in regular season.
-                    {isAdmin && ' Use the admin panel below to end the regular season when ready.'}
                 </div>
             )}
 
@@ -210,17 +206,6 @@ const TournamentDashboard = () => {
                                 Pods
                             </button>
                         </li>
-                        {isAdmin && (
-                            <li className="nav-item">
-                                <button
-                                    className={`nav-link ${activeTab === 'admin' ? 'active' : ''}`}
-                                    onClick={() => setActiveTab('admin')}
-                                >
-                                    <i className="fas fa-cog me-1"></i>
-                                    Admin
-                                </button>
-                            </li>
-                        )}
                     </ul>
 
                     {/* Tab Content */}
@@ -239,25 +224,7 @@ const TournamentDashboard = () => {
                             currentUserId={user?.id}
                         />
                     )}
-                    {activeTab === 'admin' && isAdmin && (
-                        <TournamentAdminPanel
-                            leagueId={leagueId}
-                            league={league}
-                            podStats={tournamentData?.podStats}
-                            onRefresh={fetchTournamentData}
-                        />
-                    )}
                 </>
-            )}
-
-            {/* Admin Panel for Regular Season */}
-            {isRegularSeason && isAdmin && (
-                <TournamentAdminPanel
-                    leagueId={leagueId}
-                    league={league}
-                    podStats={null}
-                    onRefresh={fetchTournamentData}
-                />
             )}
         </div>
     );

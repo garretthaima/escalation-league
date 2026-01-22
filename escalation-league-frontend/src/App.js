@@ -15,7 +15,7 @@ import Rules from './components/Static/Rules';
 import Awards from './components/Static/Awards';
 import NotAuthorized from './components/Auth/NotAuthorized';
 import PublicProfile from './components/Auth/Profile/PublicProfile';
-import { LeagueAdminPage, PodAdminPage, UserRoleManagementPage, AttendanceAdminPage, ActivityLogsPage } from './components/Admin';
+import { LeagueAdminPage, UserRoleManagementPage, ActivityLogsPage } from './components/Admin';
 import EditPodPage from './components/Admin/EditPodPage';
 import { HomePage, Footer, Contact } from './components/Shared/';
 import { ToastProvider } from './components/context/ToastContext';
@@ -23,7 +23,7 @@ import { WebSocketProvider } from './components/context/WebSocketProvider';
 import { BudgetDashboard } from './components/Budget';
 import { MetagameDashboard } from './components/Metagame';
 import { TournamentDashboard } from './components/Tournament';
-import { AttendancePage, PodSuggestionsPage, MatchupMatrixPage } from './components/Attendance';
+import { AttendancePage, PodSuggestionsPage } from './components/Attendance';
 import { logoutUser } from './api/authApi';
 
 const App = () => {
@@ -111,13 +111,15 @@ const App = () => {
 
                             {/* Admin Section */}
                             <Route path="/admin/leagues" element={<LeagueAdminPage />} />
-                            <Route path="/admin/pods" element={<PodAdminPage />} />
                             <Route path="/admin/pods/:podId" element={<EditPodPage />} />
                             <Route path="/admin/leagues/create" element={<CreateLeaguePage />} />
                             <Route path="/admin/users" element={<UserRoleManagementPage />} />
-                            <Route path="/admin/attendance" element={<AttendanceAdminPage />} />
-                            <Route path="/admin/matchup-matrix" element={<MatchupMatrixPage />} />
                             <Route path="/admin/activity-logs" element={<ActivityLogsPage />} />
+
+                            {/* Legacy admin routes - redirect to consolidated page */}
+                            <Route path="/admin/pods" element={<Navigate to="/admin/leagues#pods" replace />} />
+                            <Route path="/admin/attendance" element={<Navigate to="/admin/leagues#attendance" replace />} />
+                            <Route path="/admin/matchup-matrix" element={<Navigate to="/admin/leagues#attendance" replace />} />
 
 
                             {/* Not Authorized Page */}
