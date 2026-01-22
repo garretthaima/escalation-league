@@ -1,8 +1,21 @@
+/* ===========================================
+   FONT SELECTION - Toggle between fonts here
+   To switch: comment/uncomment the font-family line
+   =========================================== */
+
+/* Option 1: Space Grotesk (techy, geometric) */
+/* :root {
+  --font-primary: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+} */
+
+/* Option 2: Sora (futuristic, sharp) */
+:root {
+  --font-primary: 'Sora', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: var(--font-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

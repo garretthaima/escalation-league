@@ -5,6 +5,7 @@ import { getBudget, createBudget, getBudgetCards, getBudgetSummary, refreshCardP
 import CardSearch from './CardSearch';
 import BudgetCardList from './BudgetCardList';
 import WeeklySummary from './WeeklySummary';
+import LoadingSpinner from '../Shared/LoadingSpinner';
 import './BudgetDashboard.css';
 
 const BudgetDashboard = () => {
@@ -99,10 +100,8 @@ const BudgetDashboard = () => {
     if (loading) {
         return (
             <div className="container mt-4">
-                <div className="text-center">
-                    <div className="spinner-border" role="status">
-                        <span className="visually-hidden">Loading...</span>
-                    </div>
+                <div className="text-center py-5">
+                    <LoadingSpinner size="lg" />
                 </div>
             </div>
         );

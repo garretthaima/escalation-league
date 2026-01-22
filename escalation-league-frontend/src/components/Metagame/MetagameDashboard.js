@@ -4,6 +4,7 @@ import { getActiveLeague } from '../../api/leaguesApi';
 import { getMetagameAnalysis, getTurnOrderStats, getCategoryCards } from '../../api/metagameApi';
 import ColorDistributionChart from './ColorDistributionChart';
 import ManaCurveChart from './ManaCurveChart';
+import LoadingSpinner from '../Shared/LoadingSpinner';
 import './MetagameDashboard.css';
 
 const MetagameDashboard = () => {
@@ -71,10 +72,8 @@ const MetagameDashboard = () => {
     if (loading) {
         return (
             <div className="container mt-4">
-                <div className="text-center">
-                    <div className="spinner-border" role="status">
-                        <span className="visually-hidden">Loading...</span>
-                    </div>
+                <div className="text-center py-5">
+                    <LoadingSpinner size="lg" />
                 </div>
             </div>
         );
@@ -815,9 +814,7 @@ const MetagameDashboard = () => {
                             <div className="modal-body">
                                 {categoryModal.loading ? (
                                     <div className="text-center py-4">
-                                        <div className="spinner-border" role="status">
-                                            <span className="visually-hidden">Loading...</span>
-                                        </div>
+                                        <LoadingSpinner size="md" />
                                     </div>
                                 ) : categoryModal.error ? (
                                     <div className="alert alert-danger">{categoryModal.error}</div>

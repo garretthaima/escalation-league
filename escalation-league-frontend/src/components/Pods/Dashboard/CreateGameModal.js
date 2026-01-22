@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { getLeagueParticipants } from '../../../api/userLeaguesApi';
 import { createPod } from '../../../api/podsApi';
 import { useToast } from '../../context/ToastContext';
+import LoadingSpinner from '../../Shared/LoadingSpinner';
 
 /**
  * Modal for creating a new game with player selection and turn order
@@ -156,9 +157,7 @@ const CreateGameModal = ({ show, onHide, leagueId, userId, onGameCreated }) => {
                         <div className="modal-body">
                             {loading ? (
                                 <div className="text-center py-4">
-                                    <div className="spinner-border" role="status">
-                                        <span className="visually-hidden">Loading...</span>
-                                    </div>
+                                    <LoadingSpinner size="md" />
                                 </div>
                             ) : (
                                 <div className="row">

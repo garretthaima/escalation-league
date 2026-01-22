@@ -8,7 +8,7 @@ import './Navbar.css';
 import './Navbar-mobile.css'; // Mobile-specific overrides
 
 const Navbar = ({ handleLogout }) => {
-    const { permissions, user, darkMode, toggleDarkMode, activeLeague, loading } = usePermissions();
+    const { permissions, user, darkMode, toggleDarkMode, bgPattern, cycleBackgroundPattern, activeLeague, loading } = usePermissions();
     const location = useLocation();
     const navbarCollapseRef = useRef(null);
 
@@ -153,6 +153,13 @@ const Navbar = ({ handleLogout }) => {
                                         <i className={`fas ${darkMode ? 'fa-sun' : 'fa-moon'}`}></i> {darkMode ? 'Light Mode' : 'Dark Mode'}
                                     </button>
                                 </li>
+                                {darkMode && (
+                                    <li className="nav-item">
+                                        <button className="nav-link btn btn-link w-100 text-start" onClick={() => { cycleBackgroundPattern(); collapseNavbar(); }}>
+                                            <i className="fas fa-paint-brush"></i> Background: {bgPattern.charAt(0).toUpperCase() + bgPattern.slice(1)}
+                                        </button>
+                                    </li>
+                                )}
                                 <li className="nav-item">
                                     <button className="nav-link btn btn-link w-100 text-start" onClick={handleLogout}>
                                         <i className="fas fa-sign-out-alt"></i> Logout
@@ -164,7 +171,7 @@ const Navbar = ({ handleLogout }) => {
                 </div>
                 <div className="navbar-right-buttons">
                     {user && <NotificationCenter />}
-                    <ProfileSection user={user} handleLogout={handleLogout} darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+                    <ProfileSection user={user} handleLogout={handleLogout} darkMode={darkMode} toggleDarkMode={toggleDarkMode} bgPattern={bgPattern} cycleBackgroundPattern={cycleBackgroundPattern} />
                 </div>
             </div>
         </nav>

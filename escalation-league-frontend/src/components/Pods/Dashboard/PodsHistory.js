@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { getPods } from '../../../api/podsApi';
 import { getUserProfile } from '../../../api/usersApi';
 import { usePermissions } from '../../context/PermissionsProvider';
+import LoadingSpinner from '../../Shared/LoadingSpinner';
 
 /**
  * Full completed games page with filtering and export
@@ -120,9 +121,7 @@ const PodsHistory = () => {
         return (
             <div className="container mt-4">
                 <div className="text-center py-5">
-                    <div className="spinner-border" role="status">
-                        <span className="visually-hidden">Loading...</span>
-                    </div>
+                    <LoadingSpinner size="lg" />
                 </div>
             </div>
         );

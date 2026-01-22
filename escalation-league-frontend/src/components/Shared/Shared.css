@@ -34,62 +34,40 @@
 }
 
 .quick-links .homepage-card {
-    background: white;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 1rem;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.5rem;
     width: 30%;
     text-align: center;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 24px var(--shadow);
     cursor: pointer;
-    transition: transform 0.2s;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .quick-links .homepage-card:hover {
-    transform: scale(1.05);
+    transform: translateY(-4px);
+    box-shadow: 0 6px 32px var(--shadow);
 }
 
-/* Dark Mode for Quick Links */
-body.dark-mode .quick-links .homepage-card {
-    background: #333;
-    /* Dark background for cards */
-    color: white;
-    /* White text for better contrast */
-    border: 1px solid #555;
-    /* Subtle border for dark mode */
-}
-
-body.dark-mode .quick-links .homepage-card:hover {
-    background: #444;
-    /* Slightly lighter background on hover */
-    transform: scale(1.05);
-    /* Keep the hover effect */
-}
+/* Dark mode handled automatically via CSS variables */
 
 .contact-page {
     max-width: 600px;
     margin: 0 auto;
-    padding: 20px;
-    background: #f9f9f9;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    padding: 1.5rem;
+    background: var(--bg-primary);
+    border-radius: 12px;
+    box-shadow: 0 4px 24px var(--shadow);
+    border: 1px solid var(--border-color);
 }
 
 .contact-page h1 {
-    color: #333;
+    color: var(--text-primary);
 }
 
-body.dark-mode .contact-page {
-    background: #2a2a2a;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
-}
-
-body.dark-mode .contact-page h1 {
-    color: #e0e0e0;
-}
-
-body.dark-mode .contact-page p {
-    color: #e0e0e0;
+.contact-page p {
+    color: var(--text-secondary);
 }
 
 .contact-form .form-label {
@@ -109,35 +87,26 @@ body.dark-mode .contact-page p {
 .privacy-policy {
     max-width: 800px;
     margin: 0 auto;
-    padding: 20px;
-    background: #f9f9f9;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    padding: 1.5rem;
+    background: var(--bg-primary);
+    border-radius: 12px;
+    box-shadow: 0 4px 24px var(--shadow);
+    border: 1px solid var(--border-color);
 }
 
 .privacy-policy h1,
 .privacy-policy h2 {
-    color: #333;
+    color: var(--text-primary);
+}
+
+.privacy-policy p,
+.privacy-policy li {
+    color: var(--text-secondary);
 }
 
 .privacy-policy ul {
     list-style: disc;
     margin-left: 20px;
-}
-
-body.dark-mode .privacy-policy {
-    background: #2a2a2a;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
-}
-
-body.dark-mode .privacy-policy h1,
-body.dark-mode .privacy-policy h2 {
-    color: #e0e0e0;
-}
-
-body.dark-mode .privacy-policy p,
-body.dark-mode .privacy-policy li {
-    color: #e0e0e0;
 }
 
 /* Footer Styling */

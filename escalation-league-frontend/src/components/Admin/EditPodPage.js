@@ -5,6 +5,7 @@ import { getPods } from '../../api/podsApi';
 import { getLeagueParticipants } from '../../api/userLeaguesApi';
 import { useToast } from '../context/ToastContext';
 import ConfirmModal from '../Shared/ConfirmModal';
+import LoadingSpinner from '../Shared/LoadingSpinner';
 import './EditPodPage.css';
 
 const EditPodPage = () => {
@@ -378,10 +379,8 @@ const EditPodPage = () => {
     if (loading) {
         return (
             <div className="container mt-4">
-                <div className="text-center">
-                    <div className="spinner-border" role="status">
-                        <span className="visually-hidden">Loading...</span>
-                    </div>
+                <div className="text-center py-5">
+                    <LoadingSpinner size="lg" />
                 </div>
             </div>
         );

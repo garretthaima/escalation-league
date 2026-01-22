@@ -6,6 +6,7 @@ import { usePermissions } from '../../context/PermissionsProvider';
 import { useToast } from '../../context/ToastContext';
 import { useWebSocket } from '../../context/WebSocketProvider';
 import CollapsibleSection from '../../Shared/CollapsibleSection';
+import LoadingSpinner from '../../Shared/LoadingSpinner';
 import GameCard from './GameCard';
 import ConfirmationCard from './ConfirmationCard';
 import CreateGameModal from './CreateGameModal';
@@ -238,9 +239,7 @@ const PodsDashboard = () => {
         return (
             <div className="container mt-4">
                 <div className="text-center py-5">
-                    <div className="spinner-border" role="status">
-                        <span className="visually-hidden">Loading...</span>
-                    </div>
+                    <LoadingSpinner size="lg" />
                 </div>
             </div>
         );
@@ -348,7 +347,7 @@ const PodsDashboard = () => {
                 ) : (
                     <div className="row g-3">
                         {pendingPods.map(pod => (
-                            <div key={pod.id} className="col-md-6">
+                            <div key={pod.id} className="col-md-6 col-lg-4">
                                 <ConfirmationCard
                                     pod={pod}
                                     userId={userId}

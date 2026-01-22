@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { getActivityLogs, getActionTypes } from '../../api/activityLogsApi';
 import { getAllUsers } from '../../api/adminApi';
 import { useToast } from '../context/ToastContext';
+import LoadingSpinner from '../Shared/LoadingSpinner';
 import './ActivityLogsPage.css';
 
 const ActivityLogsPage = () => {
@@ -220,9 +221,7 @@ const ActivityLogsPage = () => {
                 <div className="card-body">
                     {loading ? (
                         <div className="text-center py-5">
-                            <div className="spinner-border text-primary" role="status">
-                                <span className="visually-hidden">Loading...</span>
-                            </div>
+                            <LoadingSpinner size="md" />
                         </div>
                     ) : logs.length === 0 ? (
                         <div className="alert alert-info text-center">

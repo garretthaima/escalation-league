@@ -3,7 +3,18 @@ import { Link } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import './ProfileSection.css';
 
-const ProfileSection = ({ user, handleLogout, darkMode, toggleDarkMode }) => {
+// Pattern display names and icons (using Font Awesome 5 Free icons)
+const PATTERN_INFO = {
+    none: { name: 'Solid', icon: 'fa-square' },
+    grid: { name: 'Grid', icon: 'fa-th' },
+    dots: { name: 'Dots', icon: 'fa-braille' },
+    hex: { name: 'Hex', icon: 'fa-dice-d6' },
+    topo: { name: 'Topo', icon: 'fa-mountain' },
+    noise: { name: 'Noise', icon: 'fa-random' },
+    gradient: { name: 'Gradient', icon: 'fa-adjust' }
+};
+
+const ProfileSection = ({ user, handleLogout, darkMode, toggleDarkMode, bgPattern, cycleBackgroundPattern }) => {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
     const dropdownMenuRef = useRef(null);
@@ -126,6 +137,27 @@ const ProfileSection = ({ user, handleLogout, darkMode, toggleDarkMode }) => {
                             <i className={`fas ${darkMode ? 'fa-sun' : 'fa-moon'}`} style={{ marginRight: '0.75rem', width: '20px', textAlign: 'center' }}></i> {darkMode ? 'Light Mode' : 'Dark Mode'}
                         </button>
                     </li>
+                    {darkMode && (
+                        <li>
+                            <button
+                                className="dropdown-item"
+                                onClick={() => handleItemClick(cycleBackgroundPattern)}
+                                style={{
+                                    color: 'rgba(255, 255, 255, 0.85)',
+                                    padding: '0.75rem 1rem',
+                                    fontSize: '0.95rem',
+                                    background: 'transparent',
+                                    border: 'none',
+                                    width: '100%',
+                                    textAlign: 'left',
+                                    cursor: 'pointer',
+                                    display: 'block'
+                                }}
+                            >
+                                <i className={`fas ${PATTERN_INFO[bgPattern]?.icon || 'fa-paint-brush'}`} style={{ marginRight: '0.75rem', width: '20px', textAlign: 'center' }}></i> Background: {PATTERN_INFO[bgPattern]?.name || 'Solid'}
+                            </button>
+                        </li>
+                    )}
                     <li><hr className="dropdown-divider" style={{ borderColor: 'rgba(255, 255, 255, 0.15)', margin: '0.5rem 0' }} /></li>
                     <li>
                         <button

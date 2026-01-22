@@ -5,6 +5,7 @@ import { getLeagueParticipants, getUserLeagueStats } from '../../../api/userLeag
 import { getMetagameAnalysis } from '../../../api/metagameApi';
 import { usePermissions } from '../../context/PermissionsProvider';
 import CollapsibleSection from '../../Shared/CollapsibleSection';
+import LoadingSpinner from '../../Shared/LoadingSpinner';
 import UserStandingCard from './UserStandingCard';
 import LeaderboardSection from './LeaderboardSection';
 import MetagamePreview from './MetagamePreview';
@@ -107,9 +108,7 @@ const LeagueDashboard = () => {
         return (
             <div className="container mt-4">
                 <div className="text-center py-5">
-                    <div className="spinner-border" role="status">
-                        <span className="visually-hidden">Loading...</span>
-                    </div>
+                    <LoadingSpinner size="lg" />
                 </div>
             </div>
         );

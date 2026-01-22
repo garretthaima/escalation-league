@@ -6,7 +6,7 @@
         padding: 0.5rem 1rem !important;
         min-height: 56px !important;
         max-height: 56px !important;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+        box-shadow: 0 2px 4px var(--shadow) !important;
     }
 
     /* Container - space-between for left and right groups */
@@ -124,7 +124,7 @@
         left: 0 !important;
         right: 0 !important;
         bottom: 0 !important;
-        background-color: #2d1b4e !important;
+        background-color: var(--brand-purple) !important;
         z-index: 1050 !important;
         padding: 1rem !important;
         overflow-y: auto !important;

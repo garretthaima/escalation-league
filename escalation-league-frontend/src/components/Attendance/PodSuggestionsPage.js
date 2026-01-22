@@ -4,6 +4,7 @@ import { getPodSuggestions, getSession } from '../../api/attendanceApi';
 import { createPod } from '../../api/podsApi';
 import { usePermissions } from '../context/PermissionsProvider';
 import { useToast } from '../context/ToastContext';
+import LoadingSpinner from '../Shared/LoadingSpinner';
 import './PodSuggestionsPage.css';
 
 const PodSuggestionsPage = () => {
@@ -215,11 +216,8 @@ const PodSuggestionsPage = () => {
 
     if (loading) {
         return (
-            <div className="container mt-4 text-center">
-                <div className="spinner-border text-primary" role="status">
-                    <span className="visually-hidden">Loading...</span>
-                </div>
-                <p className="mt-2">Calculating optimal pods...</p>
+            <div className="container mt-4 text-center py-5">
+                <LoadingSpinner size="lg" showText text="Calculating optimal pods..." />
             </div>
         );
     }

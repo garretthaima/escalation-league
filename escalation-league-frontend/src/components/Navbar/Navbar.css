@@ -53,7 +53,7 @@
 }
 
 .dropdown-divider {
-    border-top: 1px solid #ddd;
+    border-top: 1px solid var(--border-color);
     margin: 0.5rem 0;
 }
 
@@ -64,8 +64,8 @@
     position: sticky;
     top: 0;
     z-index: 1030;
-    background: linear-gradient(135deg, #2d1b4e 0%, #4a2f70 100%) !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    background: linear-gradient(135deg, var(--brand-purple) 0%, var(--brand-purple-light) 100%) !important;
+    box-shadow: 0 2px 8px var(--shadow);
     color: white;
 }
 
@@ -135,10 +135,8 @@
 
 .dropdown-menu {
     min-width: 200px;
-    border: 1px solid #007bff;
-    /* Blue border */
-    border-radius: 5px;
-    /* Rounded corners */
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
     transition: all 0.3s ease-in-out;
     opacity: 0;
     transform: translateY(-10px);

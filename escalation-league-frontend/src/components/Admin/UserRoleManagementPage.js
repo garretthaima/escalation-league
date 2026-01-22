@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { getAllUsers, getAllRoles, assignUserRole } from '../../api/adminApi';
 import { useToast } from '../context/ToastContext';
+import LoadingSpinner from '../Shared/LoadingSpinner';
 import './UserRoleManagementPage.css';
 
 const UserRoleManagementPage = () => {
@@ -101,10 +102,8 @@ const UserRoleManagementPage = () => {
 
     if (loading) {
         return (
-            <div className="container mt-4 text-center">
-                <div className="spinner-border" role="status">
-                    <span className="visually-hidden">Loading...</span>
-                </div>
+            <div className="container mt-4 text-center py-5">
+                <LoadingSpinner size="lg" />
             </div>
         );
     }

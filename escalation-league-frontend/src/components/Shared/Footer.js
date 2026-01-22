@@ -16,7 +16,7 @@ const Footer = () => {
     return (
         <footer className="footer">
             <div className="container">
-                <p>&copy; 2025 Escalation League. All rights reserved.
+                <p>Escalation League 2025
                     {buildInfo && (
                         <span style={{ marginLeft: '1rem', fontSize: '0.85rem', opacity: 0.7 }}>
                             Build Id - {buildInfo.gitCommit}

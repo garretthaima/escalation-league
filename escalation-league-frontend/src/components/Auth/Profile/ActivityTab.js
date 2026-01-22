@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { getMyActivityLogs } from '../../../api/activityLogsApi';
+import LoadingSpinner from '../../Shared/LoadingSpinner';
 
 const ActivityTab = () => {
     const [logs, setLogs] = useState([]);
@@ -63,9 +64,7 @@ const ActivityTab = () => {
     if (loading && logs.length === 0) {
         return (
             <div className="text-center py-4">
-                <div className="spinner-border text-primary" role="status">
-                    <span className="visually-hidden">Loading...</span>
-                </div>
+                <LoadingSpinner size="md" />
             </div>
         );
     }
