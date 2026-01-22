@@ -14,6 +14,8 @@ const CreateGameModal = ({ show, onHide, leagueId, userId, onGameCreated }) => {
     const [turnOrder, setTurnOrder] = useState([]);
     const [creating, setCreating] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [draggedId, setDraggedId] = useState(null);
+    const [dragOverId, setDragOverId] = useState(null);
     const { showToast } = useToast();
 
     // Load league participants when modal opens
@@ -55,7 +57,14 @@ const CreateGameModal = ({ show, onHide, leagueId, userId, onGameCreated }) => {
     // Toggle player selection
     const togglePlayer = (user) => {
         const isSelected = selectedPlayers.some(p => String(p.id) === String(user.id));
+        const isCurrentUser = String(user.id) === String(userId);
+
         if (isSelected) {
+            // Prevent removing yourself from the game
+            if (isCurrentUser) {
+                showToast('You cannot remove yourself from the game', 'warning');
+                return;
+            }
             setSelectedPlayers(prev => prev.filter(p => String(p.id) !== String(user.id)));
             setTurnOrder(prev => prev.filter(id => String(id) !== String(user.id)));
         } else {
@@ -108,6 +117,47 @@ const CreateGameModal = ({ show, onHide, leagueId, userId, onGameCreated }) => {
     const getPlayer = useCallback((playerId) => {
         return leagueUsers.find(p => String(p.id) === String(playerId));
     }, [leagueUsers]);
+
+    // Drag and drop handlers
+    const handleDragStart = useCallback((e, playerId) => {
+        setDraggedId(playerId);
+        e.dataTransfer.effectAllowed = 'move';
+    }, []);
+
+    const handleDragOver = useCallback((e, playerId) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        if (playerId !== draggedId) {
+            setDragOverId(playerId);
+        }
+    }, [draggedId]);
+
+    const handleDragLeave = useCallback(() => {
+        setDragOverId(null);
+    }, []);
+
+    const handleDrop = useCallback((e, targetId) => {
+        e.preventDefault();
+        if (draggedId && draggedId !== targetId) {
+            setTurnOrder(prev => {
+                const order = [...prev];
+                const draggedIndex = order.indexOf(draggedId);
+                const targetIndex = order.indexOf(targetId);
+                if (draggedIndex !== -1 && targetIndex !== -1) {
+                    order.splice(draggedIndex, 1);
+                    order.splice(targetIndex, 0, draggedId);
+                }
+                return order;
+            });
+        }
+        setDraggedId(null);
+        setDragOverId(null);
+    }, [draggedId]);
+
+    const handleDragEnd = useCallback(() => {
+        setDraggedId(null);
+        setDragOverId(null);
+    }, []);
 
     // Create the game
     const handleCreate = async () => {
@@ -232,7 +282,9 @@ const CreateGameModal = ({ show, onHide, leagueId, userId, onGameCreated }) => {
                                             </button>
                                         </div>
                                         <p className="text-muted small mb-2">
-                                            Use arrows to reorder who goes first
+                                            <span className="d-none d-md-inline">Drag to reorder or use </span>
+                                            <span className="d-md-none">Use </span>
+                                            arrows to reorder
                                         </p>
                                         {turnOrder.length === 0 ? (
                                             <div className="alert alert-secondary mb-0">
@@ -244,16 +296,28 @@ const CreateGameModal = ({ show, onHide, leagueId, userId, onGameCreated }) => {
                                                 {turnOrder.map((playerId, index) => {
                                                     const player = getPlayer(playerId);
                                                     if (!player) return null;
+                                                    const isDragging = draggedId === playerId;
+                                                    const isDragOver = dragOverId === playerId;
                                                     return (
                                                         <div
                                                             key={playerId}
+                                                            draggable
+                                                            onDragStart={(e) => handleDragStart(e, playerId)}
+                                                            onDragOver={(e) => handleDragOver(e, playerId)}
+                                                            onDragLeave={handleDragLeave}
+                                                            onDrop={(e) => handleDrop(e, playerId)}
+                                                            onDragEnd={handleDragEnd}
                                                             className="list-group-item d-flex justify-content-between align-items-center py-2"
                                                             style={{
-                                                                background: index === 0 ? 'rgba(212, 175, 55, 0.15)' : 'var(--bg-primary)',
-                                                                borderColor: index === 0 ? 'var(--brand-gold)' : 'var(--border-color)'
+                                                                background: isDragOver ? 'rgba(45, 27, 78, 0.2)' : index === 0 ? 'rgba(212, 175, 55, 0.15)' : 'var(--bg-primary)',
+                                                                borderColor: isDragOver ? 'var(--brand-purple)' : index === 0 ? 'var(--brand-gold)' : 'var(--border-color)',
+                                                                opacity: isDragging ? 0.5 : 1,
+                                                                cursor: 'grab',
+                                                                transition: 'background 0.15s, border-color 0.15s'
                                                             }}
                                                         >
                                                             <div className="d-flex align-items-center flex-grow-1 min-width-0">
+                                                                <i className="fas fa-grip-vertical text-muted me-2 flex-shrink-0 d-none d-md-inline" style={{ cursor: 'grab' }}></i>
                                                                 <span
                                                                     className="badge me-2 flex-shrink-0"
                                                                     style={{

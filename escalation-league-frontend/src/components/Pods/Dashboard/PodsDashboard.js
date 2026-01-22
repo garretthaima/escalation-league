@@ -368,7 +368,11 @@ const PodsDashboard = () => {
                 id="completed-games"
                 defaultOpen={false}
                 actions={
-                    <Link to="/pods/history" className="btn btn-sm btn-outline-primary">
+                    <Link
+                        to="/pods/history"
+                        className="text-decoration-none small"
+                        style={{ color: 'var(--text-secondary)' }}
+                    >
                         View All
                     </Link>
                 }

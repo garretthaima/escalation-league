@@ -178,21 +178,33 @@
     }
 }
 
+/* Consistent card header height for collapsible sections */
+.card > .card-header {
+    min-height: 56px;
+    display: flex;
+    align-items: center;
+}
+
 /* Mobile optimizations for page headers */
 @media (max-width: 768px) {
     h1 {
         font-size: 1.5rem !important;
     }
-    
+
     h2 {
         font-size: 1.25rem !important;
     }
-    
+
     h3 {
         font-size: 1.1rem !important;
     }
-    
+
     .card-header h5 {
         font-size: 1rem !important;
+    }
+
+    /* Slightly smaller card header on mobile */
+    .card > .card-header {
+        min-height: 48px;
     }
 }

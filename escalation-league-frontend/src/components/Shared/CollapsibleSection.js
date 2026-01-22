@@ -15,18 +15,18 @@ const CollapsibleSection = ({
     return (
         <div className="card mb-4" id={id}>
             <div
-                className="card-header d-flex justify-content-between align-items-center"
+                className="card-header d-flex justify-content-between align-items-center gap-2"
                 onClick={() => setIsOpen(!isOpen)}
                 style={{ cursor: 'pointer' }}
             >
-                <div className="d-flex align-items-center">
-                    {icon && <i className={`${icon} me-2`}></i>}
-                    <h5 className="mb-0">{title}</h5>
-                    {badge != null && badge !== 0 && <span className="badge bg-secondary ms-2">{badge}</span>}
+                <div className="d-flex align-items-center flex-shrink-1 min-width-0">
+                    {icon && <i className={`${icon} me-2 flex-shrink-0`}></i>}
+                    <h5 className="mb-0 text-truncate">{title}</h5>
+                    {badge != null && badge !== 0 && <span className="badge bg-secondary ms-2 flex-shrink-0">{badge}</span>}
                 </div>
-                <div className="d-flex align-items-center">
+                <div className="d-flex align-items-center flex-shrink-0 gap-2">
                     {actions && (
-                        <div className="me-3" onClick={(e) => e.stopPropagation()}>
+                        <div onClick={(e) => e.stopPropagation()}>
                             {actions}
                         </div>
                     )}
