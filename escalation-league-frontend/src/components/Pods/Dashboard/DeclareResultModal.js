@@ -27,26 +27,34 @@ const DeclareResultModal = ({ show, onHide, onDeclareWin, onDeclareDraw }) => {
                         <div className="modal-body">
                             <p>How did this game end? Other players will be notified to confirm the result.</p>
                         </div>
-                        <div className="modal-footer">
+                        <div className="modal-footer flex-column">
+                            <div className="d-flex gap-2 w-100">
+                                <button
+                                    type="button"
+                                    className="btn btn-secondary flex-fill"
+                                    onClick={onHide}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    className="btn btn-outline-secondary flex-fill"
+                                    onClick={onDeclareDraw}
+                                >
+                                    <i className="fas fa-handshake me-1"></i>
+                                    Declare Draw
+                                </button>
+                            </div>
                             <button
                                 type="button"
-                                className="btn btn-secondary"
-                                onClick={onHide}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="button"
-                                className="btn btn-outline-secondary"
-                                onClick={onDeclareDraw}
-                            >
-                                <i className="fas fa-handshake me-1"></i>
-                                Declare Draw
-                            </button>
-                            <button
-                                type="button"
-                                className="btn btn-success"
+                                className="btn w-100"
                                 onClick={onDeclareWin}
+                                style={{
+                                    background: 'var(--brand-gold)',
+                                    borderColor: 'var(--brand-gold)',
+                                    color: '#1a1a2e',
+                                    fontWeight: 600
+                                }}
                             >
                                 <i className="fas fa-trophy me-1"></i>
                                 I Won!
