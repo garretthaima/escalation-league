@@ -4,15 +4,11 @@ import { isUserInLeague } from '../../api/userLeaguesApi'; // Import the API cal
 
 const PermissionsContext = createContext();
 
-// Available background patterns
-const BACKGROUND_PATTERNS = ['none', 'grid', 'dots', 'hex', 'topo', 'noise', 'gradient'];
-
 export const PermissionsProvider = ({ children }) => {
     const [permissions, setPermissions] = useState([]);
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [darkMode, setDarkMode] = useState(true); // Default to dark mode
-    const [bgPattern, setBgPattern] = useState('none'); // Background pattern
     const [activeLeague, setActiveLeague] = useState(null); // Add activeLeague state
     const [refreshKey, setRefreshKey] = useState(0); // Add refresh mechanism
     const refreshResolvers = useRef([]); // Store promise resolvers for refreshUserData
@@ -37,19 +33,9 @@ export const PermissionsProvider = ({ children }) => {
             const profileData = await getUserProfile();
             setUser(profileData.user); // Store the full user object
 
-            // Fetch user settings (including dark mode and background pattern)
+            // Fetch user settings (dark mode)
             const darkModeSetting = await getUserSetting('dark_mode'); // Fetch dark_mode setting
             setDarkMode(darkModeSetting.value === 'true'); // Set dark mode based on the backend value
-
-            // Fetch background pattern setting
-            try {
-                const bgPatternSetting = await getUserSetting('bg_pattern');
-                if (bgPatternSetting.value && BACKGROUND_PATTERNS.includes(bgPatternSetting.value)) {
-                    setBgPattern(bgPatternSetting.value);
-                }
-            } catch {
-                // Setting doesn't exist yet, use default
-            }
 
             // Fetch active league
             const { inLeague, league } = await isUserInLeague();
@@ -96,31 +82,6 @@ export const PermissionsProvider = ({ children }) => {
         }
     };
 
-    // Cycle through background patterns
-    const cycleBackgroundPattern = async () => {
-        const currentIndex = BACKGROUND_PATTERNS.indexOf(bgPattern);
-        const nextIndex = (currentIndex + 1) % BACKGROUND_PATTERNS.length;
-        const newPattern = BACKGROUND_PATTERNS[nextIndex];
-        setBgPattern(newPattern);
-        try {
-            await updateUserSetting('bg_pattern', newPattern);
-        } catch (err) {
-            console.error('Failed to update background pattern setting:', err);
-        }
-    };
-
-    // Set specific background pattern
-    const setBackgroundPattern = async (pattern) => {
-        if (BACKGROUND_PATTERNS.includes(pattern)) {
-            setBgPattern(pattern);
-            try {
-                await updateUserSetting('bg_pattern', pattern);
-            } catch (err) {
-                console.error('Failed to update background pattern setting:', err);
-            }
-        }
-    };
-
     useEffect(() => {
         // Apply dark mode class to the body
         if (darkMode) {
@@ -129,16 +90,6 @@ export const PermissionsProvider = ({ children }) => {
             document.body.classList.remove('dark-mode');
         }
     }, [darkMode]); // Runs whenever darkMode changes
-
-    useEffect(() => {
-        // Apply background pattern class to the body
-        // Remove all pattern classes first
-        BACKGROUND_PATTERNS.forEach(p => {
-            document.body.classList.remove(`pattern-${p}`);
-        });
-        // Add the current pattern class
-        document.body.classList.add(`pattern-${bgPattern}`);
-    }, [bgPattern]); // Runs whenever bgPattern changes
 
     return (
         <PermissionsContext.Provider
@@ -152,10 +103,6 @@ export const PermissionsProvider = ({ children }) => {
                 loading,
                 darkMode,
                 toggleDarkMode, // Expose toggle function
-                bgPattern, // Expose current background pattern
-                cycleBackgroundPattern, // Expose cycle function
-                setBackgroundPattern, // Expose direct setter
-                backgroundPatterns: BACKGROUND_PATTERNS, // Expose available patterns
                 refreshUserData, // Expose refresh function
             }}
         >

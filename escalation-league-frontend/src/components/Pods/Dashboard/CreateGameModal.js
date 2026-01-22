@@ -248,10 +248,10 @@ const CreateGameModal = ({ show, onHide, leagueId, userId, onGameCreated }) => {
                                                         <div
                                                             key={playerId}
                                                             className="list-group-item d-flex justify-content-between align-items-center py-2"
-                                                            style={index === 0 ? {
-                                                                background: 'rgba(212, 175, 55, 0.15)',
-                                                                borderColor: 'var(--brand-gold)'
-                                                            } : {}}
+                                                            style={{
+                                                                background: index === 0 ? 'rgba(212, 175, 55, 0.15)' : 'var(--bg-primary)',
+                                                                borderColor: index === 0 ? 'var(--brand-gold)' : 'var(--border-color)'
+                                                            }}
                                                         >
                                                             <div className="d-flex align-items-center flex-grow-1 min-width-0">
                                                                 <span
