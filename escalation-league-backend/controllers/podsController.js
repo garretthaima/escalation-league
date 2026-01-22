@@ -333,11 +333,15 @@ const logPodResult = async (req, res) => {
                 return res.status(404).json({ error: 'League not found for this pod.' });
             }
 
-            // Fetch league point settings
+            // Fetch league point settings (including tournament settings)
             const league = await db('leagues')
                 .where({ id: pod.league_id })
-                .select('points_per_win', 'points_per_loss', 'points_per_draw')
+                .select('points_per_win', 'points_per_loss', 'points_per_draw',
+                    'tournament_win_points', 'tournament_non_win_points', 'tournament_dq_points')
                 .first();
+
+            // Fetch full pod data to check if tournament game
+            const fullPod = await db('game_pods').where({ id: podId }).first();
 
             // Update stats for all participants
             for (const p of participants) {
@@ -379,6 +383,37 @@ const logPodResult = async (req, res) => {
                         league_draws: draws,
                         total_points: points
                     });
+            }
+
+            // Tournament scoring - if this is a tournament game
+            if (fullPod.is_tournament_game) {
+                for (const p of participants) {
+                    let tPoints = 0;
+                    let tWins = 0;
+                    let tNonWins = 0;
+                    let tDqs = 0;
+
+                    if (p.result === 'disqualified') {
+                        tPoints = league.tournament_dq_points || 0;
+                        tDqs = 1;
+                    } else if (p.result === 'win') {
+                        tPoints = league.tournament_win_points || 4;
+                        tWins = 1;
+                    } else {
+                        // loss or draw both count as non-win
+                        tPoints = league.tournament_non_win_points || 1;
+                        tNonWins = 1;
+                    }
+
+                    await db('user_leagues')
+                        .where({ user_id: p.player_id, league_id: pod.league_id })
+                        .increment({
+                            tournament_points: tPoints,
+                            tournament_wins: tWins,
+                            tournament_non_wins: tNonWins,
+                            tournament_dqs: tDqs
+                        });
+                }
             }
 
             // Update the pod's status to 'complete'

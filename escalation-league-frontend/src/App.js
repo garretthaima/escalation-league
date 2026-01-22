@@ -22,6 +22,7 @@ import { ToastProvider } from './components/context/ToastContext';
 import { WebSocketProvider } from './components/context/WebSocketProvider';
 import { BudgetDashboard } from './components/Budget';
 import { MetagameDashboard } from './components/Metagame';
+import { TournamentDashboard } from './components/Tournament';
 import { AttendancePage, PodSuggestionsPage, MatchupMatrixPage } from './components/Attendance';
 import { logoutUser } from './api/authApi';
 
@@ -82,6 +83,7 @@ const App = () => {
                                 <Route path="budget" element={<BudgetDashboard />} />
                                 <Route path="price-check" element={<PriceCheckPage />} />
                                 <Route path="metagame" element={<MetagameDashboard />} />
+                                <Route path="tournament" element={<TournamentDashboard />} />
                             </Route>
 
                             {/* Legacy routes - redirect to new dashboard */}
