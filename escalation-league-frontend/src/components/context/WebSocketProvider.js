@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
 import { io } from 'socket.io-client';
-import axios from 'axios';
-import { API_BASE_URL } from '../../api/axiosConfig';
+import { performTokenRefresh } from '../../api/axiosConfig';
 
 const WebSocketContext = createContext(null);
 
@@ -33,34 +32,6 @@ export const WebSocketProvider = ({ children }) => {
     const [connected, setConnected] = useState(false);
     const socketRef = useRef(null);
     const reconnectAttempts = useRef(0);
-    const isRefreshingToken = useRef(false);
-
-    // Attempt to refresh token for WebSocket auth
-    const refreshTokenForSocket = useCallback(async () => {
-        if (isRefreshingToken.current) return null;
-
-        const refreshToken = localStorage.getItem('refreshToken');
-        if (!refreshToken) return null;
-
-        isRefreshingToken.current = true;
-
-        try {
-            const response = await axios.post(`${API_BASE_URL}/auth/refresh`, { refreshToken });
-            const { token, refreshToken: newRefreshToken } = response.data;
-
-            localStorage.setItem('token', token);
-            if (newRefreshToken) {
-                localStorage.setItem('refreshToken', newRefreshToken);
-            }
-
-            return token;
-        } catch (err) {
-            console.error('Failed to refresh token for WebSocket:', err.message);
-            return null;
-        } finally {
-            isRefreshingToken.current = false;
-        }
-    }, []);
 
     // Create socket connection
     const createSocket = useCallback(() => {
@@ -114,8 +85,8 @@ export const WebSocketProvider = ({ children }) => {
 
             // Check if it's an auth error
             if (error.message === 'Invalid token' || error.message === 'Token expired' || error.message === 'Authentication required') {
-                // Try to refresh the token
-                const newToken = await refreshTokenForSocket();
+                // Use centralized token refresh to avoid race conditions with axios
+                const newToken = await performTokenRefresh();
 
                 if (newToken) {
                     // Successfully refreshed - update socket auth and reconnect
@@ -145,7 +116,7 @@ export const WebSocketProvider = ({ children }) => {
                 newSocket.close();
             }
         };
-    }, [createSocket, refreshTokenForSocket]);
+    }, [createSocket]);
 
     // Listen for token refresh events from axios interceptor
     useEffect(() => {
