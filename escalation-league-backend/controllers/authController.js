@@ -12,15 +12,22 @@ const {
     revokeRefreshTokensByUser,
 } = require('../services/refreshTokenService');
 const { logLogin, logLogout } = require('../services/activityLogService');
+const { verifyTurnstile } = require('../utils/turnstile');
 
 
 // Register User
 const registerUser = async (req, res) => {
-    const { firstname, lastname, email, password } = req.body;
+    const { firstname, lastname, email, password, turnstileToken } = req.body;
 
     logger.info('User registration attempt', { email, firstname, lastname });
 
     try {
+        // Verify Turnstile token
+        const turnstileResult = await verifyTurnstile(turnstileToken, req.ip);
+        if (!turnstileResult.success) {
+            logger.warn('Turnstile verification failed during registration', { email, errorCodes: turnstileResult.errorCodes });
+            return res.status(403).json({ error: 'Verification failed. Please try again.' });
+        }
         // Fetch the default role 'league_user'
         const leagueUserRole = await db('roles').select('id').where({ name: 'league_user' }).first();
 
@@ -60,13 +67,19 @@ const registerUser = async (req, res) => {
 
 // Login User
 const loginUser = async (req, res) => {
-    const { email, password } = req.body;
+    const { email, password, turnstileToken } = req.body;
 
     if (!email || !password) {
         return res.status(400).json({ error: 'Email and password are required.' });
     }
 
     try {
+        // Verify Turnstile token
+        const turnstileResult = await verifyTurnstile(turnstileToken, req.ip);
+        if (!turnstileResult.success) {
+            logger.warn('Turnstile verification failed during login', { email, errorCodes: turnstileResult.errorCodes });
+            return res.status(403).json({ error: 'Verification failed. Please try again.' });
+        }
 
         const user = await db('users')
             .leftJoin('roles', 'users.role_id', 'roles.id') // Use LEFT JOIN to include users with NULL role_id
