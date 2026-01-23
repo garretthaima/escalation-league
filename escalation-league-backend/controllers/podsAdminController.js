@@ -322,6 +322,11 @@ const deletePod = async (req, res) => {
             emitPodDeleted(req.app, currentPod.league_id, podId);
         }
 
+        // Invalidate cache if the deleted pod was complete
+        if (currentPod && currentPod.confirmation_status === 'complete' && currentPod.league_id) {
+            await cacheInvalidators.gameCompleted(currentPod.league_id);
+        }
+
         // Log the admin action
         await logPodDeleted(req.user.id, podId);
 
@@ -365,6 +370,7 @@ const toggleDQ = async (req, res) => {
         // If pod is already complete, need to recalculate stats
         if (pod.confirmation_status === 'complete' && pod.league_id) {
             await podService.handleDqToggle(playerId, pod.league_id, newResult === 'disqualified');
+            await cacheInvalidators.gameCompleted(pod.league_id);
         }
 
         // Log the admin action
