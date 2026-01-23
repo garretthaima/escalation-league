@@ -11,6 +11,7 @@ const {
 const { cacheInvalidators } = require('../middlewares/cacheMiddleware');
 const { createNotification } = require('../services/notificationService');
 const { logPodCreated, logPodJoined, logGameResultDeclared, logGameResultConfirmed, logGameCompleted, logPodOverridden } = require('../services/activityLogService');
+const { calculateEloChanges } = require('../utils/eloCalculator');
 
 // Create a Pod
 // Supports two modes:
@@ -378,6 +379,62 @@ const logPodResult = async (req, res) => {
                         league_losses: losses,
                         league_draws: draws,
                         total_points: points
+                    });
+            }
+
+            // === ELO CALCULATION ===
+            // Fetch current ELO ratings and prepare player data for calculation
+            const playersWithElo = await Promise.all(
+                participants.map(async (p) => {
+                    const user = await db('users')
+                        .where({ id: p.player_id })
+                        .select('elo_rating', 'wins', 'losses', 'draws')
+                        .first();
+
+                    const userLeague = await db('user_leagues')
+                        .where({ user_id: p.player_id, league_id: pod.league_id })
+                        .select('elo_rating')
+                        .first();
+
+                    // Total games for K-factor calculation
+                    const gamesPlayed = (user?.wins || 0) + (user?.losses || 0) + (user?.draws || 0);
+
+                    return {
+                        playerId: p.player_id,
+                        currentElo: user?.elo_rating || 1500,
+                        currentLeagueElo: userLeague?.elo_rating || 1500,
+                        result: p.result,
+                        turnOrder: p.turn_order,
+                        gamesPlayed
+                    };
+                })
+            );
+
+            // Calculate ELO changes
+            const eloChanges = calculateEloChanges(playersWithElo);
+
+            // Apply ELO changes and store history
+            for (const change of eloChanges) {
+                const player = playersWithElo.find(p => p.playerId === change.playerId);
+
+                if (change.eloChange !== 0) {
+                    // Update global ELO
+                    await db('users')
+                        .where({ id: change.playerId })
+                        .update({ elo_rating: player.currentElo + change.eloChange });
+
+                    // Update league ELO
+                    await db('user_leagues')
+                        .where({ user_id: change.playerId, league_id: pod.league_id })
+                        .update({ elo_rating: player.currentLeagueElo + change.eloChange });
+                }
+
+                // Store ELO change in game_players for history/audit
+                await db('game_players')
+                    .where({ pod_id: podId, player_id: change.playerId })
+                    .update({
+                        elo_change: change.eloChange,
+                        elo_before: change.eloBefore
                     });
             }
 

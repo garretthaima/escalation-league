@@ -87,6 +87,11 @@ const Profile = () => {
                     className="img-thumbnail"
                     style={{ width: '50px', height: '50px', borderRadius: '50%' }}
                 />
+                {user.elo_rating && (
+                    <span className="ms-3 badge bg-primary" style={{ fontSize: '1rem' }}>
+                        ELO: {user.elo_rating}
+                    </span>
+                )}
             </div>
             <Tabs activeKey={activeTab} onSelect={handleTabSelect} className="mb-3">
                 <Tab eventKey="overview" title="Overview">
