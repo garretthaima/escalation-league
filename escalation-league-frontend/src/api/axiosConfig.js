@@ -202,6 +202,8 @@ axiosInstance.interceptors.response.use(
 
             if (!newToken) {
                 processQueue(new Error('Token refresh failed'), null);
+                // Dispatch failure event so providers can react (stop loading, clear state, etc.)
+                window.dispatchEvent(new CustomEvent('tokenRefreshFailed'));
                 return handleAuthFailure();
             }
 

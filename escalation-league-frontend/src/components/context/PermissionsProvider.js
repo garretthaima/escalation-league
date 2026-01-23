@@ -98,9 +98,23 @@ export const PermissionsProvider = ({ children }) => {
             refreshUserData();
         };
 
+        const handleTokenRefreshFailed = () => {
+            console.log('[PermissionsProvider] Token refresh failed, clearing state');
+            // Clear all state and stop loading when auth fails
+            setPermissions([]);
+            setUser(null);
+            setActiveLeague(null);
+            setLoading(false);
+            // Resolve any pending refresh promises with null
+            refreshResolvers.current.forEach(resolve => resolve({ activeLeague: null }));
+            refreshResolvers.current = [];
+        };
+
         window.addEventListener('tokenRefreshed', handleTokenRefresh);
+        window.addEventListener('tokenRefreshFailed', handleTokenRefreshFailed);
         return () => {
             window.removeEventListener('tokenRefreshed', handleTokenRefresh);
+            window.removeEventListener('tokenRefreshFailed', handleTokenRefreshFailed);
         };
     }, [refreshUserData]);
 

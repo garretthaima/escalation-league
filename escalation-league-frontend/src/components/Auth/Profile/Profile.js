@@ -33,10 +33,10 @@ const Profile = () => {
                 setCurrentLeague(data.currentLeague);
             } catch (err) {
                 console.error(err);
-                setError('Failed to load profile.');
-                // Redirect to login if the user is not authenticated
-                if (err.response && err.response.status === 401) {
-                    navigate('/login'); // Redirect to login page
+                // Note: 401 errors are handled by axios interceptor (token refresh + redirect)
+                // Only show error for non-auth related failures
+                if (!err.response || err.response.status !== 401) {
+                    setError('Failed to load profile.');
                 }
             }
         };
