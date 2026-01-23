@@ -91,6 +91,19 @@ export const PermissionsProvider = ({ children }) => {
         }
     }, [darkMode]); // Runs whenever darkMode changes
 
+    // Listen for token refresh events and re-fetch user data
+    useEffect(() => {
+        const handleTokenRefresh = () => {
+            console.log('[PermissionsProvider] Token refreshed, re-fetching user data');
+            refreshUserData();
+        };
+
+        window.addEventListener('tokenRefreshed', handleTokenRefresh);
+        return () => {
+            window.removeEventListener('tokenRefreshed', handleTokenRefresh);
+        };
+    }, [refreshUserData]);
+
     return (
         <PermissionsContext.Provider
             value={{
