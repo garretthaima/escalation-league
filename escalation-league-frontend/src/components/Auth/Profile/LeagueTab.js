@@ -28,6 +28,11 @@ const LeagueTab = ({ currentLeague }) => {
             <div className="mb-3">
                 <strong>Total Points:</strong> {currentLeague.total_points}
             </div>
+            {currentLeague.elo_rating && (
+                <div className="mb-3">
+                    <strong>League ELO:</strong> {currentLeague.elo_rating}
+                </div>
+            )}
             {currentLeague.rank && (
                 <div className="mb-3">
                     <strong>Rank:</strong> {currentLeague.rank}
