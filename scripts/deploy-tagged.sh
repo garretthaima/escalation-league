@@ -47,6 +47,18 @@ else
     FRONTEND_IMAGE="escalation-league-frontend-dev"
 fi
 
+# Step 0: Clean up old Docker resources to save disk space
+echo "Step 0: Cleaning up Docker resources..."
+docker container prune -f > /dev/null 2>&1 || true
+docker image prune -f > /dev/null 2>&1 || true
+# Prune all unused build cache (main source of disk usage)
+docker builder prune -a -f > /dev/null 2>&1 || true
+# Remove old tagged images (keep last 2 tags per image)
+docker images "compose-backend-${ENVIRONMENT}" --format "{{.Tag}}" | grep -v latest | sort -r | tail -n +3 | xargs -I {} docker rmi "compose-backend-${ENVIRONMENT}:{}" 2>/dev/null || true
+docker images "compose-frontend-${ENVIRONMENT}" --format "{{.Tag}}" | grep -v latest | sort -r | tail -n +3 | xargs -I {} docker rmi "compose-frontend-${ENVIRONMENT}:{}" 2>/dev/null || true
+echo "✅ Cleanup complete"
+echo ""
+
 # Step 1: Generate build info and build images
 echo "Step 1: Generating build info..."
 ./scripts/generate-build-info.sh

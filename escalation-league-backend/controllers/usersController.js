@@ -40,6 +40,17 @@ const getUserProfile = async (req, res) => {
       return res.status(404).json({ error: 'User not found.' });
     }
 
+    // Calculate global ELO rank (only if user has played games)
+    let eloRank = null;
+    if (user.elo_rating && user.elo_rating !== 1500) {
+      const rankResult = await db('users')
+        .where('is_deleted', false)
+        .where('elo_rating', '>', user.elo_rating)
+        .count('* as higher_count')
+        .first();
+      eloRank = (rankResult?.higher_count || 0) + 1;
+    }
+
     // Fetch current league and league-specific stats
     const currentLeague = await db('user_leagues')
       .join('leagues', 'user_leagues.league_id', 'leagues.id')
@@ -101,7 +112,10 @@ const getUserProfile = async (req, res) => {
 
     // Respond with user details, current league, and deck data
     res.status(200).json({
-      user,
+      user: {
+        ...user,
+        elo_rank: eloRank,
+      },
       currentLeague: currentLeague
         ? {
             ...currentLeague,

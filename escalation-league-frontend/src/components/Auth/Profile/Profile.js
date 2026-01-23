@@ -90,7 +90,8 @@ const Profile = () => {
             gamesPlayed: totalGames,
             wins: totalWins,
             winRate,
-            elo: user?.elo_rating || null // Placeholder for future ELO system
+            eloRank: user?.elo_rank || null,
+            elo: user?.elo_rating || null
         };
     };
 
@@ -175,8 +176,10 @@ const Profile = () => {
                         <div className="profile-stat-label">Win Rate</div>
                     </div>
                     <div className="profile-stat">
-                        <div className="profile-stat-value">{globalStats.elo || '—'}</div>
-                        <div className="profile-stat-label">ELO</div>
+                        <div className="profile-stat-value">
+                            {globalStats.eloRank ? `#${globalStats.eloRank}` : '—'}
+                        </div>
+                        <div className="profile-stat-label">ELO Rank</div>
                     </div>
                 </div>
             </div>
