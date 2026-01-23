@@ -38,9 +38,6 @@ const LeagueTab = ({ currentLeague, onCommanderUpdated }) => {
     const today = new Date();
     const endDate = new Date(currentLeague.end_date);
     const daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
-    const totalGames = (currentLeague.league_wins || 0) +
-                       (currentLeague.league_losses || 0) +
-                       (currentLeague.league_draws || 0);
 
     return (
         <div className="row g-4">
