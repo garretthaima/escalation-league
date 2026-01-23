@@ -1,6 +1,18 @@
 /* Mobile navbar - Clean minimal design like Archidekt */
 @media (max-width: 991px) {
 
+    /* Backdrop overlay - tap to close menu */
+    .navbar-backdrop {
+        position: fixed;
+        top: 56px;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1040;
+        -webkit-tap-highlight-color: transparent;
+    }
+
     /* Top navbar bar - fixed height, clean */
     .navbar {
         padding: 0.5rem 1rem !important;
