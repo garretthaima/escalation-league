@@ -1,4 +1,4 @@
-/* Mobile navbar - Touch-friendly design */
+/* Mobile navbar - Clean minimal design like Archidekt */
 @media (max-width: 991px) {
 
     /* Backdrop overlay - tap to close menu */
@@ -37,29 +37,17 @@
         margin: 0 !important;
     }
 
-    /* Hamburger - larger touch target (48px minimum) */
+    /* Hamburger */
     .navbar-toggler {
-        padding: 0.5rem !important;
+        padding: 0.375rem !important;
         border: none !important;
         margin: 0 !important;
         background: transparent !important;
-        min-width: 48px !important;
-        min-height: 48px !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        border-radius: 8px !important;
-        transition: background-color 0.15s ease !important;
-        -webkit-tap-highlight-color: transparent !important;
     }
 
     .navbar-toggler:focus {
         box-shadow: none !important;
         outline: none !important;
-    }
-
-    .navbar-toggler:active {
-        background-color: rgba(255, 255, 255, 0.15) !important;
     }
 
     .navbar-toggler-icon {
@@ -90,35 +78,31 @@
         display: none !important;
     }
 
-    /* Right group - utility buttons with proper touch targets */
+    /* Right group - utility buttons */
     .navbar-right-buttons {
         display: flex !important;
-        gap: 0.25rem !important;
+        gap: 0.5rem !important;
         margin: 0 !important;
         align-items: center !important;
     }
 
     .navbar-right-buttons .btn {
-        padding: 0.5rem !important;
+        padding: 0.375rem 0.625rem !important;
         font-size: 1.1rem !important;
         line-height: 1 !important;
         border: none !important;
         background: transparent !important;
         color: rgba(255, 255, 255, 0.85) !important;
-        min-height: 44px !important;
-        min-width: 44px !important;
+        height: 36px !important;
+        min-width: 36px !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        border-radius: 8px !important;
-        transition: background-color 0.15s ease !important;
-        -webkit-tap-highlight-color: transparent !important;
     }
 
-    .navbar-right-buttons .btn:hover,
-    .navbar-right-buttons .btn:active {
+    .navbar-right-buttons .btn:hover {
         color: white !important;
-        background: rgba(255, 255, 255, 0.15) !important;
+        background: rgba(255, 255, 255, 0.1) !important;
     }
 
     .navbar-right-buttons .btn i {
@@ -132,7 +116,20 @@
         object-fit: cover !important;
     }
 
-    /* Mobile menu overlay - slide in animation */
+    /* Profile/Logout button styling in mobile menu */
+    .navbar-collapse .btn-link {
+        border: none !important;
+        background: transparent !important;
+        text-decoration: none !important;
+        padding: 1rem 0.75rem !important;
+        color: white !important;
+    }
+
+    .navbar-collapse .btn-link:hover {
+        background-color: rgba(255, 255, 255, 0.05) !important;
+    }
+
+    /* Mobile menu overlay - fixed full screen */
     .navbar-collapse {
         position: fixed !important;
         top: 56px !important;
@@ -141,27 +138,21 @@
         bottom: 0 !important;
         background-color: var(--brand-purple) !important;
         z-index: 1050 !important;
-        padding: 0.5rem 0 !important;
+        padding: 1rem !important;
         overflow-y: auto !important;
         margin: 0 !important;
         border: none !important;
-        transform: translateX(-100%) !important;
-        transition: transform 0.25s ease-out, opacity 0.25s ease-out !important;
-        opacity: 0 !important;
-        -webkit-overflow-scrolling: touch !important;
     }
 
     .navbar-collapse:not(.show) {
-        pointer-events: none !important;
+        display: none !important;
     }
 
     .navbar-collapse.show {
-        transform: translateX(0) !important;
-        opacity: 1 !important;
-        pointer-events: auto !important;
+        display: block !important;
     }
 
-    /* Nav items in overlay - touch-friendly sizing */
+    /* Nav items in overlay */
     .navbar-nav {
         margin: 0 !important;
         padding: 0 !important;
@@ -173,80 +164,16 @@
         margin: 0 !important;
     }
 
-    .navbar .nav-item:last-child {
-        border-bottom: none !important;
-    }
-
-    /* Nav links - 48px minimum touch target */
     .navbar .nav-link {
-        padding: 1rem 1.25rem !important;
-        min-height: 52px !important;
-        font-size: 1.1rem !important;
-        font-weight: 500 !important;
+        padding: 1rem 0.75rem !important;
+        font-size: 1.05rem !important;
         color: white !important;
-        display: flex !important;
-        align-items: center !important;
-        transition: background-color 0.15s ease !important;
-        -webkit-tap-highlight-color: transparent !important;
+        display: block !important;
     }
 
-    .navbar .nav-link i {
-        width: 24px !important;
-        margin-right: 0.75rem !important;
-        text-align: center !important;
-    }
-
-    .navbar .nav-link:hover,
-    .navbar .nav-link:active {
-        background-color: rgba(255, 255, 255, 0.1) !important;
+    .navbar .nav-link:hover {
+        background-color: rgba(255, 255, 255, 0.05) !important;
         text-decoration: none !important;
-    }
-
-    .navbar .nav-link.active {
-        background-color: rgba(255, 255, 255, 0.15) !important;
-        border-left: 3px solid var(--brand-gold) !important;
-    }
-
-    /* Profile/Logout button styling in mobile menu */
-    .navbar-collapse .btn-link {
-        border: none !important;
-        background: transparent !important;
-        text-decoration: none !important;
-        padding: 1rem 1.25rem !important;
-        min-height: 52px !important;
-        color: white !important;
-        font-size: 1.1rem !important;
-        font-weight: 500 !important;
-        display: flex !important;
-        align-items: center !important;
-        transition: background-color 0.15s ease !important;
-        -webkit-tap-highlight-color: transparent !important;
-    }
-
-    .navbar-collapse .btn-link:hover,
-    .navbar-collapse .btn-link:active {
-        background-color: rgba(255, 255, 255, 0.1) !important;
-    }
-
-    .navbar-collapse .btn-link i {
-        width: 24px !important;
-        margin-right: 0.75rem !important;
-        text-align: center !important;
-    }
-
-    /* Dropdown toggle - larger touch target */
-    .navbar .dropdown-toggle {
-        min-height: 52px !important;
-        padding: 1rem 1.25rem !important;
-    }
-
-    .navbar .dropdown-toggle::after {
-        margin-left: auto !important;
-        transition: transform 0.2s ease !important;
-    }
-
-    .navbar .dropdown.show .dropdown-toggle::after {
-        transform: rotate(180deg) !important;
     }
 
     /* Dropdowns in mobile menu */
@@ -255,39 +182,27 @@
         float: none !important;
         width: 100% !important;
         margin: 0 !important;
-        background: rgba(0, 0, 0, 0.15) !important;
+        background: transparent !important;
         border: none !important;
         box-shadow: none !important;
-        padding: 0.5rem 0 !important;
-        border-radius: 0 !important;
+        padding: 0 0 0 1.5rem !important;
     }
 
     .navbar .dropdown-menu.show {
         display: block !important;
     }
 
-    /* Dropdown items - touch-friendly */
     .navbar .dropdown-item {
-        padding: 0.875rem 1.25rem 0.875rem 2.5rem !important;
-        min-height: 48px !important;
+        padding: 0.75rem 0.75rem !important;
         font-size: 1rem !important;
-        color: rgba(255, 255, 255, 0.9) !important;
+        color: rgba(255, 255, 255, 0.85) !important;
         background: transparent !important;
-        display: flex !important;
-        align-items: center !important;
-        transition: background-color 0.15s ease !important;
-        -webkit-tap-highlight-color: transparent !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
     }
 
     .navbar .dropdown-item:hover,
-    .navbar .dropdown-item:focus,
-    .navbar .dropdown-item:active {
+    .navbar .dropdown-item:focus {
         background-color: rgba(255, 255, 255, 0.1) !important;
-        color: white !important;
-    }
-
-    .navbar .dropdown-item.active {
-        background-color: rgba(255, 255, 255, 0.15) !important;
         color: white !important;
     }
 
@@ -295,12 +210,5 @@
         margin-right: 0.75rem !important;
         width: 20px !important;
         text-align: center !important;
-    }
-
-    /* Mobile menu section divider */
-    .navbar-nav.d-lg-none {
-        margin-top: 0.5rem !important;
-        padding-top: 0.5rem !important;
-        border-top: 1px solid rgba(255, 255, 255, 0.15) !important;
     }
 }
