@@ -25,7 +25,8 @@ endif
 		migrate-prod migrate-dev migrate-test seed-prod seed-dev seed-test \
 		setup-prod setup-dev db-prod db-dev db-test backup-prod restore-prod \
 		logs-prod logs-dev logs-edge logs-cards status check-compose redeploy-dev rebuild-prod rebuild-dev rebuild-edge rebuild-cards deploy-prod deploy-dev deploy-edge deploy-cards \
-		docker-prune docker-clean docker-clean-images docker-clean-volumes docker-status
+		docker-prune docker-clean docker-clean-images docker-clean-volumes docker-status \
+		clear-cache-prod clear-cache-dev
 
 help:
 	@echo "Available commands:"
@@ -82,6 +83,10 @@ help:
 	@echo "  make docker-status - Show Docker disk usage"
 	@echo "  make docker-clean  - Clean stopped containers and dangling images"
 	@echo "  make docker-prune  - Aggressive cleanup (removes unused images/volumes)"
+	@echo ""
+	@echo "🗑️  Cache:"
+	@echo "  make clear-cache-prod - Clear production API cache (keeps sessions)"
+	@echo "  make clear-cache-dev  - Clear development API cache (keeps sessions)"
 	@echo ""
 	@echo "⚠️  DANGEROUS:"
 	@echo "  make clean-all     - Delete ALL data (requires confirmation)"
@@ -393,3 +398,27 @@ docker-preclean:
 	@docker container prune -f > /dev/null 2>&1 || true
 	@docker image prune -f > /dev/null 2>&1 || true
 	@echo "✅ Pre-cleanup complete"
+
+# ============================================================================
+# CACHE COMMANDS
+# ============================================================================
+
+clear-cache-prod:
+	@echo "🗑️  Clearing production API cache..."
+	@CACHE_KEYS=$$(docker exec escalation-league-redis-prod redis-cli KEYS "cache:*" 2>/dev/null | tr '\n' ' '); \
+	if [ -n "$$CACHE_KEYS" ]; then \
+		docker exec escalation-league-redis-prod redis-cli DEL $$CACHE_KEYS > /dev/null 2>&1; \
+		echo "✅ Production API cache cleared"; \
+	else \
+		echo "✅ No production cache to clear"; \
+	fi
+
+clear-cache-dev:
+	@echo "🗑️  Clearing development API cache..."
+	@CACHE_KEYS=$$(docker exec escalation-league-redis-dev redis-cli KEYS "cache:*" 2>/dev/null | tr '\n' ' '); \
+	if [ -n "$$CACHE_KEYS" ]; then \
+		docker exec escalation-league-redis-dev redis-cli DEL $$CACHE_KEYS > /dev/null 2>&1; \
+		echo "✅ Development API cache cleared"; \
+	else \
+		echo "✅ No development cache to clear"; \
+	fi

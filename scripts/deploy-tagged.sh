@@ -83,9 +83,24 @@ echo ""
 echo "Step 4: Deploying with new images..."
 docker-compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --force-recreate
 
-# Step 5: Wait and health check
-echo "Step 5: Waiting for services to be healthy..."
-sleep 20
+# Step 5: Clear API cache (preserves sessions and deck cache)
+echo "Step 5: Clearing API cache..."
+REDIS_CONTAINER="escalation-league-redis-${ENVIRONMENT}"
+# Wait for Redis to be ready
+sleep 2
+# Get all cache:* keys and delete them (preserves sess:* and deck:* keys)
+CACHE_KEYS=$(docker exec "$REDIS_CONTAINER" redis-cli KEYS "cache:*" 2>/dev/null | tr '\n' ' ')
+if [ -n "$CACHE_KEYS" ]; then
+    docker exec "$REDIS_CONTAINER" redis-cli DEL $CACHE_KEYS > /dev/null 2>&1 || true
+    echo "✅ API cache cleared"
+else
+    echo "✅ No API cache to clear"
+fi
+echo ""
+
+# Step 6: Wait and health check
+echo "Step 6: Waiting for services to be healthy..."
+sleep 18
 
 BACKEND_CONTAINER="${BACKEND_IMAGE}"
 FRONTEND_CONTAINER="${FRONTEND_IMAGE}"
@@ -104,9 +119,9 @@ if [ "$FRONTEND_HEALTH" != "healthy" ] && [ "$FRONTEND_HEALTH" != "none" ]; then
     echo "WARNING: Frontend is not healthy!"
 fi
 
-# Step 6: Smoke tests
+# Step 7: Smoke tests
 echo ""
-echo "Step 6: Running smoke tests..."
+echo "Step 7: Running smoke tests..."
 if ./scripts/smoke-test.sh "$ENVIRONMENT"; then
     echo ""
     echo "=== Deployment Successful ==="
