@@ -50,30 +50,39 @@ const Navbar = ({ handleLogout }) => {
     const sortedLinks = filteredLinks.sort((a, b) => a.order - b.order);
 
     return (
-        <nav className="navbar navbar-expand-lg navbar-dark">
-            <div className="container-fluid">
-                <div className="d-flex align-items-center">
-                    <a className="navbar-brand d-flex align-items-center" href="/">
-                        <img src="/logo.png" alt="Escalation League Logo" className="navbar-logo" />
-                        <span className="navbar-brand-text">Escalation League</span>
-                        {process.env.REACT_APP_ENV === 'development' && (
-                            <span className="badge bg-warning text-dark ms-2 navbar-dev-badge">
-                                DEV
-                            </span>
-                        )}
-                    </a>
-                    <button
-                        className="navbar-toggler"
-                        type="button"
-                        onClick={toggleNavbar}
-                        aria-controls="navbarNav"
-                        aria-expanded={isNavExpanded}
-                        aria-label="Toggle navigation"
-                    >
-                        <span className="navbar-toggler-icon"></span>
-                    </button>
-                </div>
-                <div className={`collapse navbar-collapse ${isNavExpanded ? 'show' : ''}`} id="navbarNav">
+        <>
+            {/* Backdrop overlay - tap to close menu on mobile */}
+            {isNavExpanded && (
+                <div
+                    className="navbar-backdrop"
+                    onClick={collapseNavbar}
+                    aria-hidden="true"
+                />
+            )}
+            <nav className="navbar navbar-expand-lg navbar-dark">
+                <div className="container-fluid">
+                    <div className="d-flex align-items-center">
+                        <a className="navbar-brand d-flex align-items-center" href="/">
+                            <img src="/logo.png" alt="Escalation League Logo" className="navbar-logo" />
+                            <span className="navbar-brand-text">Escalation League</span>
+                            {process.env.REACT_APP_ENV === 'development' && (
+                                <span className="badge bg-warning text-dark ms-2 navbar-dev-badge">
+                                    DEV
+                                </span>
+                            )}
+                        </a>
+                        <button
+                            className="navbar-toggler"
+                            type="button"
+                            onClick={toggleNavbar}
+                            aria-controls="navbarNav"
+                            aria-expanded={isNavExpanded}
+                            aria-label="Toggle navigation"
+                        >
+                            <span className="navbar-toggler-icon"></span>
+                        </button>
+                    </div>
+                    <div className={`collapse navbar-collapse ${isNavExpanded ? 'show' : ''}`} id="navbarNav">
                     <ul className="navbar-nav me-auto mb-2 mb-lg-0">
                         {loading && user ? (
                             <li className="nav-item">
@@ -164,6 +173,7 @@ const Navbar = ({ handleLogout }) => {
                 </div>
             </div>
         </nav>
+        </>
     );
 };
 
