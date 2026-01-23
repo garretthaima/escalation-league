@@ -91,6 +91,33 @@ export const PermissionsProvider = ({ children }) => {
         }
     }, [darkMode]); // Runs whenever darkMode changes
 
+    // Listen for token refresh events and re-fetch user data
+    useEffect(() => {
+        const handleTokenRefresh = () => {
+            console.log('[PermissionsProvider] Token refreshed, re-fetching user data');
+            refreshUserData();
+        };
+
+        const handleTokenRefreshFailed = () => {
+            console.log('[PermissionsProvider] Token refresh failed, clearing state');
+            // Clear all state and stop loading when auth fails
+            setPermissions([]);
+            setUser(null);
+            setActiveLeague(null);
+            setLoading(false);
+            // Resolve any pending refresh promises with null
+            refreshResolvers.current.forEach(resolve => resolve({ activeLeague: null }));
+            refreshResolvers.current = [];
+        };
+
+        window.addEventListener('tokenRefreshed', handleTokenRefresh);
+        window.addEventListener('tokenRefreshFailed', handleTokenRefreshFailed);
+        return () => {
+            window.removeEventListener('tokenRefreshed', handleTokenRefresh);
+            window.removeEventListener('tokenRefreshFailed', handleTokenRefreshFailed);
+        };
+    }, [refreshUserData]);
+
     return (
         <PermissionsContext.Provider
             value={{
