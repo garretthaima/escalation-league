@@ -138,6 +138,9 @@ const loginUser = async (req, res) => {
             return res.status(401).json({ error: 'Invalid email or password' });
         }
 
+        // Update last_login timestamp
+        await db('users').where({ id: user.id }).update({ last_login: db.fn.now() });
+
         // Generate both access and refresh tokens
         const accessToken = await generateAccessToken(user);
         const refreshToken = await createRefreshToken(
@@ -237,6 +240,9 @@ const googleAuth = async (req, res) => {
             const userRole = await db('roles').select('name').where({ id: user.role_id }).first();
             user.role_name = userRole ? userRole.name : leagueUserRole.name;
         }
+
+        // Update last_login timestamp
+        await db('users').where({ id: user.id }).update({ last_login: db.fn.now() });
 
         // Generate both access and refresh tokens
         const accessToken = await generateAccessToken(user);

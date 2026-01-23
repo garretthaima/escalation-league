@@ -40,6 +40,17 @@ const getUserProfile = async (req, res) => {
       return res.status(404).json({ error: 'User not found.' });
     }
 
+    // Calculate global ELO rank (only if user has played games)
+    let eloRank = null;
+    if (user.elo_rating && user.elo_rating !== 1500) {
+      const rankResult = await db('users')
+        .where('is_deleted', false)
+        .where('elo_rating', '>', user.elo_rating)
+        .count('* as higher_count')
+        .first();
+      eloRank = (rankResult?.higher_count || 0) + 1;
+    }
+
     // Fetch current league and league-specific stats
     const currentLeague = await db('user_leagues')
       .join('leagues', 'user_leagues.league_id', 'leagues.id')
@@ -63,21 +74,57 @@ const getUserProfile = async (req, res) => {
       .where('user_leagues.is_active', 1)
       .first();
 
-    // Fetch the decklist_url from Redis using the deck_id
+    // Fetch deck data (decklist_url and commander info) from Redis or database
     let decklistUrl = null;
+    let commanderData = null;
+    let partnerData = null;
+
     if (currentLeague && currentLeague.deck_id) {
+      // Try Redis cache first
       const cachedDeck = await redis.get(`deck:${currentLeague.deck_id}`);
       if (cachedDeck) {
         const deckData = JSON.parse(cachedDeck);
-        decklistUrl = deckData.decklistUrl || null; // Extract decklistUrl from the cached data
+        decklistUrl = deckData.decklist_url || deckData.decklistUrl || null;
+        // Get full commander data from cached deck data
+        if (deckData.commanders && Array.isArray(deckData.commanders)) {
+          commanderData = deckData.commanders[0] || null;
+          partnerData = deckData.commanders[1] || null;
+        }
+      } else {
+        // Fallback: fetch from decks table directly
+        const deck = await db('decks')
+          .select('decklist_url', 'commanders')
+          .where('id', currentLeague.deck_id)
+          .first();
+
+        if (deck) {
+          decklistUrl = deck.decklist_url || null;
+          const commanders = typeof deck.commanders === 'string'
+            ? JSON.parse(deck.commanders)
+            : deck.commanders;
+          if (commanders && Array.isArray(commanders)) {
+            commanderData = commanders[0] || null;
+            partnerData = commanders[1] || null;
+          }
+        }
       }
     }
 
-    // Respond with user details, current league, and decklist URL
+    // Respond with user details, current league, and deck data
     res.status(200).json({
-      user,
+      user: {
+        ...user,
+        elo_rank: eloRank,
+      },
       currentLeague: currentLeague
-        ? { ...currentLeague, decklistUrl } // Include the decklistUrl in the currentLeague object
+        ? {
+            ...currentLeague,
+            decklistUrl,
+            commander_name: commanderData?.name || null,
+            commander_scryfall_id: commanderData?.scryfall_id || null,
+            partner_name: partnerData?.name || null,
+            partner_scryfall_id: partnerData?.scryfall_id || null,
+          }
         : null,
     });
   } catch (err) {
