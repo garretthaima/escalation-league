@@ -22,6 +22,7 @@ const getUserProfile = async (req, res) => {
         'wins',
         'losses',
         'draws',
+        'elo_rating',
         'winning_streak',
         'losing_streak',
         'opponent_win_percentage',
@@ -54,6 +55,7 @@ const getUserProfile = async (req, res) => {
         'user_leagues.league_draws',
         'user_leagues.total_points',
         'user_leagues.rank',
+        'user_leagues.elo_rating',
         'user_leagues.current_commander',
         'user_leagues.commander_partner'
       )

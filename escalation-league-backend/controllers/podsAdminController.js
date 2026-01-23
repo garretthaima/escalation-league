@@ -9,6 +9,7 @@ const {
     logParticipantResultUpdated,
     logPlayerDQToggled
 } = require('../services/activityLogService');
+const { calculateEloChanges } = require('../utils/eloCalculator');
 
 
 // Update a Pod
@@ -75,6 +76,17 @@ const updatePod = async (req, res) => {
                         league_draws: draws,
                         total_points: points
                     });
+
+                // Reverse ELO using stored elo_change
+                if (p.elo_change && p.elo_change !== 0) {
+                    await db('users')
+                        .where({ id: p.player_id })
+                        .decrement('elo_rating', p.elo_change);
+
+                    await db('user_leagues')
+                        .where({ user_id: p.player_id, league_id: currentPod.league_id })
+                        .decrement('elo_rating', p.elo_change);
+                }
             }
         }
 
@@ -168,6 +180,58 @@ const updatePod = async (req, res) => {
                             league_losses: losses,
                             league_draws: draws,
                             total_points: points
+                        });
+                }
+
+                // === ELO CALCULATION ===
+                // Fetch current ELO ratings for all participants
+                const playersWithElo = await Promise.all(
+                    newParticipants.map(async (p) => {
+                        const user = await db('users')
+                            .where({ id: p.player_id })
+                            .select('elo_rating', 'wins', 'losses', 'draws')
+                            .first();
+
+                        const userLeague = await db('user_leagues')
+                            .where({ user_id: p.player_id, league_id: pod.league_id })
+                            .select('elo_rating')
+                            .first();
+
+                        const gamesPlayed = (user?.wins || 0) + (user?.losses || 0) + (user?.draws || 0);
+
+                        return {
+                            playerId: p.player_id,
+                            currentElo: user?.elo_rating || 1500,
+                            currentLeagueElo: userLeague?.elo_rating || 1500,
+                            result: p.result,
+                            turnOrder: p.turn_order,
+                            gamesPlayed
+                        };
+                    })
+                );
+
+                // Calculate ELO changes
+                const eloChanges = calculateEloChanges(playersWithElo);
+
+                // Apply ELO changes and store history
+                for (const change of eloChanges) {
+                    const player = playersWithElo.find(pl => pl.playerId === change.playerId);
+
+                    if (change.eloChange !== 0) {
+                        await db('users')
+                            .where({ id: change.playerId })
+                            .update({ elo_rating: player.currentElo + change.eloChange });
+
+                        await db('user_leagues')
+                            .where({ user_id: change.playerId, league_id: pod.league_id })
+                            .update({ elo_rating: player.currentLeagueElo + change.eloChange });
+                    }
+
+                    await db('game_players')
+                        .where({ pod_id: podId, player_id: change.playerId })
+                        .update({
+                            elo_change: change.eloChange,
+                            elo_before: change.eloBefore
                         });
                 }
             }
@@ -432,6 +496,17 @@ const deletePod = async (req, res) => {
                         league_draws: draws,
                         total_points: points
                     });
+
+                // Reverse ELO using stored elo_change
+                if (p.elo_change && p.elo_change !== 0) {
+                    await db('users')
+                        .where({ id: p.player_id })
+                        .decrement('elo_rating', p.elo_change);
+
+                    await db('user_leagues')
+                        .where({ user_id: p.player_id, league_id: currentPod.league_id })
+                        .decrement('elo_rating', p.elo_change);
+                }
             }
         }
 

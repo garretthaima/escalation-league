@@ -227,7 +227,7 @@ const LeagueTab = ({ currentLeague, onCommanderUpdated }) => {
                                 color: 'var(--brand-purple)'
                             }}
                         >
-                            <i className="fas fa-gamepad fa-lg"></i>
+                            <i className="fas fa-chart-line fa-lg"></i>
                         </div>
                         <div
                             style={{
@@ -236,10 +236,10 @@ const LeagueTab = ({ currentLeague, onCommanderUpdated }) => {
                                 color: 'var(--text-primary)'
                             }}
                         >
-                            {totalGames}
+                            {currentLeague.elo_rating || 1500}
                         </div>
                         <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                            Games Played
+                            League ELO
                         </div>
                     </div>
                 </div>
