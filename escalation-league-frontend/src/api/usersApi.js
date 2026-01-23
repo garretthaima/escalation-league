@@ -138,3 +138,14 @@ export const unlinkDiscord = async () => {
         throw error;
     }
 };
+
+// Fetch global leaderboard - all players ranked by ELO
+export const getGlobalLeaderboard = async () => {
+    try {
+        const response = await axiosInstance.get('/users/leaderboard');
+        return response.data; // Returns { leaderboard: [...] }
+    } catch (error) {
+        console.error('Error fetching global leaderboard:', error);
+        throw error;
+    }
+};

@@ -394,6 +394,51 @@ const getUserSummary = async (req, res) => {
   }
 };
 
+/**
+ * Get global leaderboard - all players ranked by global ELO
+ * Only includes players who have played at least one game (ELO != 1500)
+ */
+const getGlobalLeaderboard = async (req, res) => {
+  try {
+    const leaderboard = await db('users')
+      .select(
+        'id as player_id',
+        'firstname',
+        'lastname',
+        'elo_rating',
+        'wins',
+        'losses',
+        'draws',
+        db.raw('wins + losses + draws AS total_games'),
+        db.raw(`
+          ROUND(
+            (wins / NULLIF(wins + losses + draws, 0)) * 100, 2
+          ) AS win_rate
+        `)
+      )
+      .where('is_deleted', false)
+      .where(function() {
+        // Include users who have played at least one game
+        this.where('wins', '>', 0)
+          .orWhere('losses', '>', 0)
+          .orWhere('draws', '>', 0);
+      })
+      .orderBy('elo_rating', 'desc')
+      .orderBy('wins', 'desc')
+      .orderBy('total_games', 'desc');
+
+    // Add rank to each player
+    leaderboard.forEach((player, index) => {
+      player.rank = index + 1;
+    });
+
+    res.status(200).json({ leaderboard });
+  } catch (err) {
+    console.error('Error fetching global leaderboard:', err);
+    res.status(500).json({ error: 'Failed to fetch global leaderboard.' });
+  }
+};
+
 const getUserSetting = async (req, res) => {
   const userId = req.user.id;
   const { key_name } = req.query;
@@ -466,4 +511,5 @@ module.exports = {
   getUserSummary,
   getUserSetting,
   updateUserSetting,
+  getGlobalLeaderboard,
 };

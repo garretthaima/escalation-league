@@ -26,6 +26,7 @@ import { WebSocketProvider } from './components/context/WebSocketProvider';
 import { BudgetDashboard } from './components/Budget';
 import { MetagameDashboard } from './components/Metagame';
 import { AttendancePage, PodSuggestionsPage, MatchupMatrixPage } from './components/Attendance';
+import { GlobalLeaderboard } from './components/Leaderboard';
 import { logoutUser } from './api/authApi';
 import { initializeAuth } from './api/axiosConfig';
 
@@ -87,6 +88,7 @@ const App = () => {
                             <Route path="/rules" element={<Rules />} />
                             <Route path="/awards" element={<Awards />} />
                             <Route path="/contact" element={<Contact />} />
+                            <Route path="/leaderboard" element={<GlobalLeaderboard />} />
                             {/* <Route path="/privacy" element={<PrivacyPolicy />} /> Add Privacy Policy Route */}
 
 
