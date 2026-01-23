@@ -1,4 +1,4 @@
-import React, { useRef, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { usePermissions } from '../context/PermissionsProvider';
 import ProfileSection from './ProfileSection';
@@ -10,22 +10,19 @@ import './Navbar-mobile.css'; // Mobile-specific overrides
 const Navbar = ({ handleLogout }) => {
     const { permissions, user, darkMode, toggleDarkMode, activeLeague, loading } = usePermissions();
     const location = useLocation();
-    const navbarCollapseRef = useRef(null);
+    const [isNavExpanded, setIsNavExpanded] = useState(false);
 
     // Derive inLeague from context (activeLeague is the league object or null)
     const inLeague = !!activeLeague;
 
-    // Collapse navbar on mobile when link is clicked (using ref instead of DOM query)
+    // Collapse navbar on mobile when link is clicked
     const collapseNavbar = useCallback(() => {
-        const navbarCollapse = navbarCollapseRef.current;
-        if (!navbarCollapse) return;
+        setIsNavExpanded(false);
+    }, []);
 
-        const bsCollapse = window.bootstrap?.Collapse?.getInstance(navbarCollapse);
-        if (bsCollapse) {
-            bsCollapse.hide();
-        } else if (navbarCollapse.classList.contains('show')) {
-            navbarCollapse.classList.remove('show');
-        }
+    // Toggle navbar expanded state
+    const toggleNavbar = useCallback(() => {
+        setIsNavExpanded(prev => !prev);
     }, []);
 
     // Check if a path is active (handles both exact and prefix matching)
@@ -68,16 +65,15 @@ const Navbar = ({ handleLogout }) => {
                     <button
                         className="navbar-toggler"
                         type="button"
-                        data-bs-toggle="collapse"
-                        data-bs-target="#navbarNav"
+                        onClick={toggleNavbar}
                         aria-controls="navbarNav"
-                        aria-expanded="false"
+                        aria-expanded={isNavExpanded}
                         aria-label="Toggle navigation"
                     >
                         <span className="navbar-toggler-icon"></span>
                     </button>
                 </div>
-                <div className="collapse navbar-collapse" id="navbarNav" ref={navbarCollapseRef}>
+                <div className={`collapse navbar-collapse ${isNavExpanded ? 'show' : ''}`} id="navbarNav">
                     <ul className="navbar-nav me-auto mb-2 mb-lg-0">
                         {loading && user ? (
                             <li className="nav-item">
@@ -154,7 +150,7 @@ const Navbar = ({ handleLogout }) => {
                                     </button>
                                 </li>
                                 <li className="nav-item">
-                                    <button className="nav-link btn btn-link w-100 text-start" onClick={handleLogout}>
+                                    <button className="nav-link btn btn-link w-100 text-start" onClick={() => { collapseNavbar(); handleLogout(); }}>
                                         <i className="fas fa-sign-out-alt"></i> Logout
                                     </button>
                                 </li>
