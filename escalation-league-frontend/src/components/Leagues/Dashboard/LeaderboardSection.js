@@ -39,6 +39,7 @@ const LeaderboardSection = ({ leaderboard, leagueId, currentUserId, compact = tr
                         <th className="text-center d-none d-sm-table-cell" style={{ width: '120px' }}>Record</th>
                         <th className="text-center d-none d-md-table-cell" style={{ width: '80px' }}>Games</th>
                         <th className="text-center d-none d-md-table-cell" style={{ width: '80px' }}>Win %</th>
+                        <th className="text-center d-none d-lg-table-cell" style={{ width: '70px' }}>ELO</th>
                         <th className="text-center d-none d-lg-table-cell" style={{ width: '100px' }}>Playoffs</th>
                     </tr>
                 </thead>
@@ -110,6 +111,9 @@ const LeaderboardSection = ({ leaderboard, leagueId, currentUserId, compact = tr
                                         {player.win_rate ? `${player.win_rate}%` : '-'}
                                     </td>
                                     <td className="text-center d-none d-lg-table-cell">
+                                        {player.elo_rating || 1500}
+                                    </td>
+                                    <td className="text-center d-none d-lg-table-cell">
                                         {player.qualified ? (
                                             <span className="badge" style={{ background: 'var(--brand-gold)', color: '#1a1a2e' }}>
                                                 <i className="fas fa-check me-1"></i>Qualified
@@ -143,6 +147,10 @@ const LeaderboardSection = ({ leaderboard, leagueId, currentUserId, compact = tr
                                                 <div>
                                                     <span className="text-muted">Win %: </span>
                                                     <span>{player.win_rate ? `${player.win_rate}%` : '-'}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="text-muted">ELO: </span>
+                                                    <span>{player.elo_rating || 1500}</span>
                                                 </div>
                                                 <div>
                                                     {player.qualified ? (
@@ -192,6 +200,7 @@ LeaderboardSection.propTypes = {
         draws: PropTypes.number,
         total_games: PropTypes.number,
         win_rate: PropTypes.string,
+        elo_rating: PropTypes.number,
         rank: PropTypes.number,
         qualified: PropTypes.bool
     })),

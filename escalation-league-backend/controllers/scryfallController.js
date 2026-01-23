@@ -222,15 +222,28 @@ const ScryfallController = {
             }
 
             // Format response to match expected structure
+            // Note: JSON_EXTRACT may return already-parsed values or JSON strings depending on MySQL version
+            const safeParseOrReturn = (val) => {
+                if (!val) return null;
+                if (typeof val !== 'string') return val;
+                // If it looks like a URL or plain string, return as-is
+                if (val.startsWith('http') || !val.startsWith('"')) return val;
+                try {
+                    return JSON.parse(val);
+                } catch {
+                    return val;
+                }
+            };
+
             const response = {
                 id: card.id,
                 name: card.name,
                 image_uris: {
-                    normal: card.image_normal ? JSON.parse(card.image_normal) : null,
-                    large: card.image_large ? JSON.parse(card.image_large) : null,
-                    small: card.image_small ? JSON.parse(card.image_small) : null,
+                    normal: safeParseOrReturn(card.image_normal),
+                    large: safeParseOrReturn(card.image_large),
+                    small: safeParseOrReturn(card.image_small),
                 },
-                card_faces: card.card_faces ? JSON.parse(card.card_faces) : null,
+                card_faces: safeParseOrReturn(card.card_faces),
             };
 
             res.json(response);

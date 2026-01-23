@@ -206,6 +206,7 @@ const getLeagueStats = async (req, res) => {
                 'ul.league_losses as losses',
                 'ul.league_draws as draws',
                 'ul.total_points as total_points',
+                'ul.elo_rating',
                 db.raw('ul.league_wins + ul.league_losses + ul.league_draws AS total_games'),
                 db.raw(`
                     ROUND(
