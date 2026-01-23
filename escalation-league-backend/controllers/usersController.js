@@ -84,7 +84,7 @@ const getUserProfile = async (req, res) => {
       const cachedDeck = await redis.get(`deck:${currentLeague.deck_id}`);
       if (cachedDeck) {
         const deckData = JSON.parse(cachedDeck);
-        decklistUrl = deckData.decklistUrl || null;
+        decklistUrl = deckData.decklist_url || deckData.decklistUrl || null;
         // Get full commander data from cached deck data
         if (deckData.commanders && Array.isArray(deckData.commanders)) {
           commanderData = deckData.commanders[0] || null;
