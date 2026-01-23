@@ -530,7 +530,8 @@ const getPods = async (req, res) => {
                         'u.email',
                         'gp.result',
                         'gp.confirmed',
-                        'gp.turn_order'
+                        'gp.turn_order',
+                        'gp.confirmation_time'
                     )
                     .where('gp.pod_id', pod.id)
                     .whereNull('gp.deleted_at')
