@@ -8,10 +8,13 @@ import PropTypes from 'prop-types';
 const ConfirmationCard = ({ pod, userId, onConfirm }) => {
     const participants = Array.isArray(pod.participants) ? pod.participants : [];
 
-    // Find who declared the result (the one who has confirmed and has a result)
-    const declarer = participants.find(p => p.confirmed === 1 && p.result);
-    const isDraw = declarer?.result === 'draw';
-    const isWin = declarer?.result === 'win';
+    // Find the winner (they declared the win) or fall back to earliest confirmer for draws
+    const winner = participants.find(p => p.result === 'win');
+    const declarer = winner || participants
+        .filter(p => p.confirmed === 1 && p.confirmation_time)
+        .sort((a, b) => new Date(a.confirmation_time) - new Date(b.confirmation_time))[0];
+    const isDraw = !winner && declarer?.result === 'draw';
+    const isWin = !!winner;
 
     // Check if current user needs to confirm
     const userParticipant = participants.find(p => String(p.player_id) === String(userId));
