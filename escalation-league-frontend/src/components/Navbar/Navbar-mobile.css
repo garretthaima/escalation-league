@@ -9,7 +9,7 @@
         right: 0;
         bottom: 0;
         background-color: rgba(0, 0, 0, 0.5);
-        z-index: 1040;
+        z-index: 1029;
         -webkit-tap-highlight-color: transparent;
     }
 
@@ -142,6 +142,15 @@
         overflow-y: auto !important;
         margin: 0 !important;
         border: none !important;
+        transition: none !important;
+        height: auto !important;
+    }
+
+    /* Override Bootstrap collapse transition */
+    .navbar-collapse.collapsing {
+        display: block !important;
+        height: auto !important;
+        transition: none !important;
     }
 
     .navbar-collapse:not(.show) {
@@ -186,6 +195,9 @@
         border: none !important;
         box-shadow: none !important;
         padding: 0 0 0 1.5rem !important;
+        opacity: 1 !important;
+        transform: none !important;
+        transition: none !important;
     }
 
     .navbar .dropdown-menu.show {

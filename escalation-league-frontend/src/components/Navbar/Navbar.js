@@ -52,11 +52,18 @@ const Navbar = ({ handleLogout }) => {
         const navbarCollapse = navbarCollapseRef.current;
         if (!navbarCollapse) return;
 
-        const bsCollapse = window.bootstrap?.Collapse?.getInstance(navbarCollapse);
+        // Try to get existing instance, or create a new one
+        let bsCollapse = window.bootstrap?.Collapse?.getInstance(navbarCollapse);
+        if (!bsCollapse && window.bootstrap?.Collapse) {
+            bsCollapse = new window.bootstrap.Collapse(navbarCollapse, { toggle: false });
+        }
+
         if (bsCollapse) {
             bsCollapse.hide();
         } else if (navbarCollapse.classList.contains('show')) {
+            // Fallback: manually remove show class and update state
             navbarCollapse.classList.remove('show');
+            setIsMenuOpen(false);
         }
     }, []);
 
