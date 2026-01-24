@@ -100,3 +100,123 @@ body.dark-mode .mana-curve-chart strong {
         max-width: 200px !important;
     }
 }
+
+/* Category card styling */
+.metagame-dashboard .category-card {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.metagame-dashboard .category-card:hover {
+    background-color: var(--bg-secondary);
+}
+
+.metagame-dashboard .category-card.category-ramp:hover {
+    background-color: rgba(25, 135, 84, 0.1);
+}
+
+.metagame-dashboard .category-card.category-draw:hover {
+    background-color: rgba(13, 110, 253, 0.1);
+}
+
+.metagame-dashboard .category-card.category-removal:hover {
+    background-color: rgba(220, 53, 69, 0.1);
+}
+
+.metagame-dashboard .category-card.category-counter:hover {
+    background-color: rgba(13, 110, 253, 0.1);
+}
+
+.metagame-dashboard .category-card.category-wipe:hover {
+    background-color: rgba(255, 193, 7, 0.1);
+}
+
+/* Progress bar small */
+.metagame-dashboard .progress-sm {
+    height: 8px;
+}
+
+/* Win rate coloring */
+.metagame-dashboard .win-rate-high {
+    color: #198754;
+}
+
+.metagame-dashboard .win-rate-medium {
+    color: #0d6efd;
+}
+
+.metagame-dashboard .win-rate-low {
+    color: #6c757d;
+}
+
+/* Card staple image */
+.metagame-dashboard .staple-card-img {
+    cursor: pointer;
+}
+
+.metagame-dashboard .staple-card-text {
+    color: var(--text-primary);
+    font-size: 0.875rem;
+}
+
+/* Card preview image */
+.metagame-dashboard .card-preview-img {
+    max-width: 250px;
+    border: 2px solid #fff;
+}
+
+.metagame-dashboard .card-preview-img-sm {
+    max-width: 200px;
+    border: 2px solid #fff;
+}
+
+/* Beta badge */
+.metagame-dashboard .beta-badge {
+    font-size: 0.9rem;
+}
+
+/* Header icon */
+.metagame-dashboard .header-icon {
+    font-size: 1.5rem;
+}
+
+/* Modal backdrop */
+.metagame-dashboard .modal-backdrop-custom {
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+/* Table row with cursor */
+.metagame-dashboard .table-row-clickable {
+    cursor: pointer;
+}
+
+.metagame-dashboard .table-row-default {
+    cursor: default;
+}
+
+/* Table container for card preview positioning */
+.metagame-dashboard .table-container-relative {
+    position: relative;
+}
+
+/* ManaCurveChart styles */
+.mana-curve-container {
+    padding-top: 30px;
+}
+
+.mana-curve-column {
+    flex: 1;
+}
+
+.mana-curve-count {
+    color: #6c757d;
+}
+
+.mana-curve-bar {
+    transition: height 0.3s ease;
+    background: linear-gradient(180deg, var(--brand-purple-light, #4a2f70) 0%, var(--brand-purple, #2d1b4e) 100%);
+}
+
+.mana-curve-label {
+    color: #6c757d;
+}

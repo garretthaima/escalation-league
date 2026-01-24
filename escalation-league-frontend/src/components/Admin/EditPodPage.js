@@ -383,14 +383,8 @@ const EditPodPage = () => {
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <div>
                     <button
-                        className="text-decoration-none p-0 mb-2"
+                        className="btn-back-link text-decoration-none p-0 mb-2"
                         onClick={() => navigate('/admin/pods')}
-                        style={{
-                            color: 'var(--text-primary)',
-                            background: 'none',
-                            border: 'none',
-                            cursor: 'pointer'
-                        }}
                     >
                         <i className="fas fa-arrow-left me-2"></i>
                         Back to Pods
@@ -407,8 +401,7 @@ const EditPodPage = () => {
                     {/* Pod Information Card */}
                     <div className="card mb-4">
                         <div
-                            className="card-header d-flex justify-content-between align-items-center"
-                            style={{ cursor: 'pointer' }}
+                            className="card-header d-flex justify-content-between align-items-center cursor-pointer"
                             onClick={() => setShowPodInfo(!showPodInfo)}
                         >
                             <h5 className="mb-0">
@@ -590,15 +583,10 @@ const EditPodPage = () => {
                                 Turn Order
                             </h5>
                             <button
-                                className="btn btn-sm"
+                                className="btn btn-sm btn-styled-secondary"
                                 onClick={randomizeTurnOrder}
                                 title="Randomize turn order"
                                 disabled={turnOrder.length < 2}
-                                style={{
-                                    background: 'var(--bg-secondary)',
-                                    border: '1px solid var(--border-color)',
-                                    color: 'var(--text-secondary)'
-                                }}
                             >
                                 <i className="fas fa-random me-1"></i>
                                 Randomize
@@ -633,36 +621,21 @@ const EditPodPage = () => {
                                                 onDrop={(e) => handleDrop(e, playerId)}
                                                 onDragEnd={handleDragEnd}
                                                 className={`turn-order-item d-flex align-items-center justify-content-between p-2 mb-1 rounded ${
-                                                    isPendingRemoval ? 'opacity-50' : ''
+                                                    index === 0 ? 'is-first' : ''
+                                                } ${isDragging ? 'is-dragging' : ''} ${isDragOver ? 'is-drag-over' : ''} ${
+                                                    isPendingRemoval ? 'opacity-50 cursor-default' : 'cursor-grab'
                                                 }`}
-                                                style={{
-                                                    background: isDragOver ? 'rgba(45, 27, 78, 0.2)' : index === 0 ? 'rgba(212, 175, 55, 0.15)' : 'var(--bg-primary)',
-                                                    border: `1px solid ${isDragOver ? 'var(--brand-purple)' : index === 0 ? 'var(--brand-gold)' : 'var(--border-color)'}`,
-                                                    opacity: isDragging ? 0.5 : isPendingRemoval ? 0.5 : 1,
-                                                    cursor: isPendingRemoval ? 'default' : 'grab',
-                                                    transition: 'background 0.15s, border-color 0.15s'
-                                                }}
                                             >
                                                 <div className="d-flex align-items-center">
-                                                    <i className="fas fa-grip-vertical text-muted me-2 d-none d-md-inline" style={{ cursor: isPendingRemoval ? 'default' : 'grab' }}></i>
+                                                    <i className={`fas fa-grip-vertical text-muted me-2 d-none d-md-inline ${isPendingRemoval ? 'cursor-default' : 'cursor-grab'}`}></i>
                                                     <span
-                                                        className="badge me-2"
-                                                        style={{
-                                                            background: index === 0 ? 'var(--brand-gold)' : 'var(--bg-secondary)',
-                                                            color: index === 0 ? '#1a1a2e' : 'var(--text-primary)'
-                                                        }}
+                                                        className={`badge me-2 ${index === 0 ? 'badge-position-first' : 'badge-position'}`}
                                                     >
                                                         {index + 1}
                                                     </span>
                                                     <span>{participant.firstname} {participant.lastname}</span>
                                                     {index === 0 && (
-                                                        <span
-                                                            className="badge ms-2"
-                                                            style={{
-                                                                background: 'var(--brand-gold)',
-                                                                color: '#1a1a2e'
-                                                            }}
-                                                        >
+                                                        <span className="badge ms-2 badge-position-first">
                                                             <i className="fas fa-play-circle me-1"></i>
                                                             First
                                                         </span>
@@ -673,28 +646,18 @@ const EditPodPage = () => {
                                                 </div>
                                                 <div className="btn-group btn-group-sm">
                                                     <button
-                                                        className="btn btn-sm px-2"
+                                                        className="btn btn-sm btn-styled-secondary px-2"
                                                         onClick={() => movePlayerUp(playerId)}
                                                         disabled={index === 0}
                                                         title="Move up"
-                                                        style={{
-                                                            background: 'var(--bg-secondary)',
-                                                            border: '1px solid var(--border-color)',
-                                                            color: 'var(--text-secondary)'
-                                                        }}
                                                     >
                                                         <i className="fas fa-chevron-up"></i>
                                                     </button>
                                                     <button
-                                                        className="btn btn-sm px-2"
+                                                        className="btn btn-sm btn-styled-secondary px-2"
                                                         onClick={() => movePlayerDown(playerId)}
                                                         disabled={index === turnOrder.length - 1}
                                                         title="Move down"
-                                                        style={{
-                                                            background: 'var(--bg-secondary)',
-                                                            border: '1px solid var(--border-color)',
-                                                            color: 'var(--text-secondary)'
-                                                        }}
                                                     >
                                                         <i className="fas fa-chevron-down"></i>
                                                     </button>

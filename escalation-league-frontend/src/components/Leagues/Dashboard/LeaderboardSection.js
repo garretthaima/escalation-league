@@ -33,14 +33,14 @@ const LeaderboardSection = ({ leaderboard, leagueId, currentUserId, compact = tr
             <table className="table table-hover mb-0">
                 <thead>
                     <tr>
-                        <th style={{ width: '60px' }}>Rank</th>
+                        <th className="leaderboard-col-rank">Rank</th>
                         <th>Player</th>
-                        <th className="text-center" style={{ width: '80px' }}>Points</th>
-                        <th className="text-center d-none d-sm-table-cell" style={{ width: '120px' }}>Record</th>
-                        <th className="text-center d-none d-md-table-cell" style={{ width: '80px' }}>Games</th>
-                        <th className="text-center d-none d-md-table-cell" style={{ width: '80px' }}>Win %</th>
-                        <th className="text-center d-none d-lg-table-cell" style={{ width: '70px' }}>ELO</th>
-                        <th className="text-center d-none d-lg-table-cell" style={{ width: '100px' }}>Playoffs</th>
+                        <th className="text-center leaderboard-col-points">Points</th>
+                        <th className="text-center d-none d-sm-table-cell leaderboard-col-record">Record</th>
+                        <th className="text-center d-none d-md-table-cell leaderboard-col-games">Games</th>
+                        <th className="text-center d-none d-md-table-cell leaderboard-col-winrate">Win %</th>
+                        <th className="text-center d-none d-lg-table-cell leaderboard-col-elo">ELO</th>
+                        <th className="text-center d-none d-lg-table-cell leaderboard-col-playoffs">Playoffs</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -52,9 +52,8 @@ const LeaderboardSection = ({ leaderboard, leagueId, currentUserId, compact = tr
                         return (
                             <React.Fragment key={player.player_id}>
                                 <tr
-                                    className={isCurrentUser ? 'table-primary' : ''}
+                                    className={`${isCurrentUser ? 'table-primary' : ''} leaderboard-row`}
                                     onClick={(e) => toggleRow(player.player_id, e)}
-                                    style={{ cursor: window.innerWidth < 576 ? 'pointer' : 'default' }}
                                 >
                                     <td>
                                         {player.rank <= 3 ? (
@@ -81,15 +80,7 @@ const LeaderboardSection = ({ leaderboard, leagueId, currentUserId, compact = tr
                                         {isCurrentUser && <small className="text-muted ms-2">(you)</small>}
                                     </td>
                                     <td className="text-center">
-                                        <span
-                                            style={{
-                                                background: 'var(--bg-secondary)',
-                                                padding: '4px 10px',
-                                                borderRadius: '12px',
-                                                fontWeight: 600,
-                                                fontSize: '0.85rem'
-                                            }}
-                                        >
+                                        <span className="points-badge">
                                             {player.total_points || 0}
                                         </span>
                                     </td>
@@ -115,7 +106,7 @@ const LeaderboardSection = ({ leaderboard, leagueId, currentUserId, compact = tr
                                     </td>
                                     <td className="text-center d-none d-lg-table-cell">
                                         {player.qualified ? (
-                                            <span className="badge" style={{ background: 'var(--brand-gold)', color: '#1a1a2e' }}>
+                                            <span className="badge bg-brand-gold">
                                                 <i className="fas fa-check me-1"></i>Qualified
                                             </span>
                                         ) : (
@@ -125,9 +116,9 @@ const LeaderboardSection = ({ leaderboard, leagueId, currentUserId, compact = tr
                                 </tr>
                                 {/* Mobile expanded details */}
                                 {isExpanded && (
-                                    <tr className="d-sm-none" style={{ background: 'var(--bg-secondary)' }}>
-                                        <td colSpan="3" style={{ padding: '0.75rem 1rem' }}>
-                                            <div className="d-flex flex-wrap gap-3" style={{ fontSize: '0.85rem' }}>
+                                    <tr className="d-sm-none leaderboard-expanded-row">
+                                        <td colSpan="3" className="leaderboard-expanded-cell">
+                                            <div className="d-flex flex-wrap gap-3 text-sm">
                                                 <div>
                                                     <span className="text-muted">Record: </span>
                                                     <span className="text-success">{recordParts[0]}</span>
@@ -154,7 +145,7 @@ const LeaderboardSection = ({ leaderboard, leagueId, currentUserId, compact = tr
                                                 </div>
                                                 <div>
                                                     {player.qualified ? (
-                                                        <span className="badge" style={{ background: 'var(--brand-gold)', color: '#1a1a2e' }}>
+                                                        <span className="badge bg-brand-gold">
                                                             <i className="fas fa-check me-1"></i>Qualified
                                                         </span>
                                                     ) : (

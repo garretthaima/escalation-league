@@ -114,10 +114,10 @@ const MetagameDashboard = () => {
                 <div className="col-12">
                     <div className="d-flex align-items-center mb-3">
                         <h2 className="mb-0">
-                            <i className="fas fa-chart-pie me-2" style={{ fontSize: '1.5rem' }}></i>
+                            <i className="fas fa-chart-pie me-2 header-icon"></i>
                             Metagame Analysis
                         </h2>
-                        <span className="badge bg-warning text-dark ms-3" style={{ fontSize: '0.9rem' }}>BETA</span>
+                        <span className="badge bg-warning text-dark ms-3 beta-badge">BETA</span>
                     </div>
                     {activeLeague && (
                         <p className="text-muted">
@@ -281,11 +281,10 @@ const MetagameDashboard = () => {
                                                         <img
                                                             src={card.image_uri}
                                                             alt={card.name}
-                                                            className="img-fluid rounded mb-2"
-                                                            style={{ cursor: 'pointer' }}
+                                                            className="img-fluid rounded mb-2 staple-card-img cursor-pointer"
                                                             title={card.name}
                                                         />
-                                                        <div style={{ color: '#f8f9fa', fontSize: '0.875rem' }}>
+                                                        <div className="staple-card-text">
                                                             <strong>{card.count}</strong> - {card.name}
                                                         </div>
                                                     </div>
@@ -356,7 +355,7 @@ const MetagameDashboard = () => {
                                             </div>
                                         </div>
 
-                                        <div style={{ position: 'relative' }}>
+                                        <div className="table-container-relative">
                                             <table className="table table-sm table-hover">
                                                 <thead>
                                                     <tr>
@@ -383,7 +382,7 @@ const MetagameDashboard = () => {
                                                                 }}
                                                                 onMouseLeave={() => setHoveredCard(null)}
                                                                 onClick={() => setHoveredCard(hoveredCard?.name === card.name ? null : card)}
-                                                                style={{ cursor: card.image_uri ? 'pointer' : 'default' }}
+                                                                className={card.image_uri ? 'table-row-clickable' : 'table-row-default'}
                                                             >
                                                                 <td>{((currentPage - 1) * itemsPerPage) + idx + 1}</td>
                                                                 <td>{card.name}</td>
@@ -417,11 +416,7 @@ const MetagameDashboard = () => {
                                                                 key={idx}
                                                                 src={uri}
                                                                 alt={`${hoveredCard.name} - Face ${idx + 1}`}
-                                                                className="img-fluid rounded shadow-lg"
-                                                                style={{
-                                                                    maxWidth: '200px',
-                                                                    border: '2px solid #fff'
-                                                                }}
+                                                                className="img-fluid rounded shadow-lg card-preview-img-sm"
                                                             />
                                                         ))
                                                     ) : (
@@ -429,11 +424,7 @@ const MetagameDashboard = () => {
                                                         <img
                                                             src={hoveredCard.image_uri}
                                                             alt={hoveredCard.name}
-                                                            className="img-fluid rounded shadow-lg"
-                                                            style={{
-                                                                maxWidth: '250px',
-                                                                border: '2px solid #fff'
-                                                            }}
+                                                            className="img-fluid rounded shadow-lg card-preview-img"
                                                         />
                                                     )}
                                                 </div>
@@ -497,11 +488,8 @@ const MetagameDashboard = () => {
                                 {metagame.resources ? (
                                     <div>
                                         <div
-                                            className="mb-3 p-3 border rounded category-card"
+                                            className="mb-3 p-3 border rounded category-card category-ramp"
                                             onClick={() => handleCategoryClick('ramp', 'Ramp')}
-                                            style={{ cursor: 'pointer', transition: 'background-color 0.2s' }}
-                                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(25, 135, 84, 0.1)'}
-                                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ''}
                                         >
                                             <h6 className="text-success mb-2">
                                                 <i className="fas fa-seedling me-2"></i>Ramp
@@ -512,11 +500,8 @@ const MetagameDashboard = () => {
                                         </div>
 
                                         <div
-                                            className="p-3 border rounded category-card"
+                                            className="p-3 border rounded category-card category-draw"
                                             onClick={() => handleCategoryClick('cardDraw', 'Card Draw')}
-                                            style={{ cursor: 'pointer', transition: 'background-color 0.2s' }}
-                                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(13, 110, 253, 0.1)'}
-                                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ''}
                                         >
                                             <h6 className="text-info mb-2">
                                                 <i className="fas fa-book me-2"></i>Card Draw
@@ -544,11 +529,8 @@ const MetagameDashboard = () => {
                                 {metagame.interaction ? (
                                     <div>
                                         <div
-                                            className="mb-2 p-3 border rounded category-card"
+                                            className="mb-2 p-3 border rounded category-card category-removal"
                                             onClick={() => handleCategoryClick('removal', 'Removal')}
-                                            style={{ cursor: 'pointer', transition: 'background-color 0.2s' }}
-                                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(220, 53, 69, 0.1)'}
-                                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ''}
                                         >
                                             <h6 className="text-danger mb-1">
                                                 <i className="fas fa-skull-crossbones me-2"></i>Removal
@@ -558,11 +540,8 @@ const MetagameDashboard = () => {
                                         </div>
 
                                         <div
-                                            className="mb-2 p-3 border rounded category-card"
+                                            className="mb-2 p-3 border rounded category-card category-counter"
                                             onClick={() => handleCategoryClick('counterspells', 'Counterspells')}
-                                            style={{ cursor: 'pointer', transition: 'background-color 0.2s' }}
-                                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(13, 110, 253, 0.1)'}
-                                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ''}
                                         >
                                             <h6 className="text-primary mb-1">
                                                 <i className="fas fa-ban me-2"></i>Counterspells
@@ -572,11 +551,8 @@ const MetagameDashboard = () => {
                                         </div>
 
                                         <div
-                                            className="p-3 border rounded category-card"
+                                            className="p-3 border rounded category-card category-wipe"
                                             onClick={() => handleCategoryClick('boardWipes', 'Board Wipes')}
-                                            style={{ cursor: 'pointer', transition: 'background-color 0.2s' }}
-                                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 193, 7, 0.1)'}
-                                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ''}
                                         >
                                             <h6 className="text-warning mb-1">
                                                 <i className="fas fa-bomb me-2"></i>Board Wipes
@@ -662,7 +638,7 @@ const MetagameDashboard = () => {
                                                         <small className="text-muted">
                                                             {stat.wins} win{stat.wins !== 1 ? 's' : ''} / {stat.gamesPlayed} game{stat.gamesPlayed !== 1 ? 's' : ''}
                                                         </small>
-                                                        <div className="progress mt-2" style={{ height: '8px' }}>
+                                                        <div className="progress mt-2 progress-sm">
                                                             <div
                                                                 className="progress-bar"
                                                                 style={{
@@ -705,7 +681,7 @@ const MetagameDashboard = () => {
                                                             <span>{kw.keyword}</span>
                                                             <span className="text-muted">{kw.count} ({kw.percentage}% of {kw.baseType || 'creatures'})</span>
                                                         </div>
-                                                        <div className="progress" style={{ height: '8px' }}>
+                                                        <div className="progress progress-sm">
                                                             <div
                                                                 className="progress-bar bg-danger"
                                                                 style={{ width: `${kw.percentage}%` }}
@@ -728,7 +704,7 @@ const MetagameDashboard = () => {
                                                             <span>{kw.keyword}</span>
                                                             <span className="text-muted">{kw.count} ({kw.percentage}% of {kw.baseType || 'creatures'})</span>
                                                         </div>
-                                                        <div className="progress" style={{ height: '8px' }}>
+                                                        <div className="progress progress-sm">
                                                             <div
                                                                 className="progress-bar bg-primary"
                                                                 style={{ width: `${kw.percentage}%` }}
@@ -751,7 +727,7 @@ const MetagameDashboard = () => {
                                                             <span>{kw.keyword}</span>
                                                             <span className="text-muted">{kw.count} ({kw.percentage}% of {kw.baseType || 'cards'})</span>
                                                         </div>
-                                                        <div className="progress" style={{ height: '8px' }}>
+                                                        <div className="progress progress-sm">
                                                             <div
                                                                 className="progress-bar bg-warning"
                                                                 style={{ width: `${kw.percentage}%` }}
@@ -774,7 +750,7 @@ const MetagameDashboard = () => {
                                                             <span>{kw.keyword}</span>
                                                             <span className="text-muted">{kw.count} ({kw.percentage}% of {kw.baseType || 'cards'})</span>
                                                         </div>
-                                                        <div className="progress" style={{ height: '8px' }}>
+                                                        <div className="progress progress-sm">
                                                             <div
                                                                 className="progress-bar bg-success"
                                                                 style={{ width: `${kw.percentage}%` }}
@@ -794,7 +770,7 @@ const MetagameDashboard = () => {
 
             {/* Category Cards Modal */}
             {categoryModal.show && (
-                <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                <div className="modal show d-block modal-backdrop-custom" tabIndex="-1">
                     <div className="modal-dialog modal-lg modal-dialog-scrollable">
                         <div className="modal-content">
                             <div className="modal-header">
@@ -821,7 +797,7 @@ const MetagameDashboard = () => {
                                 ) : categoryModal.cards.length === 0 ? (
                                     <p className="text-muted text-center py-4">No cards found in this category</p>
                                 ) : (
-                                    <div style={{ position: 'relative' }}>
+                                    <div className="table-container-relative">
                                         <div className="table-responsive">
                                             <table className="table table-sm table-hover">
                                                 <thead>
@@ -848,7 +824,7 @@ const MetagameDashboard = () => {
                                                                 }
                                                             }}
                                                             onMouseLeave={() => setHoveredCard(null)}
-                                                            style={{ cursor: card.imageUri || card.imageUris ? 'pointer' : 'default' }}
+                                                            className={(card.imageUri || card.imageUris) ? 'table-row-clickable' : 'table-row-default'}
                                                         >
                                                             <td>{idx + 1}</td>
                                                             <td>{card.name}</td>
@@ -883,11 +859,7 @@ const MetagameDashboard = () => {
                                                             key={idx}
                                                             src={uri}
                                                             alt={`${hoveredCard.name} - Face ${idx + 1}`}
-                                                            className="img-fluid rounded shadow-lg"
-                                                            style={{
-                                                                maxWidth: '200px',
-                                                                border: '2px solid #fff'
-                                                            }}
+                                                            className="img-fluid rounded shadow-lg card-preview-img-sm"
                                                         />
                                                     ))
                                                 ) : (
@@ -895,11 +867,7 @@ const MetagameDashboard = () => {
                                                     <img
                                                         src={hoveredCard.imageUri}
                                                         alt={hoveredCard.name}
-                                                        className="img-fluid rounded shadow-lg"
-                                                        style={{
-                                                            maxWidth: '250px',
-                                                            border: '2px solid #fff'
-                                                        }}
+                                                        className="img-fluid rounded shadow-lg card-preview-img"
                                                     />
                                                 )}
                                             </div>

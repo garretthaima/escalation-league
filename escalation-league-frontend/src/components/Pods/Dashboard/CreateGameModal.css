@@ -1,0 +1,50 @@
+/* CreateGameModal.css - Styles for the Create Game modal component */
+
+/* Modal display state */
+.create-game-modal-visible {
+    display: block;
+}
+
+/* Player list scroll container */
+.create-game-modal-player-list {
+    max-height: 350px;
+    overflow-y: auto;
+}
+
+/* Selected player item */
+.create-game-modal-player-selected {
+    background: var(--brand-purple);
+    border-color: var(--brand-purple);
+    color: #fff;
+}
+
+/* "You" badge for current user */
+.create-game-modal-badge-you {
+    background: var(--brand-gold);
+    color: #1a1a2e;
+}
+
+/* Secondary styled button (Randomize, Up/Down arrows) */
+.create-game-modal-btn-secondary {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+}
+
+/* Turn order position badge */
+.create-game-modal-position-badge {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.create-game-modal-position-badge.is-first {
+    background: var(--brand-gold);
+    color: #1a1a2e;
+}
+
+/* Primary action button */
+.create-game-modal-btn-primary {
+    background: var(--brand-purple);
+    border-color: var(--brand-purple);
+    color: #fff;
+}

@@ -1,0 +1,20 @@
+/* League Leaderboard Styles */
+
+/* Column width utilities */
+.league-leaderboard-rank-col {
+    width: 50px;
+}
+
+.league-leaderboard-status-col {
+    width: 80px;
+}
+
+/* Expanded row background for mobile */
+.league-leaderboard-expanded-row {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Chevron icon sizing */
+.league-leaderboard-chevron {
+    font-size: 0.8em;
+}

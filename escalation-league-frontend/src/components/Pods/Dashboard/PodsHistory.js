@@ -236,10 +236,10 @@ const PodsHistory = () => {
                     <table className="table table-hover">
                         <thead>
                             <tr>
-                                <th style={{ width: '70px' }}>Pod #</th>
-                                <th style={{ width: '100px' }}>Date</th>
+                                <th className="w-70">Pod #</th>
+                                <th className="w-100">Date</th>
                                 <th>Winner</th>
-                                <th className="text-center d-none d-sm-table-cell" style={{ width: '100px' }}>Your Result</th>
+                                <th className="text-center d-none d-sm-table-cell w-100">Your Result</th>
                                 <th className="d-none d-md-table-cell">Participants</th>
                             </tr>
                         </thead>
@@ -294,9 +294,9 @@ const PodsHistory = () => {
                                         </tr>
                                         {/* Mobile expanded details */}
                                         {isExpanded && (
-                                            <tr className="d-md-none" style={{ background: 'var(--bg-secondary)' }}>
-                                                <td colSpan="3" style={{ padding: '0.75rem 1rem' }}>
-                                                    <div style={{ fontSize: '0.85rem' }}>
+                                            <tr className="d-md-none bg-secondary-subtle">
+                                                <td colSpan="3" className="py-2 px-3">
+                                                    <div className="text-sm">
                                                         {userParticipant && (
                                                             <div className="mb-2">
                                                                 <span className="text-muted">Your Result: </span>

@@ -591,7 +591,7 @@ const ActiveGamesTab = () => {
                             Select Players ({selectedPlayers.length}/4)
                         </h6>
                         <p className="text-muted small">Select 3-4 players for this game</p>
-                        <div className="list-group" style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                        <div className="list-group scroll-container">
                             {leagueUsers.map(user => {
                                 const isSelected = selectedPlayers.some(p => p.id === user.id);
                                 const isCurrentUser = user.id === userId;

@@ -1,4 +1,6 @@
 import React from 'react';
+import './Rules.css';
+import '../Shared/Shared.css';
 
 const Rules = () => {
     return (
@@ -48,15 +50,15 @@ const Rules = () => {
                         <div className="card-body">
                             <div className="row text-center mb-3">
                                 <div className="col-4">
-                                    <div className="fs-3 fw-bold" style={{ color: 'var(--brand-gold)' }}>16</div>
+                                    <div className="fs-3 fw-bold text-brand-gold">16</div>
                                     <small className="text-muted">Weeks</small>
                                 </div>
                                 <div className="col-4">
-                                    <div className="fs-3 fw-bold" style={{ color: 'var(--brand-gold)' }}>3+</div>
+                                    <div className="fs-3 fw-bold text-brand-gold">3+</div>
                                     <small className="text-muted">Min Pod Size</small>
                                 </div>
                                 <div className="col-4">
-                                    <div className="fs-3 fw-bold" style={{ color: 'var(--brand-gold)' }}>Thu-Wed</div>
+                                    <div className="fs-3 fw-bold text-brand-gold">Thu-Wed</div>
                                     <small className="text-muted">Week Cycle</small>
                                 </div>
                             </div>
@@ -121,7 +123,7 @@ const Rules = () => {
                         </div>
                         <div className="card-body">
                             <div className="text-center mb-3">
-                                <span className="badge fs-4 px-4 py-2" style={{ background: 'var(--brand-gold)', color: '#000' }}>
+                                <span className="badge fs-4 px-4 py-2 bg-brand-gold">
                                     +$11 / week
                                 </span>
                             </div>
@@ -228,7 +230,7 @@ const Rules = () => {
                         </div>
                         <div className="card-body">
                             <div className="text-center mb-3">
-                                <span className="badge fs-5 px-4 py-2" style={{ background: 'var(--brand-purple)', color: '#fff' }}>
+                                <span className="badge fs-5 px-4 py-2 bg-brand-purple">
                                     Top 75% Qualify
                                 </span>
                             </div>
@@ -253,25 +255,25 @@ const Rules = () => {
                         <div className="card-body">
                             <ul className="list-unstyled mb-0">
                                 <li className="d-flex align-items-start mb-2">
-                                    <i className="fas fa-gamepad me-3 mt-1" style={{ color: 'var(--brand-gold)' }}></i>
+                                    <i className="fas fa-gamepad me-3 mt-1 text-brand-gold"></i>
                                     <div>
                                         <strong>Format:</strong> 4 rounds
                                     </div>
                                 </li>
                                 <li className="d-flex align-items-start mb-2">
-                                    <i className="fas fa-medal me-3 mt-1" style={{ color: 'var(--brand-gold)' }}></i>
+                                    <i className="fas fa-medal me-3 mt-1 text-brand-gold"></i>
                                     <div>
                                         <strong>Championship:</strong> Top 4 players play single elimination
                                     </div>
                                 </li>
                                 <li className="d-flex align-items-start mb-2">
-                                    <i className="fas fa-calculator me-3 mt-1" style={{ color: 'var(--brand-gold)' }}></i>
+                                    <i className="fas fa-calculator me-3 mt-1 text-brand-gold"></i>
                                     <div>
                                         <strong>Scoring:</strong> Win = 4, Non-Win = 1, Scoop = 0
                                     </div>
                                 </li>
                                 <li className="d-flex align-items-start">
-                                    <i className="fas fa-sort-amount-down me-3 mt-1" style={{ color: 'var(--brand-gold)' }}></i>
+                                    <i className="fas fa-sort-amount-down me-3 mt-1 text-brand-gold"></i>
                                     <div>
                                         <strong>Tiebreaker:</strong> Points → Win Rate → Games Won → Arm Wrestle
                                     </div>

@@ -1,0 +1,82 @@
+/* GameCard.css - Styles for the Commander pod game card component */
+
+/* Declare button styling */
+.btn-declare {
+    background: var(--brand-gold);
+    border: none;
+    color: #1a1a2e;
+    font-weight: 600;
+}
+
+.btn-declare:hover {
+    background: var(--brand-gold-light);
+    color: #1a1a2e;
+}
+
+/* Pod 2x2 grid layout */
+.pod-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+/* Empty participant slot */
+.pod-slot-empty {
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    opacity: 0.3;
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+/* Base participant slot */
+.pod-slot {
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    border: 2px solid transparent;
+    text-align: center;
+}
+
+/* Highlighted slot for current user */
+.pod-slot-current-user {
+    background: rgba(74, 47, 112, 0.2);
+    border-color: var(--brand-purple);
+}
+
+/* Participant name container */
+.pod-participant-name {
+    font-weight: 500;
+    font-size: 0.85rem;
+}
+
+.pod-participant-name-highlighted {
+    font-weight: 600;
+}
+
+.pod-participant-name-first {
+    color: var(--brand-gold);
+}
+
+/* Turn order badge */
+.pod-turn-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    color: #fff;
+    font-size: 0.7rem;
+    margin-right: 6px;
+}
+
+.pod-turn-badge-first {
+    background: var(--brand-gold);
+}
+
+.pod-turn-badge-default {
+    background: var(--brand-purple);
+}

@@ -1,5 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import '../../Shared/Shared.css';
+import './ConfirmationCard.css';
 
 /**
  * Card component for games pending confirmation
@@ -40,81 +42,39 @@ const ConfirmationCard = ({ pod, userId, onConfirm }) => {
                 {/* Header row with declaration */}
                 <div className="d-flex justify-content-between align-items-center mb-2">
                     <h6 className="card-title mb-0">
-                        <i className="fas fa-clock me-2" style={{ color: 'var(--brand-gold)' }}></i>
+                        <i className="fas fa-clock me-2 text-brand-gold"></i>
                         Pod #{pod.id}
                     </h6>
-                    <span
-                        style={{
-                            fontSize: '0.7rem',
-                            padding: '3px 8px',
-                            borderRadius: '10px',
-                            background: 'var(--bg-secondary)',
-                            color: 'var(--text-secondary)'
-                        }}
-                    >
+                    <span className="text-xs confirmation-card-counter">
                         {confirmedCount}/{totalCount}
                     </span>
                 </div>
 
                 {/* Compact declaration line */}
-                <div
-                    style={{
-                        padding: '6px 10px',
-                        borderRadius: '6px',
-                        background: 'var(--brand-purple)',
-                        marginBottom: '10px',
-                        fontSize: '0.8rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px'
-                    }}
-                >
+                <div className="text-sm confirmation-card-declaration">
                     {declarer ? (
                         <>
-                            <span style={{ color: '#fff' }}>
+                            <span className="confirmation-card-declarer-text">
                                 {declarer.firstname} declared
                             </span>
-                            <span
-                                style={{
-                                    background: isWin ? 'var(--brand-gold)' : 'rgba(255,255,255,0.2)',
-                                    color: isWin ? '#1a1a2e' : '#fff',
-                                    padding: '1px 8px',
-                                    borderRadius: '4px',
-                                    fontSize: '0.7rem',
-                                    fontWeight: 600
-                                }}
-                            >
+                            <span className={`text-xs confirmation-card-result-badge ${isWin ? 'confirmation-card-result-badge-win' : 'confirmation-card-result-badge-draw'}`}>
                                 {isDraw ? 'DRAW' : 'WIN'}
                             </span>
                         </>
                     ) : (
-                        <span style={{ color: 'rgba(255,255,255,0.8)' }}>Pending...</span>
+                        <span className="confirmation-card-pending-text">Pending...</span>
                     )}
                 </div>
 
                 {/* 2x2 Grid */}
-                <div
-                    style={{
-                        display: 'grid',
-                        gridTemplateColumns: '1fr 1fr',
-                        gap: '6px',
-                        marginBottom: needsConfirmation ? '10px' : 0
-                    }}
-                >
+                <div className={`confirmation-card-grid${needsConfirmation ? ' confirmation-card-grid-with-button' : ''}`}>
                     {gridOrder.map((idx) => {
                         const participant = paddedParticipants[idx];
                         if (!participant) {
                             return (
                                 <div
                                     key={`empty-${idx}`}
-                                    style={{
-                                        padding: '6px 8px',
-                                        borderRadius: '6px',
-                                        background: 'var(--bg-secondary)',
-                                        opacity: 0.3,
-                                        textAlign: 'center',
-                                        fontSize: '0.75rem'
-                                    }}
+                                    className="text-xs confirmation-card-slot-empty"
                                 >
                                     —
                                 </div>
@@ -128,27 +88,14 @@ const ConfirmationCard = ({ pod, userId, onConfirm }) => {
                         return (
                             <div
                                 key={participant.player_id}
-                                style={{
-                                    padding: '6px 8px',
-                                    borderRadius: '6px',
-                                    background: isCurrentUser ? 'rgba(74, 47, 112, 0.2)' : 'var(--bg-secondary)',
-                                    border: isCurrentUser ? '2px solid var(--brand-purple)' : '2px solid transparent',
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center',
-                                    fontSize: '0.8rem'
-                                }}
+                                className={`text-sm confirmation-card-slot${isCurrentUser ? ' confirmation-card-slot-current-user' : ''}`}
                             >
-                                <span style={{ fontWeight: isCurrentUser ? 600 : 400 }}>
-                                    {hasWin && <i className="fas fa-trophy me-1" style={{ color: 'var(--brand-gold)', fontSize: '0.7rem' }}></i>}
+                                <span className={isCurrentUser ? 'confirmation-card-name-current-user' : 'confirmation-card-name'}>
+                                    {hasWin && <i className="fas fa-trophy me-1 text-brand-gold confirmation-card-trophy"></i>}
                                     {participant.firstname}
                                 </span>
                                 <i
-                                    className={`fas ${isConfirmed ? 'fa-check' : 'fa-clock'}`}
-                                    style={{
-                                        fontSize: '0.65rem',
-                                        color: isConfirmed ? '#28a745' : 'var(--text-muted)'
-                                    }}
+                                    className={`fas ${isConfirmed ? 'fa-check' : 'fa-clock'} confirmation-card-status-icon ${isConfirmed ? 'confirmation-card-status-confirmed' : 'confirmation-card-status-pending'}`}
                                 ></i>
                             </div>
                         );
@@ -158,9 +105,8 @@ const ConfirmationCard = ({ pod, userId, onConfirm }) => {
                 {/* Confirm Button */}
                 {needsConfirmation && (
                     <button
-                        className="btn btn-success w-100"
+                        className="btn btn-success w-100 text-sm"
                         onClick={() => onConfirm(pod.id)}
-                        style={{ fontSize: '0.85rem' }}
                     >
                         <i className="fas fa-check-circle me-2"></i>
                         Confirm

@@ -721,6 +721,149 @@ body.dark-mode .quick-link-item:hover {
     background: #4752c4;
 }
 
+/* League Tab Specific Styles */
+.league-header-gradient {
+    background: linear-gradient(135deg, var(--brand-purple) 0%, rgba(45, 27, 78, 0.9) 100%);
+    border: none;
+}
+
+.league-badge-active {
+    background: rgba(40, 167, 69, 0.2);
+    color: #4ade80;
+}
+
+.league-badge-inactive {
+    background: rgba(108, 117, 125, 0.2);
+    color: #9ca3af;
+}
+
+.league-header-title {
+    color: #fff;
+    margin-bottom: 0.5rem;
+}
+
+.league-header-date {
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 0;
+}
+
+.league-stat-display {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.league-stat-display-gold {
+    color: var(--brand-gold);
+}
+
+.league-stat-display-white {
+    color: #fff;
+}
+
+.league-stat-sublabel {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.stat-icon-box {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+}
+
+.stat-icon-box-gold {
+    background: rgba(212, 175, 55, 0.15);
+    color: var(--brand-gold);
+}
+
+.stat-icon-box-green {
+    background: rgba(40, 167, 69, 0.15);
+    color: #28a745;
+}
+
+.stat-icon-box-red {
+    background: rgba(220, 53, 69, 0.15);
+    color: #dc3545;
+}
+
+.stat-icon-box-purple {
+    background: rgba(45, 27, 78, 0.15);
+    color: var(--brand-purple);
+}
+
+.stat-value-lg {
+    font-size: 1.75rem;
+    font-weight: 700;
+}
+
+.stat-value-gold {
+    color: var(--brand-gold);
+}
+
+.stat-value-green {
+    color: #28a745;
+}
+
+.stat-value-red {
+    color: #dc3545;
+}
+
+.stat-value-primary {
+    color: var(--text-primary);
+}
+
+.commander-card-img {
+    width: 120px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.commander-name-text {
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+}
+
+.commander-partner-text {
+    color: var(--text-secondary);
+    margin-bottom: 0.75rem;
+}
+
+.btn-purple {
+    background: var(--brand-purple);
+    color: #fff;
+    border-radius: 6px;
+}
+
+.quick-action-item {
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+.quick-action-item:last-child {
+    border-bottom: none;
+}
+
+.quick-action-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+}
+
+.icon-brand-purple {
+    color: var(--brand-purple);
+}
+
+.icon-secondary {
+    color: var(--text-secondary);
+}
+
+.empty-icon-muted {
+    color: var(--text-secondary);
+    opacity: 0.3;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .profile-hero {
@@ -804,4 +947,208 @@ body.dark-mode .quick-link-item:hover {
     .profile-card-body {
         padding: 1rem;
     }
+}
+
+/* Win/Loss Breakdown Bar */
+.breakdown-bar {
+    height: 32px;
+}
+
+.breakdown-segment {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 500;
+    min-width: 30px;
+}
+
+.breakdown-segment-wins {
+    background: #28a745;
+}
+
+.breakdown-segment-losses {
+    background: #dc3545;
+}
+
+.breakdown-segment-draws {
+    background: #6c757d;
+}
+
+/* Legend indicators */
+.legend-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+}
+
+.legend-indicator-wins {
+    background: #28a745;
+}
+
+.legend-indicator-losses {
+    background: #dc3545;
+}
+
+.legend-indicator-draws {
+    background: #6c757d;
+}
+
+/* Commander card image */
+.commander-card-image {
+    width: 140px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* Commander info styling */
+.commander-title {
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+}
+
+.commander-partner-info {
+    color: var(--text-secondary);
+    margin-bottom: 0.75rem;
+}
+
+.commander-league-info {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+}
+
+/* View decklist button */
+.btn-view-decklist {
+    background: var(--brand-purple);
+    color: #fff;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+/* Settings Tab Styles */
+.settings-helper-text {
+    color: var(--text-secondary);
+    margin-top: 0.25rem;
+    display: block;
+}
+
+.settings-avatar-preview {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 3px solid var(--brand-purple);
+    object-fit: cover;
+}
+
+.settings-avatar-instruction {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.settings-badge-primary {
+    background: rgba(40, 167, 69, 0.15);
+    color: #28a745;
+}
+
+.settings-info-box {
+    background: var(--bg-secondary);
+    font-size: 0.85rem;
+}
+
+.settings-info-icon {
+    color: var(--brand-purple);
+}
+
+.settings-info-text {
+    color: var(--text-secondary);
+}
+
+/* Public Profile Styles */
+.public-profile-commander-image {
+    max-width: 200px;
+}
+
+.public-profile-rivalry-icon {
+    font-size: 1.5rem;
+}
+
+.public-profile-win-rate {
+    color: #6c757d;
+}
+
+.public-profile-win-rate-good {
+    color: #198754;
+}
+
+.public-profile-win-rate-average {
+    color: #0d6efd;
+}
+
+/* Activity Tab Styles */
+.activity-badge-total {
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+}
+
+.activity-empty-icon {
+    color: var(--text-secondary);
+    opacity: 0.3;
+}
+
+.activity-item-bordered {
+    border-bottom: 1px solid var(--border-color);
+}
+
+.activity-item-last {
+    border-bottom: none;
+}
+
+.activity-icon-box {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+}
+
+.activity-time-text {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.activity-meta-container {
+    font-size: 0.8rem;
+}
+
+.activity-meta-badge {
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    font-weight: 400;
+}
+
+.activity-pagination {
+    border-top: 1px solid var(--border-color);
+}
+
+.activity-pagination-btn {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+.activity-pagination-btn:hover:not(:disabled) {
+    background: var(--bg-primary);
+    border-color: var(--brand-purple);
+}
+
+.activity-pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.activity-page-indicator {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
 }

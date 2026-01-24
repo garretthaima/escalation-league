@@ -57,7 +57,7 @@ const PodsPage = () => {
     return (
         <div>
             <h1>Pods Management</h1>
-            {error && <p style={{ color: 'red' }}>{error}</p>}
+            {error && <p className="text-danger">{error}</p>}
 
             <div>
                 <h2>Create a Pod</h2>

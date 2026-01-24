@@ -58,72 +58,37 @@ const ProfileSection = ({ user, handleLogout, darkMode, toggleDarkMode }) => {
         <>
             <div className="dropdown profile-dropdown" ref={dropdownRef}>
                 <button
-                    className="btn p-0 border-0 bg-transparent"
+                    className="btn p-0 border-0 bg-transparent profile-section-btn"
                     type="button"
                     onClick={toggleDropdown}
-                    style={{ cursor: 'pointer', outline: 'none', boxShadow: 'none' }}
                 >
                     <img
                         src={getProfilePictureSrc(user.picture)}
                         alt="Profile"
-                        className="rounded-circle"
-                        style={{ width: '40px', height: '40px', objectFit: 'cover' }}
+                        className="rounded-circle profile-section-avatar"
                     />
                 </button>
             </div>
             {isOpen && createPortal(
                 <ul
                     ref={dropdownMenuRef}
-                    className="profile-custom-dropdown"
-                    style={{
-                        backgroundColor: '#2d1b4e',
-                        border: '1px solid rgba(255, 255, 255, 0.15)',
-                        borderRadius: '0.375rem',
-                        minWidth: '200px',
-                        padding: '0.5rem 0',
-                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
-                        position: 'fixed',
-                        top: isMobile ? '56px' : '70px',
-                        right: '1rem',
-                        zIndex: 99999,
-                        listStyle: 'none',
-                        margin: 0,
-                        display: 'block'
-                    }}
+                    className={`profile-custom-dropdown ${isMobile ? 'profile-custom-dropdown--mobile' : 'profile-custom-dropdown--desktop'}`}
                 >
                     <li>
                         <Link
-                            className="dropdown-item"
+                            className="dropdown-item profile-section-dropdown-link"
                             to="/profile"
                             onClick={() => handleItemClick()}
-                            style={{
-                                color: 'rgba(255, 255, 255, 0.85)',
-                                padding: '0.75rem 1rem',
-                                fontSize: '0.95rem',
-                                display: 'block',
-                                textDecoration: 'none'
-                            }}
                         >
-                            <i className="fas fa-user" style={{ marginRight: '0.75rem', width: '20px', textAlign: 'center' }}></i> Profile
+                            <i className="fas fa-user profile-section-icon"></i> Profile
                         </Link>
                     </li>
                     <li>
                         <button
-                            className="dropdown-item"
+                            className="dropdown-item profile-section-dropdown-btn"
                             onClick={() => handleItemClick(toggleDarkMode)}
-                            style={{
-                                color: 'rgba(255, 255, 255, 0.85)',
-                                padding: '0.75rem 1rem',
-                                fontSize: '0.95rem',
-                                background: 'transparent',
-                                border: 'none',
-                                width: '100%',
-                                textAlign: 'left',
-                                cursor: 'pointer',
-                                display: 'block'
-                            }}
                         >
-                            <i className={`fas ${darkMode ? 'fa-sun' : 'fa-moon'}`} style={{ marginRight: '0.75rem', width: '20px', textAlign: 'center' }}></i> {darkMode ? 'Light Mode' : 'Dark Mode'}
+                            <i className={`fas ${darkMode ? 'fa-sun' : 'fa-moon'} profile-section-icon`}></i> {darkMode ? 'Light Mode' : 'Dark Mode'}
                         </button>
                     </li>
                     <li><hr className="dropdown-divider" style={{ borderColor: 'rgba(255, 255, 255, 0.15)', margin: '0.5rem 0' }} /></li>

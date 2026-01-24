@@ -205,15 +205,14 @@ const UpdateCommanderModal = ({ show, onHide, leagueId, currentCommander, curren
                                 {commanderSuggestions.map((suggestion) => (
                                     <li
                                         key={suggestion.name}
-                                        className="list-group-item list-group-item-action d-flex align-items-center"
+                                        className="list-group-item list-group-item-action d-flex align-items-center cursor-pointer"
                                         onClick={() => handleCommanderSelection(suggestion.name)}
-                                        style={{ cursor: 'pointer' }}
                                     >
                                         {suggestion.image && (
                                             <img
                                                 src={suggestion.image}
                                                 alt={suggestion.name}
-                                                style={{ width: '40px', marginRight: '10px' }}
+                                                className="w-40 me-2"
                                             />
                                         )}
                                         {suggestion.name}
@@ -237,15 +236,14 @@ const UpdateCommanderModal = ({ show, onHide, leagueId, currentCommander, curren
                                     {partnerSuggestions.map((suggestion) => (
                                         <li
                                             key={suggestion.name}
-                                            className="list-group-item list-group-item-action d-flex align-items-center"
+                                            className="list-group-item list-group-item-action d-flex align-items-center cursor-pointer"
                                             onClick={() => handlePartnerSelection(suggestion.name)}
-                                            style={{ cursor: 'pointer' }}
                                         >
                                             {suggestion.image && (
                                                 <img
                                                     src={suggestion.image}
                                                     alt={suggestion.name}
-                                                    style={{ width: '40px', marginRight: '10px' }}
+                                                    className="w-40 me-2"
                                                 />
                                             )}
                                             {suggestion.name}

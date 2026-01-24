@@ -5,6 +5,7 @@ import { createPod } from '../../../api/podsApi';
 import { useToast } from '../../../context/ToastContext';
 import { useTurnOrder } from '../../../hooks';
 import { LoadingSpinner, LoadingButton } from '../../Shared';
+import './CreateGameModal.css';
 
 /**
  * Modal for creating a new game with player selection and turn order
@@ -128,7 +129,7 @@ const CreateGameModal = ({ show, onHide, leagueId, userId, onGameCreated }) => {
 
     return (
         <>
-            <div className="modal fade show" style={{ display: 'block' }} tabIndex="-1">
+            <div className="modal fade show create-game-modal-visible" tabIndex="-1">
                 <div className="modal-dialog modal-lg">
                     <div className="modal-content">
                         <div className="modal-header">
@@ -159,10 +160,7 @@ const CreateGameModal = ({ show, onHide, leagueId, userId, onGameCreated }) => {
                                         <p className="text-muted small mb-2">
                                             Select 3-4 players for this game
                                         </p>
-                                        <div
-                                            className="list-group"
-                                            style={{ maxHeight: '350px', overflowY: 'auto' }}
-                                        >
+                                        <div className="list-group create-game-modal-player-list">
                                             {leagueUsers.map(user => {
                                                 const isSelected = selectedPlayers.some(p => String(p.id) === String(user.id));
                                                 const isCurrentUser = String(user.id) === String(userId);
@@ -170,24 +168,13 @@ const CreateGameModal = ({ show, onHide, leagueId, userId, onGameCreated }) => {
                                                     <button
                                                         key={user.id}
                                                         type="button"
-                                                        className={`list-group-item list-group-item-action d-flex justify-content-between align-items-center`}
+                                                        className={`list-group-item list-group-item-action d-flex justify-content-between align-items-center ${isSelected ? 'create-game-modal-player-selected' : ''}`}
                                                         onClick={() => togglePlayer(user)}
-                                                        style={isSelected ? {
-                                                            background: 'var(--brand-purple)',
-                                                            borderColor: 'var(--brand-purple)',
-                                                            color: '#fff'
-                                                        } : {}}
                                                     >
                                                         <span>
                                                             {user.firstname} {user.lastname}
                                                             {isCurrentUser && (
-                                                                <span
-                                                                    className="badge ms-2"
-                                                                    style={{
-                                                                        background: isSelected ? 'var(--brand-gold)' : 'var(--brand-gold)',
-                                                                        color: '#1a1a2e'
-                                                                    }}
-                                                                >
+                                                                <span className="badge ms-2 create-game-modal-badge-you">
                                                                     You
                                                                 </span>
                                                             )}
@@ -207,14 +194,9 @@ const CreateGameModal = ({ show, onHide, leagueId, userId, onGameCreated }) => {
                                                 Turn Order
                                             </h6>
                                             <button
-                                                className="btn btn-sm"
+                                                className="btn btn-sm create-game-modal-btn-secondary"
                                                 onClick={handleRandomize}
                                                 disabled={turnOrder.length < 2}
-                                                style={{
-                                                    background: 'var(--bg-secondary)',
-                                                    border: '1px solid var(--border-color)',
-                                                    color: 'var(--text-secondary)'
-                                                }}
                                             >
                                                 <i className="fas fa-random me-1"></i>
                                                 Randomize
@@ -246,17 +228,10 @@ const CreateGameModal = ({ show, onHide, leagueId, userId, onGameCreated }) => {
                                                             onDragLeave={dragHandlers.handleDragLeave}
                                                             onDrop={(e) => dragHandlers.handleDrop(e, playerId)}
                                                             onDragEnd={dragHandlers.handleDragEnd}
-                                                            className="list-group-item d-flex justify-content-between align-items-center py-2"
-                                                            style={{
-                                                                background: isDragOver ? 'rgba(45, 27, 78, 0.2)' : index === 0 ? 'rgba(212, 175, 55, 0.15)' : 'var(--bg-primary)',
-                                                                borderColor: isDragOver ? 'var(--brand-purple)' : index === 0 ? 'var(--brand-gold)' : 'var(--border-color)',
-                                                                opacity: isDragging ? 0.5 : 1,
-                                                                cursor: 'grab',
-                                                                transition: 'background 0.15s, border-color 0.15s'
-                                                            }}
+                                                            className={`list-group-item d-flex justify-content-between align-items-center py-2 turn-order-item cursor-grab ${index === 0 ? 'is-first' : ''} ${isDragging ? 'is-dragging' : ''} ${isDragOver ? 'is-drag-over' : ''}`}
                                                         >
                                                             <div className="d-flex align-items-center flex-grow-1 min-width-0">
-                                                                <i className="fas fa-grip-vertical text-muted me-2 flex-shrink-0 d-none d-md-inline" style={{ cursor: 'grab' }}></i>
+                                                                <i className="fas fa-grip-vertical text-muted me-2 flex-shrink-0 d-none d-md-inline cursor-grab"></i>
                                                                 <span
                                                                     className="badge me-2 flex-shrink-0"
                                                                     style={{

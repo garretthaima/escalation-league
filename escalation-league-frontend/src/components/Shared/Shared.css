@@ -208,3 +208,354 @@
         min-height: 48px;
     }
 }
+
+/* ===========================
+   Utility Classes
+   Reusable styles to replace inline styles
+=========================== */
+
+/* Cursor utilities */
+.cursor-pointer {
+    cursor: pointer;
+}
+
+.cursor-grab {
+    cursor: grab;
+}
+
+.cursor-default {
+    cursor: default;
+}
+
+/* Interactive elements with transitions */
+.interactive {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.interactive:hover {
+    background-color: var(--bg-secondary);
+}
+
+.interactive-opacity {
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+}
+
+.interactive-opacity:hover {
+    opacity: 0.8;
+}
+
+/* Image utilities */
+.img-thumbnail-sm {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+.img-thumbnail-md {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 6px;
+}
+
+.img-avatar {
+    width: 36px;
+    height: 36px;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+/* Badge dimensions */
+.badge-square-sm {
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.badge-square-md {
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Progress bar heights */
+.progress-xs {
+    height: 4px;
+}
+
+.progress-sm {
+    height: 8px;
+}
+
+/* Scroll containers */
+.scroll-container {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.scroll-container-lg {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.scroll-container-xl {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+/* Text utilities using CSS variables */
+.text-brand-gold {
+    color: var(--brand-gold);
+}
+
+.text-brand-purple {
+    color: var(--brand-purple);
+}
+
+.bg-brand-gold {
+    background-color: var(--brand-gold);
+    color: #1a1a2e;
+}
+
+.bg-brand-purple {
+    background-color: var(--brand-purple);
+    color: #ffffff;
+}
+
+.bg-brand-purple-subtle {
+    background-color: rgba(45, 27, 78, 0.15);
+}
+
+/* Opacity utilities */
+.opacity-50 {
+    opacity: 0.5;
+}
+
+.opacity-70 {
+    opacity: 0.7;
+}
+
+/* Font size utilities */
+.text-xs {
+    font-size: 0.75rem;
+}
+
+.text-sm {
+    font-size: 0.85rem;
+}
+
+.text-md {
+    font-size: 0.9rem;
+}
+
+.text-lg {
+    font-size: 1.1rem;
+}
+
+.text-xl {
+    font-size: 1.25rem;
+}
+
+.text-2xl {
+    font-size: 1.5rem;
+}
+
+/* Width utilities */
+.w-40 {
+    width: 40px;
+}
+
+.w-50 {
+    width: 50px;
+}
+
+.w-60 {
+    width: 60px;
+}
+
+.w-70 {
+    width: 70px;
+}
+
+.w-80 {
+    width: 80px;
+}
+
+.w-100 {
+    width: 100px;
+}
+
+/* Height utilities */
+.h-20 {
+    height: 20px;
+}
+
+.h-40 {
+    height: 40px;
+}
+
+/* Modal backdrop */
+.modal-backdrop-custom {
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+/* Card hover effect */
+.card-hover {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px var(--shadow);
+}
+
+/* Turn order item styling */
+.turn-order-item {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.turn-order-item:hover {
+    background: var(--bg-secondary);
+}
+
+.turn-order-item.is-first {
+    background: rgba(212, 175, 55, 0.15);
+    border-color: var(--brand-gold);
+}
+
+.turn-order-item.is-dragging {
+    opacity: 0.5;
+}
+
+.turn-order-item.is-drag-over {
+    background: rgba(45, 27, 78, 0.2);
+    border-color: var(--brand-purple);
+}
+
+/* Gradient backgrounds */
+.bg-gradient-purple {
+    background: linear-gradient(135deg, var(--brand-purple) 0%, var(--brand-purple-dark) 100%);
+}
+
+.bg-gradient-gold {
+    background: linear-gradient(135deg, var(--brand-gold-light) 0%, var(--brand-gold) 100%);
+}
+
+/* Button back link styling */
+.btn-back-link {
+    color: var(--text-primary);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    text-decoration: none;
+}
+
+.btn-back-link:hover {
+    text-decoration: underline;
+}
+
+/* Rank/position badges */
+.rank-badge {
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-weight: bold;
+}
+
+.rank-badge-gold {
+    background: var(--brand-gold);
+    color: #1a1a2e;
+}
+
+.rank-badge-silver {
+    background: #c0c0c0;
+    color: #1a1a2e;
+}
+
+.rank-badge-bronze {
+    background: #cd7f32;
+    color: #1a1a2e;
+}
+
+.rank-badge-default {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+/* Stat card styling */
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--text-primary);
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+/* Empty state styling */
+.empty-state-icon {
+    font-size: 3rem;
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+}
+
+/* Table cell alignment */
+.cell-fit {
+    width: 1%;
+    white-space: nowrap;
+}
+
+/* Icon sizing within text */
+.text-icon-sm {
+    font-size: 0.8em;
+}
+
+/* Dropdown/autocomplete overlays */
+.dropdown-overlay {
+    z-index: 1000;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+/* Card image preview */
+.card-img-preview {
+    max-height: 400px;
+    object-fit: contain;
+}
+
+/* Table column width utilities */
+.col-w-180 {
+    width: 180px;
+}
+
+.col-w-200 {
+    width: 200px;
+}
+
+/* Mobile pointer cursor - shows pointer on mobile only */
+@media (max-width: 767.98px) {
+    .cursor-pointer-mobile {
+        cursor: pointer;
+    }
+}
+
+@media (min-width: 768px) {
+    .cursor-pointer-mobile {
+        cursor: default;
+    }
+}
