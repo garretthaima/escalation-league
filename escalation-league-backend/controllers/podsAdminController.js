@@ -369,7 +369,7 @@ const toggleDQ = async (req, res) => {
 
         // If pod is already complete, need to recalculate stats
         if (pod.confirmation_status === 'complete' && pod.league_id) {
-            await podService.handleDqToggle(playerId, pod.league_id, newResult === 'disqualified');
+            await podService.handleDqToggle(playerId, pod.league_id, newResult === 'disqualified', participant.result);
             await cacheInvalidators.gameCompleted(pod.league_id);
         }
 

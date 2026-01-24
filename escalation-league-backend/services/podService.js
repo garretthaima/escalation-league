@@ -99,15 +99,12 @@ const applyGameStats = async (participants, leagueId) => {
     }
 
     for (const p of participants) {
-        // DQ'd players get 0 for everything
-        if (p.result === 'disqualified') {
-            continue;
-        }
-
+        // DQ'd players get a loss on their record but 0 points
+        const isDq = p.result === 'disqualified';
         const wins = p.result === 'win' ? 1 : 0;
-        const losses = p.result === 'loss' ? 1 : 0;
+        const losses = (p.result === 'loss' || isDq) ? 1 : 0;
         const draws = p.result === 'draw' ? 1 : 0;
-        const points = calculatePoints(p.result, league);
+        const points = isDq ? 0 : calculatePoints(p.result, league);
 
         // Update global user stats
         await db('users')
@@ -152,15 +149,12 @@ const reverseGameStats = async (participants, leagueId) => {
     }
 
     for (const p of participants) {
-        // Skip DQ'd players - they never got stats in the first place
-        if (p.result === 'disqualified') {
-            continue;
-        }
-
+        // DQ'd players had a loss recorded but 0 points
+        const isDq = p.result === 'disqualified';
         const wins = p.result === 'win' ? -1 : 0;
-        const losses = p.result === 'loss' ? -1 : 0;
+        const losses = (p.result === 'loss' || isDq) ? -1 : 0;
         const draws = p.result === 'draw' ? -1 : 0;
-        const points = -calculatePoints(p.result, league);
+        const points = isDq ? 0 : -calculatePoints(p.result, league);
 
         // Reverse global user stats
         await db('users')
@@ -275,44 +269,71 @@ const applyEloChanges = async (participants, podId, leagueId) => {
 
 /**
  * Handle DQ toggle for a player in a completed pod
- * Adjusts stats based on whether player is being DQ'd or reinstated
+ *
+ * When toggling to DQ (from loss, draw, or win):
+ *   - Remove the old result's stats (win/loss/draw count and points)
+ *   - Add a loss with 0 points
+ *
+ * When toggling from DQ back to loss:
+ *   - The loss count stays the same
+ *   - Add loss points back
  *
  * @param {number} playerId - Player ID
  * @param {number} leagueId - League ID
  * @param {boolean} isDq - True if player is now DQ'd, false if reinstated
+ * @param {string} previousResult - The result before the toggle ('win', 'loss', 'draw', or 'disqualified')
  * @returns {Promise<void>}
  */
-const handleDqToggle = async (playerId, leagueId, isDq) => {
+const handleDqToggle = async (playerId, leagueId, isDq, previousResult) => {
     const league = await getLeaguePointSettings(leagueId);
     const lossPoints = league?.points_per_loss || 1;
+    const drawPoints = league?.points_per_draw || 1;
+    const winPoints = league?.points_per_win || 4;
 
     if (isDq) {
-        // Player is now DQ'd - remove their loss stats (they had loss stats before)
-        await db('users')
-            .where({ id: playerId })
-            .increment({ losses: -1 });
+        // Player is now DQ'd - need to adjust from their previous result
+        if (previousResult === 'loss') {
+            // Was a loss: loss count stays, remove loss points
+            await db('user_leagues')
+                .where({ user_id: playerId, league_id: leagueId })
+                .increment({ total_points: -lossPoints });
+        } else if (previousResult === 'draw') {
+            // Was a draw: remove draw, add loss, remove draw points
+            await db('users')
+                .where({ id: playerId })
+                .increment({ draws: -1, losses: 1 });
 
-        await db('user_leagues')
-            .where({ user_id: playerId, league_id: leagueId })
-            .increment({
-                league_losses: -1,
-                total_points: -lossPoints
-            });
+            await db('user_leagues')
+                .where({ user_id: playerId, league_id: leagueId })
+                .increment({
+                    league_draws: -1,
+                    league_losses: 1,
+                    total_points: -drawPoints
+                });
+        } else if (previousResult === 'win') {
+            // Was a win: remove win, add loss, remove win points
+            await db('users')
+                .where({ id: playerId })
+                .increment({ wins: -1, losses: 1 });
+
+            await db('user_leagues')
+                .where({ user_id: playerId, league_id: leagueId })
+                .increment({
+                    league_wins: -1,
+                    league_losses: 1,
+                    total_points: -winPoints
+                });
+        }
+        // If previousResult was already 'disqualified', no change needed
     } else {
-        // Player is no longer DQ'd - add loss stats back
-        await db('users')
-            .where({ id: playerId })
-            .increment({ losses: 1 });
-
+        // Player is no longer DQ'd (going back to loss) - just restore loss points
+        // The loss count stays the same since DQ counted as a loss
         await db('user_leagues')
             .where({ user_id: playerId, league_id: leagueId })
-            .increment({
-                league_losses: 1,
-                total_points: lossPoints
-            });
+            .increment({ total_points: lossPoints });
     }
 
-    logger.debug('DQ toggle handled', { playerId, leagueId, isDq });
+    logger.debug('DQ toggle handled', { playerId, leagueId, isDq, previousResult });
 };
 
 /**
