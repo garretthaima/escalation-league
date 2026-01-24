@@ -8,8 +8,8 @@ import {
     rejectSignupRequest,
 } from '../../api/leaguesApi';
 import { getLeagueParticipants, updateParticipantStatus } from '../../api/userLeaguesApi';
-import { useToast } from '../context/ToastContext';
-import { useWebSocket } from '../context/WebSocketProvider';
+import { useToast } from '../../context/ToastContext';
+import { useWebSocket } from '../../context/WebSocketProvider';
 import EditLeagueModal from './EditLeagueModal';
 
 const LeagueAdminPage = () => {

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import { updateUserProfile, getDiscordAuthUrl, getDiscordStatus, unlinkDiscord } from '../../../api/usersApi';
-import { useToast } from '../../context/ToastContext';
+import { useToast } from '../../../context/ToastContext';
 
 const SettingsTab = ({ user, handlePictureUpdate }) => {
     const stockImages = [

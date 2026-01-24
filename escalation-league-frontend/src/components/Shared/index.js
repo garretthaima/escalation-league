@@ -17,3 +17,9 @@ export {
 } from './Skeleton';
 export { default as Pagination, usePagination } from './Pagination';
 export { default as FilterBar, useFilters } from './FilterBar';
+
+// New shared components
+export { default as Modal } from './Modal';
+export { default as LoadingButton } from './LoadingButton';
+export { default as EmptyState } from './EmptyState';
+export { default as StatusBadge } from './StatusBadge';

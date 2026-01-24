@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getLeagueStats } from '../../api/leaguesApi';
-import { usePermissions } from '../context/PermissionsProvider';
+import { usePermissions } from '../../context/PermissionsProvider';
 import { SkeletonLeaderboard, SkeletonText } from '../Shared/Skeleton';
 
 const LeagueLeaderboard = () => {

@@ -16,9 +16,9 @@ import {
     postSessionRecap
 } from '../../api/attendanceApi';
 import { getLeagueParticipants } from '../../api/userLeaguesApi';
-import { usePermissions } from '../context/PermissionsProvider';
-import { useToast } from '../context/ToastContext';
-import { useWebSocket } from '../context/WebSocketProvider';
+import { usePermissions } from '../../context/PermissionsProvider';
+import { useToast } from '../../context/ToastContext';
+import { useWebSocket } from '../../context/WebSocketProvider';
 import LoadingSpinner from '../Shared/LoadingSpinner';
 
 const AttendanceAdminPage = () => {

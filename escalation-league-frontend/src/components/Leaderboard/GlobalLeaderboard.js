@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { getGlobalLeaderboard } from '../../api/usersApi';
-import { usePermissions } from '../context/PermissionsProvider';
+import { usePermissions } from '../../context/PermissionsProvider';
 import { SkeletonLeaderboard } from '../Shared/Skeleton';
 
 const GlobalLeaderboard = () => {

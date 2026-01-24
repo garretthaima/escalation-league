@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getPodDetails, deletePod, overrideWinner } from '../../api/podsApi';
-import { useToast } from '../context/ToastContext';
+import { useToast } from '../../context/ToastContext';
 
 const PodDetails = ({ podId, isAdmin, onClose }) => {
     const [pod, setPod] = useState(null);

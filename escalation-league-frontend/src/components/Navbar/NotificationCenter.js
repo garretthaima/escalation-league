@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
-import { useWebSocket } from '../context/WebSocketProvider';
+import { useWebSocket } from '../../context/WebSocketProvider';
 import { getNotifications, getUnreadCount, markAsRead, markAllAsRead } from '../../api/notificationsApi';
 import './NotificationCenter.css';
 

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getLeagueDetails, getLeagueStats } from '../../../api/leaguesApi';
 import { getLeagueParticipants, getUserLeagueStats } from '../../../api/userLeaguesApi';
 import { getMetagameAnalysis } from '../../../api/metagameApi';
-import { usePermissions } from '../../context/PermissionsProvider';
+import { usePermissions } from '../../../context/PermissionsProvider';
 import CollapsibleSection from '../../Shared/CollapsibleSection';
 import LoadingSpinner from '../../Shared/LoadingSpinner';
 import UserStandingCard from './UserStandingCard';

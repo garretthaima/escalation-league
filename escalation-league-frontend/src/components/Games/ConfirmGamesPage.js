@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { getPods, logPodResult } from '../../api/podsApi';
 import { getUserProfile } from '../../api/usersApi';
-import { useToast } from '../context/ToastContext';
-import { useWebSocket } from '../context/WebSocketProvider';
-import { usePermissions } from '../context/PermissionsProvider';
+import { useToast } from '../../context/ToastContext';
+import { useWebSocket } from '../../context/WebSocketProvider';
+import { usePermissions } from '../../context/PermissionsProvider';
 import { getResultBadge, getConfirmationBadge } from '../../utils/badgeHelpers';
 
 const ConfirmGamesTab = () => {

@@ -4,7 +4,7 @@ import { getLeagues } from '../../api/leaguesApi';
 import { getUserPendingSignupRequests, requestSignupForLeague } from '../../api/userLeaguesApi';
 import { validateAndCacheDeck } from '../../api/decksApi'; // Import the function
 import ScryfallApi from '../../api/scryfallApi';
-import { usePermissions } from '../context/PermissionsProvider';
+import { usePermissions } from '../../context/PermissionsProvider';
 
 const SignUp = () => {
     const { activeLeague: contextActiveLeague, loading: permissionsLoading } = usePermissions();

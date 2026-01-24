@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
-import { getUserPermissions, getUserProfile, getUserSetting, updateUserSetting } from '../../api/usersApi'; // Add API calls
-import { isUserInLeague } from '../../api/userLeaguesApi'; // Import the API call for activeLeague
+import { getUserPermissions, getUserProfile, getUserSetting, updateUserSetting } from '../api/usersApi';
+import { isUserInLeague } from '../api/userLeaguesApi';
 
 const PermissionsContext = createContext();
 

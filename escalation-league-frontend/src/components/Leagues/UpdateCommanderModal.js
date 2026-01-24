@@ -3,7 +3,7 @@ import { Modal, Button, Form } from 'react-bootstrap';
 import ScryfallApi from '../../api/scryfallApi';
 import { updateUserLeagueData } from '../../api/userLeaguesApi';
 import { validateAndCacheDeck } from '../../api/decksApi';
-import { useToast } from '../context/ToastContext';
+import { useToast } from '../../context/ToastContext';
 
 const UpdateCommanderModal = ({ show, onHide, leagueId, currentCommander, currentPartner, currentDeckUrl }) => {
     const [commander, setCommander] = useState('');

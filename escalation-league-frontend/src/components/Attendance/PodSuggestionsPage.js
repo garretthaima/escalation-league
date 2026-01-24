@@ -2,8 +2,9 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getPodSuggestions, getSession } from '../../api/attendanceApi';
 import { createPod } from '../../api/podsApi';
-import { usePermissions } from '../context/PermissionsProvider';
-import { useToast } from '../context/ToastContext';
+import { usePermissions } from '../../context/PermissionsProvider';
+import { useToast } from '../../context/ToastContext';
+import { LoadingButton } from '../Shared';
 import LoadingSpinner from '../Shared/LoadingSpinner';
 import './PodSuggestionsPage.css';
 
@@ -381,23 +382,15 @@ const PodSuggestionsPage = () => {
                                 </div>
                             </div>
                             <div className="card-footer">
-                                <button
-                                    className="btn btn-primary w-100"
+                                <LoadingButton
+                                    className="w-100"
+                                    loading={creating[index]}
+                                    loadingText="Creating..."
+                                    icon="fas fa-plus"
                                     onClick={() => handleCreatePod(pod, index)}
-                                    disabled={creating[index]}
                                 >
-                                    {creating[index] ? (
-                                        <>
-                                            <span className="spinner-border spinner-border-sm me-2"></span>
-                                            Creating...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <i className="fas fa-plus me-2"></i>
-                                            Create This Pod
-                                        </>
-                                    )}
-                                </button>
+                                    Create This Pod
+                                </LoadingButton>
                             </div>
                         </div>
                     </div>

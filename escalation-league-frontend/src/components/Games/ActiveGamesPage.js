@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getPods, joinPod, createPod, overridePod, logPodResult } from '../../api/podsApi'; // Use unified getPods
 import { getLeagueParticipants } from '../../api/userLeaguesApi';
-import { usePermissions } from '../context/PermissionsProvider';
+import { usePermissions } from '../../context/PermissionsProvider';
 import { getUserProfile } from '../../api/usersApi';
-import { useToast } from '../context/ToastContext';
-import { useWebSocket } from '../context/WebSocketProvider';
+import { useToast } from '../../context/ToastContext';
+import { useWebSocket } from '../../context/WebSocketProvider';
+import { useTurnOrder } from '../../hooks';
+import { Modal, LoadingButton } from '../Shared';
 
 const ActiveGamesTab = () => {
     const [openPods, setOpenPods] = useState([]);
@@ -19,8 +21,19 @@ const ActiveGamesTab = () => {
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [leagueUsers, setLeagueUsers] = useState([]);
     const [selectedPlayers, setSelectedPlayers] = useState([]);
-    const [turnOrder, setTurnOrder] = useState([]);
     const [creatingGame, setCreatingGame] = useState(false);
+
+    // Turn order management
+    const {
+        turnOrder,
+        setTurnOrder,
+        randomize: randomizeTurnOrder,
+        moveUp: movePlayerUp,
+        moveDown: movePlayerDown,
+        addPlayer: addToTurnOrder,
+        removePlayer: removeFromTurnOrder,
+        reset: resetTurnOrder
+    } = useTurnOrder([]);
 
     const { permissions, activeLeague } = usePermissions();
     const { showToast } = useToast();
@@ -228,7 +241,7 @@ const ActiveGamesTab = () => {
         if (isSelected) {
             // Remove from selection and turn order
             setSelectedPlayers(prev => prev.filter(p => p.id !== user.id));
-            setTurnOrder(prev => prev.filter(id => id !== user.id));
+            removeFromTurnOrder(user.id);
         } else {
             if (selectedPlayers.length >= 4) {
                 showToast('Maximum 4 players allowed', 'warning');
@@ -236,44 +249,15 @@ const ActiveGamesTab = () => {
             }
             // Add to selection and turn order
             setSelectedPlayers(prev => [...prev, user]);
-            setTurnOrder(prev => [...prev, user.id]);
+            addToTurnOrder(user.id);
         }
     };
 
-    // Randomize turn order
-    const randomizeTurnOrder = useCallback(() => {
-        setTurnOrder(prev => {
-            const shuffled = [...prev];
-            for (let i = shuffled.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-            }
-            return shuffled;
-        });
+    // Handle randomize with toast notification
+    const handleRandomize = useCallback(() => {
+        randomizeTurnOrder();
         showToast('Turn order randomized', 'info');
-    }, [showToast]);
-
-    // Move player up in turn order
-    const movePlayerUp = useCallback((playerId) => {
-        setTurnOrder(prev => {
-            const order = [...prev];
-            const index = order.indexOf(playerId);
-            if (index <= 0) return prev;
-            [order[index], order[index - 1]] = [order[index - 1], order[index]];
-            return order;
-        });
-    }, []);
-
-    // Move player down in turn order
-    const movePlayerDown = useCallback((playerId) => {
-        setTurnOrder(prev => {
-            const order = [...prev];
-            const index = order.indexOf(playerId);
-            if (index === -1 || index >= order.length - 1) return prev;
-            [order[index], order[index + 1]] = [order[index + 1], order[index]];
-            return order;
-        });
-    }, []);
+    }, [randomizeTurnOrder, showToast]);
 
     // Get player by ID
     const getPlayerById = useCallback((playerId) => {
@@ -298,7 +282,7 @@ const ActiveGamesTab = () => {
             showToast('Game created successfully!', 'success');
             setShowCreateModal(false);
             setSelectedPlayers([]);
-            setTurnOrder([]);
+            resetTurnOrder([]);
             // WebSocket will update the UI
         } catch (err) {
             console.error('Error creating game:', err.response?.data?.error || err.message);
@@ -548,174 +532,155 @@ const ActiveGamesTab = () => {
                 </div>
             </div>
 
-            {/* Bootstrap Modal for Game Result Declaration */}
-            <div className={`modal fade ${showWinModal ? 'show' : ''}`} style={{ display: showWinModal ? 'block' : 'none' }} tabIndex="-1">
-                <div className="modal-dialog">
-                    <div className="modal-content">
-                        <div className="modal-header">
-                            <h5 className="modal-title">Declare Game Result</h5>
-                            <button type="button" className="btn-close" onClick={() => setShowWinModal(false)} aria-label="Close"></button>
-                        </div>
-                        <div className="modal-body">
-                            <p>How did this game end? This will notify other players to confirm the result.</p>
-                        </div>
-                        <div className="modal-footer">
-                            <button type="button" className="btn btn-secondary" onClick={() => setShowWinModal(false)}>Cancel</button>
-                            <button type="button" className="btn btn-outline-secondary" onClick={confirmDeclareDraw}>
-                                <i className="fas fa-handshake me-1"></i>
-                                Declare Draw
-                            </button>
-                            <button type="button" className="btn btn-success" onClick={confirmDeclareWinner}>
-                                <i className="fas fa-trophy me-1"></i>
-                                I Won!
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {showWinModal && <div className="modal-backdrop fade show"></div>}
+            {/* Game Result Declaration Modal */}
+            <Modal
+                show={showWinModal}
+                onHide={() => setShowWinModal(false)}
+                title="Declare Game Result"
+                size="md"
+                footer={
+                    <>
+                        <button type="button" className="btn btn-secondary" onClick={() => setShowWinModal(false)}>Cancel</button>
+                        <button type="button" className="btn btn-outline-secondary" onClick={confirmDeclareDraw}>
+                            <i className="fas fa-handshake me-1"></i>
+                            Declare Draw
+                        </button>
+                        <button type="button" className="btn btn-success" onClick={confirmDeclareWinner}>
+                            <i className="fas fa-trophy me-1"></i>
+                            I Won!
+                        </button>
+                    </>
+                }
+            >
+                <p>How did this game end? This will notify other players to confirm the result.</p>
+            </Modal>
 
             {/* Create Game Modal */}
-            <div className={`modal fade ${showCreateModal ? 'show' : ''}`} style={{ display: showCreateModal ? 'block' : 'none' }} tabIndex="-1">
-                <div className="modal-dialog modal-lg">
-                    <div className="modal-content">
-                        <div className="modal-header">
-                            <h5 className="modal-title">
-                                <i className="fas fa-users me-2"></i>
-                                Create Game with Players
-                            </h5>
-                            <button type="button" className="btn-close" onClick={() => setShowCreateModal(false)} aria-label="Close"></button>
-                        </div>
-                        <div className="modal-body">
-                            <div className="row">
-                                {/* Player Selection */}
-                                <div className="col-md-6">
-                                    <h6>
-                                        <i className="fas fa-user-plus me-2"></i>
-                                        Select Players ({selectedPlayers.length}/4)
-                                    </h6>
-                                    <p className="text-muted small">Select 3-4 players for this game</p>
-                                    <div className="list-group" style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                                        {leagueUsers.map(user => {
-                                            const isSelected = selectedPlayers.some(p => p.id === user.id);
-                                            const isCurrentUser = user.id === userId;
-                                            return (
-                                                <button
-                                                    key={user.id}
-                                                    type="button"
-                                                    className={`list-group-item list-group-item-action d-flex justify-content-between align-items-center ${isSelected ? 'active' : ''}`}
-                                                    onClick={() => togglePlayerSelection(user)}
-                                                >
-                                                    <span>
-                                                        {user.firstname} {user.lastname}
-                                                        {isCurrentUser && <span className="badge bg-info ms-2">You</span>}
-                                                    </span>
-                                                    {isSelected && <i className="fas fa-check"></i>}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-
-                                {/* Turn Order */}
-                                <div className="col-md-6">
-                                    <div className="d-flex justify-content-between align-items-center mb-2">
-                                        <h6 className="mb-0">
-                                            <i className="fas fa-sort-numeric-down me-2"></i>
-                                            Turn Order
-                                        </h6>
-                                        <button
-                                            className="btn btn-sm btn-outline-secondary"
-                                            onClick={randomizeTurnOrder}
-                                            disabled={turnOrder.length < 2}
-                                        >
-                                            <i className="fas fa-random me-1"></i>
-                                            Randomize
-                                        </button>
-                                    </div>
-                                    <p className="text-muted small">Drag or use arrows to reorder</p>
-                                    {turnOrder.length === 0 ? (
-                                        <div className="alert alert-secondary">
-                                            <i className="fas fa-info-circle me-2"></i>
-                                            Select players to set turn order
-                                        </div>
-                                    ) : (
-                                        <div className="list-group">
-                                            {turnOrder.map((playerId, index) => {
-                                                const player = getPlayerById(playerId);
-                                                if (!player) return null;
-                                                return (
-                                                    <div
-                                                        key={playerId}
-                                                        className={`list-group-item d-flex justify-content-between align-items-center ${index === 0 ? 'list-group-item-warning' : ''}`}
-                                                    >
-                                                        <div className="d-flex align-items-center">
-                                                            <span className={`badge ${index === 0 ? 'bg-warning text-dark' : 'bg-secondary'} me-2`}>
-                                                                {index + 1}
-                                                            </span>
-                                                            <span>{player.firstname} {player.lastname}</span>
-                                                            {index === 0 && (
-                                                                <span className="badge bg-warning text-dark ms-2">
-                                                                    <i className="fas fa-play-circle me-1"></i>
-                                                                    First
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                        <div className="btn-group btn-group-sm">
-                                                            <button
-                                                                className="btn btn-outline-secondary"
-                                                                onClick={() => movePlayerUp(playerId)}
-                                                                disabled={index === 0}
-                                                            >
-                                                                <i className="fas fa-chevron-up"></i>
-                                                            </button>
-                                                            <button
-                                                                className="btn btn-outline-secondary"
-                                                                onClick={() => movePlayerDown(playerId)}
-                                                                disabled={index === turnOrder.length - 1}
-                                                            >
-                                                                <i className="fas fa-chevron-down"></i>
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                        <div className="modal-footer">
-                            <button
-                                type="button"
-                                className="btn btn-secondary"
-                                onClick={() => setShowCreateModal(false)}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="button"
-                                className="btn btn-primary"
-                                onClick={handleCreateGameWithPlayers}
-                                disabled={selectedPlayers.length < 3 || creatingGame}
-                            >
-                                {creatingGame ? (
-                                    <>
-                                        <span className="spinner-border spinner-border-sm me-2"></span>
-                                        Creating...
-                                    </>
-                                ) : (
-                                    <>
-                                        <i className="fas fa-play me-2"></i>
-                                        Create & Start Game
-                                    </>
-                                )}
-                            </button>
+            <Modal
+                show={showCreateModal}
+                onHide={() => setShowCreateModal(false)}
+                title="Create Game with Players"
+                headerIcon="fas fa-users"
+                size="lg"
+                footer={
+                    <>
+                        <button
+                            type="button"
+                            className="btn btn-secondary"
+                            onClick={() => setShowCreateModal(false)}
+                        >
+                            Cancel
+                        </button>
+                        <LoadingButton
+                            loading={creatingGame}
+                            loadingText="Creating..."
+                            icon="fas fa-play"
+                            onClick={handleCreateGameWithPlayers}
+                            disabled={selectedPlayers.length < 3}
+                        >
+                            Create & Start Game
+                        </LoadingButton>
+                    </>
+                }
+            >
+                <div className="row">
+                    {/* Player Selection */}
+                    <div className="col-md-6">
+                        <h6>
+                            <i className="fas fa-user-plus me-2"></i>
+                            Select Players ({selectedPlayers.length}/4)
+                        </h6>
+                        <p className="text-muted small">Select 3-4 players for this game</p>
+                        <div className="list-group" style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                            {leagueUsers.map(user => {
+                                const isSelected = selectedPlayers.some(p => p.id === user.id);
+                                const isCurrentUser = user.id === userId;
+                                return (
+                                    <button
+                                        key={user.id}
+                                        type="button"
+                                        className={`list-group-item list-group-item-action d-flex justify-content-between align-items-center ${isSelected ? 'active' : ''}`}
+                                        onClick={() => togglePlayerSelection(user)}
+                                    >
+                                        <span>
+                                            {user.firstname} {user.lastname}
+                                            {isCurrentUser && <span className="badge bg-info ms-2">You</span>}
+                                        </span>
+                                        {isSelected && <i className="fas fa-check"></i>}
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
+
+                    {/* Turn Order */}
+                    <div className="col-md-6">
+                        <div className="d-flex justify-content-between align-items-center mb-2">
+                            <h6 className="mb-0">
+                                <i className="fas fa-sort-numeric-down me-2"></i>
+                                Turn Order
+                            </h6>
+                            <button
+                                className="btn btn-sm btn-outline-secondary"
+                                onClick={handleRandomize}
+                                disabled={turnOrder.length < 2}
+                            >
+                                <i className="fas fa-random me-1"></i>
+                                Randomize
+                            </button>
+                        </div>
+                        <p className="text-muted small">Drag or use arrows to reorder</p>
+                        {turnOrder.length === 0 ? (
+                            <div className="alert alert-secondary">
+                                <i className="fas fa-info-circle me-2"></i>
+                                Select players to set turn order
+                            </div>
+                        ) : (
+                            <div className="list-group">
+                                {turnOrder.map((playerId, index) => {
+                                    const player = getPlayerById(playerId);
+                                    if (!player) return null;
+                                    return (
+                                        <div
+                                            key={playerId}
+                                            className={`list-group-item d-flex justify-content-between align-items-center ${index === 0 ? 'list-group-item-warning' : ''}`}
+                                        >
+                                            <div className="d-flex align-items-center">
+                                                <span className={`badge ${index === 0 ? 'bg-warning text-dark' : 'bg-secondary'} me-2`}>
+                                                    {index + 1}
+                                                </span>
+                                                <span>{player.firstname} {player.lastname}</span>
+                                                {index === 0 && (
+                                                    <span className="badge bg-warning text-dark ms-2">
+                                                        <i className="fas fa-play-circle me-1"></i>
+                                                        First
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="btn-group btn-group-sm">
+                                                <button
+                                                    className="btn btn-outline-secondary"
+                                                    onClick={() => movePlayerUp(playerId)}
+                                                    disabled={index === 0}
+                                                >
+                                                    <i className="fas fa-chevron-up"></i>
+                                                </button>
+                                                <button
+                                                    className="btn btn-outline-secondary"
+                                                    onClick={() => movePlayerDown(playerId)}
+                                                    disabled={index === turnOrder.length - 1}
+                                                >
+                                                    <i className="fas fa-chevron-down"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
                 </div>
-            </div>
-            {showCreateModal && <div className="modal-backdrop fade show"></div>}
+            </Modal>
         </div>
     );
 };
