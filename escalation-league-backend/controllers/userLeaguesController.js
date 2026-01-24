@@ -37,7 +37,7 @@ const signUpForLeague = async (req, res) => {
 
         res.status(201).json({ message: 'Successfully signed up for the league.' });
     } catch (error) {
-        console.error('Error signing up for league:', error);
+        logger.error('Error signing up for league', { error: error.message });
         res.status(500).json({ error: 'Failed to sign up for the league.' });
     }
 };
@@ -91,7 +91,7 @@ const getUserLeagueStats = async (req, res) => {
             joined_at: stats.joined_at,
         });
     } catch (err) {
-        console.error('Error fetching user league stats:', err.message);
+        logger.error('Error fetching user league stats', { error: err.message });
         res.status(500).json({ error: 'Failed to fetch user league stats.' });
     }
 };
@@ -102,12 +102,7 @@ const updateUserLeagueData = async (req, res) => {
     const { league_id } = req.params;
     const { current_commander, commander_partner, deck_id } = req.body;
 
-    console.log('updateUserLeagueData called:', {
-        userId,
-        league_id,
-        body: req.body,
-        deck_id
-    });
+    logger.debug('updateUserLeagueData called', { userId, league_id, deck_id });
 
     try {
         const updates = {};
@@ -115,11 +110,11 @@ const updateUserLeagueData = async (req, res) => {
         if (commander_partner !== undefined) updates.commander_partner = commander_partner;
         if (deck_id !== undefined) updates.deck_id = deck_id;
 
-        console.log('Updates to apply:', updates);
+        logger.debug('Updates to apply', { updates });
 
         const result = await db('user_leagues').where({ user_id: userId, league_id }).update(updates);
 
-        console.log('Update result (rows affected):', result);
+        logger.debug('Update result', { rowsAffected: result });
 
         if (result === 0) {
             return res.status(404).json({ error: 'No league data found to update.' });
@@ -127,7 +122,7 @@ const updateUserLeagueData = async (req, res) => {
 
         res.status(200).json({ message: 'League data updated successfully.' });
     } catch (err) {
-        console.error('Error updating league data:', err.message);
+        logger.error('Error updating league data', { error: err.message });
         res.status(500).json({ error: 'Failed to update league data.' });
     }
 };
@@ -149,7 +144,7 @@ const leaveLeague = async (req, res) => {
 
         res.status(200).json({ message: 'Successfully left the league.' });
     } catch (err) {
-        console.error('Error leaving league:', err.message);
+        logger.error('Error leaving league', { error: err.message });
         res.status(500).json({ error: 'Failed to leave the league.' });
     }
 };
@@ -189,7 +184,7 @@ const getLeagueParticipants = async (req, res) => {
                             .first();
                         commanderName = commanderData ? commanderData.name : null;
                     } catch (lookupErr) {
-                        console.error(`Commander lookup failed for ${p.firstname}:`, lookupErr.message);
+                        logger.warn('Commander lookup failed', { user: p.firstname, error: lookupErr.message });
                     }
                 }
                 return {
@@ -201,7 +196,7 @@ const getLeagueParticipants = async (req, res) => {
 
         res.status(200).json(participantsWithCommanders);
     } catch (err) {
-        console.error('Error fetching league participants:', err.message);
+        logger.error('Error fetching league participants', { error: err.message });
         res.status(500).json({ error: 'Failed to fetch league participants.' });
     }
 };
@@ -263,7 +258,7 @@ const getLeagueParticipantDetails = async (req, res) => {
                     : cardData.image_uris;
                 return imageUris.normal || imageUris.large || null;
             } catch (error) {
-                console.error('Error parsing image URIs:', error);
+                logger.warn('Error parsing image URIs', { error: error.message });
                 return null;
             }
         };
@@ -283,7 +278,7 @@ const getLeagueParticipantDetails = async (req, res) => {
             joined_at: participant.joined_at,
         });
     } catch (err) {
-        console.error('Error fetching participant details:', err.message);
+        logger.error('Error fetching participant details', { error: err.message });
         res.status(500).json({ error: 'Failed to fetch participant details.' });
     }
 };
@@ -309,7 +304,7 @@ const updateLeagueStats = async (req, res) => {
 
         res.status(200).json({ message: 'League stats updated successfully.' });
     } catch (err) {
-        console.error('Error updating league stats:', err.message);
+        logger.error('Error updating league stats', { error: err.message });
         res.status(500).json({ error: 'Failed to update league stats.' });
     }
 };
@@ -428,7 +423,7 @@ const getUserPendingSignupRequests = async (req, res) => {
 
         res.status(200).json(pendingRequests);
     } catch (err) {
-        console.error('Error fetching user pending signup requests:', err.message);
+        logger.error('Error fetching user pending signup requests', { error: err.message });
         res.status(500).json({ error: 'Failed to fetch pending signup requests.' });
     }
 };
@@ -437,7 +432,7 @@ const isUserInLeague = async (req, res) => {
     const userId = req.user.id;
 
     try {
-        console.log('Checking league membership for user ID:', userId);
+        logger.debug('Checking league membership', { userId });
 
         // Check if the user is in any league (only active memberships)
         const userLeague = await db('user_leagues')
@@ -447,7 +442,7 @@ const isUserInLeague = async (req, res) => {
             .where('user_leagues.is_active', 1)
             .first();
 
-        console.log('Query result:', userLeague);
+        logger.debug('League membership check result', { userId, inLeague: !!userLeague });
 
         if (!userLeague) {
             return res.status(200).json({ inLeague: false, league: null });
@@ -455,7 +450,7 @@ const isUserInLeague = async (req, res) => {
 
         res.status(200).json({ inLeague: true, league: userLeague });
     } catch (err) {
-        console.error('Error checking user league membership:', err.message);
+        logger.error('Error checking user league membership', { error: err.message });
         res.status(500).json({ error: 'Failed to check user league membership.' });
     }
 };
@@ -484,7 +479,7 @@ const updateParticipantStatus = async (req, res) => {
 
         res.status(200).json({ message: 'Participant status updated successfully.' });
     } catch (err) {
-        console.error('Error updating participant status:', err.message);
+        logger.error('Error updating participant status', { error: err.message });
         res.status(500).json({ error: 'Failed to update participant status.' });
     }
 };
@@ -507,7 +502,7 @@ const getParticipantMatchups = async (req, res) => {
 
         res.status(200).json(matchups);
     } catch (err) {
-        console.error('Error fetching participant matchups:', err.message);
+        logger.error('Error fetching participant matchups', { error: err.message });
         res.status(500).json({ error: 'Failed to fetch participant matchups.' });
     }
 };
@@ -561,7 +556,7 @@ const getParticipantTurnOrderStats = async (req, res) => {
             message: totalGames < 5 ? 'Limited data - statistics may not be statistically significant' : null
         });
     } catch (err) {
-        console.error('Error fetching participant turn order stats:', err.message);
+        logger.error('Error fetching participant turn order stats', { error: err.message });
         res.status(500).json({ error: 'Failed to fetch turn order statistics.' });
     }
 };

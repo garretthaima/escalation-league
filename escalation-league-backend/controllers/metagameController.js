@@ -1,5 +1,15 @@
 const db = require('../models/db');
 const scryfallDb = require('../models/scryfallDb');
+const logger = require('../utils/logger');
+const { handleError } = require('../utils/errorUtils');
+const { safeParse } = require('../utils/jsonUtils');
+const {
+    ANALYSIS_KEYWORDS,
+    BASIC_LAND_NAMES,
+    isBasicLand,
+    getColorName,
+    getPrimaryType
+} = require('../services/cardAnalysisService');
 
 /**
  * Get metagame statistics for the active league
@@ -40,34 +50,20 @@ const getMetagameStats = async (req, res) => {
         let totalArtifactsEnchantments = 0;
         const deckStats = []; // Track per-deck stats for comparison
 
-        // Exclude all basic lands including snow-covered and typed variants
-        const basicLandNames = [
-            'Plains', 'Island', 'Swamp', 'Mountain', 'Forest', 'Wastes',
-            'Snow-Covered Plains', 'Snow-Covered Island', 'Snow-Covered Swamp',
-            'Snow-Covered Mountain', 'Snow-Covered Forest'
-        ];
-
-        // Helper to check if a card is a basic land (by type line or name)
-        const isBasicLand = (card) => {
-            if (basicLandNames.includes(card.name)) return true;
-            const typeLine = (card.type_line || '').toLowerCase();
-            return typeLine.includes('basic') && typeLine.includes('land');
-        };
-
-        // Keywords for interaction detection
-        const removalKeywords = ['destroy', 'exile', 'sacrifice', 'remove', 'bounce', '-X/-X', 'dies'];
-        const counterspellKeywords = ['counter target', 'counter spell'];
-        const boardWipeKeywords = ['destroy all', 'exile all', 'each creature', 'all creatures'];
-        const rampKeywords = ['search your library for a land', 'add mana', 'ramp', 'sol ring', 'arcane signet', 'cultivate', 'kodama'];
-        const drawKeywords = ['draw cards', 'draw a card', 'draw two cards', 'card advantage', 'rhystic study', 'mystic remora', 'when you draw'];
-        const comboKeywords = ['infinite', 'win the game', 'copy', 'untap', 'goes infinite'];
-        const alternateWinKeywords = ['you win the game', 'win condition', 'mill', 'poison counter', 'infect'];
-        const combatKeywords = ['combat damage', 'attack', 'double strike', 'commander damage', '+1/+1 counter'];
+        // Use constants from cardAnalysisService
+        const removalKeywords = ANALYSIS_KEYWORDS.removal;
+        const counterspellKeywords = ANALYSIS_KEYWORDS.counterspell;
+        const boardWipeKeywords = ANALYSIS_KEYWORDS.boardWipe;
+        const rampKeywords = ANALYSIS_KEYWORDS.ramp;
+        const drawKeywords = ANALYSIS_KEYWORDS.cardDraw;
+        const comboKeywords = ANALYSIS_KEYWORDS.combo;
+        const alternateWinKeywords = ANALYSIS_KEYWORDS.alternateWin;
+        const combatKeywords = ANALYSIS_KEYWORDS.combat;
 
         // Process each deck
         for (const deck of decksInLeague) {
-            const cards = typeof deck.cards === 'string' ? JSON.parse(deck.cards) : deck.cards;
-            const commanders = typeof deck.commanders === 'string' ? JSON.parse(deck.commanders) : deck.commanders;
+            const cards = safeParse(deck.cards, []);
+            const commanders = safeParse(deck.commanders, []);
 
             // Get commander names for synergy tracking
             const commanderNames = Array.isArray(commanders)
@@ -85,28 +81,14 @@ const getMetagameStats = async (req, res) => {
                                 .first();
 
                             if (cardData) {
-                                // Parse JSON fields safely
-                                const parseIfNeeded = (field) => {
-                                    if (!field) return [];
-                                    if (Array.isArray(field)) return field;
-                                    if (typeof field === 'string') {
-                                        try {
-                                            return JSON.parse(field);
-                                        } catch (e) {
-                                            return [];
-                                        }
-                                    }
-                                    return [];
-                                };
-
                                 // Merge scryfall data into commander object
                                 Object.assign(commander, {
-                                    color_identity: parseIfNeeded(cardData.color_identity),
-                                    colors: parseIfNeeded(cardData.colors)
+                                    color_identity: safeParse(cardData.color_identity, []),
+                                    colors: safeParse(cardData.colors, [])
                                 });
                             }
                         } catch (err) {
-                            console.error('Error fetching commander data:', err.message);
+                            logger.error('Error fetching commander data', err);
                         }
                     }
                 }
@@ -151,20 +133,6 @@ const getMetagameStats = async (req, res) => {
             let deckCardDraw = 0;
 
             if (Array.isArray(cards)) {
-                // Helper to parse JSON fields safely
-                const parseIfNeeded = (field) => {
-                    if (!field) return [];
-                    if (Array.isArray(field)) return field;
-                    if (typeof field === 'string') {
-                        try {
-                            return JSON.parse(field);
-                        } catch (e) {
-                            return [];
-                        }
-                    }
-                    return [];
-                };
-
                 // Fetch card details from scryfall - try by ID first, then by name
                 const scryfallIds = cards.map(c => c.scryfall_id || c.id).filter(id => id);
                 const cardNames = cards.map(c => c.name).filter(n => n);
@@ -181,7 +149,7 @@ const getMetagameStats = async (req, res) => {
                     for (const card of cardDetails) {
                         const parsed = {
                             ...card,
-                            colors: parseIfNeeded(card.colors),
+                            colors: safeParse(card.colors, []),
                             oracle_text: card.oracle_text || ''
                         };
                         cardMapById[card.id] = parsed;
@@ -202,7 +170,7 @@ const getMetagameStats = async (req, res) => {
                             if (!cardMapByName[card.name.toLowerCase()]) {
                                 const parsed = {
                                     ...card,
-                                    colors: parseIfNeeded(card.colors),
+                                    colors: safeParse(card.colors, []),
                                     oracle_text: card.oracle_text || ''
                                 };
                                 cardMapByName[card.name.toLowerCase()] = parsed;
@@ -301,7 +269,7 @@ const getMetagameStats = async (req, res) => {
                         }
 
                         // Count keywords and track card types
-                        const keywords = parseIfNeeded(fullCard.keywords);
+                        const keywords = safeParse(fullCard.keywords, []);
                         const cardTypeLower = cardType.toLowerCase();
 
                         // Track card type totals for percentage calculations
@@ -324,7 +292,7 @@ const getMetagameStats = async (req, res) => {
                         }
                     }
                 } catch (err) {
-                    console.error('Error fetching/processing card details:', err.message);
+                    logger.error('Error fetching/processing card details:', err.message);
                 }
             }
 
@@ -423,7 +391,7 @@ const getMetagameStats = async (req, res) => {
                     };
                 });
             } catch (err) {
-                console.error('Error fetching top card images:', err);
+                logger.error('Error fetching top card images:', err);
                 // If error, use cards without images
             }
         }
@@ -556,7 +524,7 @@ const getMetagameStats = async (req, res) => {
                     };
                 });
             } catch (err) {
-                console.error('Error fetching staple images:', err);
+                logger.error('Error fetching staple images:', err);
                 // If error, use staples without images
             }
         }
@@ -698,8 +666,7 @@ const getMetagameStats = async (req, res) => {
         res.status(200).json(response);
 
     } catch (err) {
-        console.error('Error fetching metagame stats:', err.message);
-        res.status(500).json({ error: 'Failed to fetch metagame statistics.' });
+        handleError(res, err, 'Failed to fetch metagame statistics');
     }
 };
 
@@ -729,23 +696,9 @@ const getCardStats = async (req, res) => {
         });
 
     } catch (err) {
-        console.error('Error fetching card stats:', err.message);
-        res.status(500).json({ error: 'Failed to fetch card statistics.' });
+        handleError(res, err, 'Failed to fetch card statistics');
     }
 };
-
-// Helper function to get color names
-function getColorName(colorCode) {
-    const colorMap = {
-        W: 'White',
-        U: 'Blue',
-        B: 'Black',
-        R: 'Red',
-        G: 'Green',
-        C: 'Colorless'
-    };
-    return colorMap[colorCode] || colorCode;
-}
 
 /**
  * Get win rate statistics by turn order position
@@ -805,8 +758,7 @@ const getTurnOrderStats = async (req, res) => {
             message: totalGames < 10 ? 'Limited data - statistics may not be statistically significant' : null
         });
     } catch (err) {
-        console.error('Error fetching turn order stats:', err.message);
-        res.status(500).json({ error: 'Failed to fetch turn order statistics.' });
+        handleError(res, err, 'Failed to fetch turn order statistics');
     }
 };
 
@@ -832,18 +784,19 @@ const getCategoryCards = async (req, res) => {
     try {
         const { leagueId, category } = req.params;
 
-        // Define keyword patterns for each category
-        const categoryKeywords = {
-            ramp: ['search your library for a land', 'add mana', 'ramp', 'sol ring', 'arcane signet', 'cultivate', 'kodama'],
-            cardDraw: ['draw cards', 'draw a card', 'draw two cards', 'card advantage', 'rhystic study', 'mystic remora', 'when you draw'],
-            removal: ['destroy', 'exile', 'sacrifice', 'remove', 'bounce', '-X/-X', 'dies'],
-            counterspells: ['counter target', 'counter spell'],
-            boardWipes: ['destroy all', 'exile all', 'each creature', 'all creatures']
+        // Map API category names to service category keys
+        const categoryMap = {
+            ramp: 'ramp',
+            cardDraw: 'cardDraw',
+            removal: 'removal',
+            counterspells: 'counterspell',
+            boardWipes: 'boardWipe'
         };
 
-        const keywords = categoryKeywords[category];
+        const serviceCategory = categoryMap[category];
+        const keywords = serviceCategory ? ANALYSIS_KEYWORDS[serviceCategory] : null;
         if (!keywords) {
-            return res.status(400).json({ error: `Invalid category: ${category}. Valid categories: ${Object.keys(categoryKeywords).join(', ')}` });
+            return res.status(400).json({ error: `Invalid category: ${category}. Valid categories: ${Object.keys(categoryMap).join(', ')}` });
         }
 
         // Get all decks for this league
@@ -856,20 +809,13 @@ const getCategoryCards = async (req, res) => {
             return res.status(200).json({ category, cards: [], totalDecks: 0 });
         }
 
-        // Basic lands to exclude
-        const basicLandNames = [
-            'Plains', 'Island', 'Swamp', 'Mountain', 'Forest', 'Wastes',
-            'Snow-Covered Plains', 'Snow-Covered Island', 'Snow-Covered Swamp',
-            'Snow-Covered Mountain', 'Snow-Covered Forest'
-        ];
-
         // Phase 1: Collect ALL unique card IDs and names from ALL decks
         const allScryfallIds = new Set();
         const allCardNames = new Set();
         const parsedDecks = [];
 
         for (const deck of decksInLeague) {
-            const cards = typeof deck.cards === 'string' ? JSON.parse(deck.cards) : deck.cards;
+            const cards = safeParse(deck.cards, []);
             if (!Array.isArray(cards)) continue;
 
             parsedDecks.push({ deckId: deck.id, cards });
@@ -915,7 +861,7 @@ const getCategoryCards = async (req, res) => {
                 }
             }
         } catch (err) {
-            console.error('Error fetching Scryfall data:', err.message);
+            logger.error('Error fetching Scryfall data:', err.message);
         }
 
         // Helper to get card data
@@ -938,25 +884,21 @@ const getCategoryCards = async (req, res) => {
                 const cardName = fullCard.name || card.name;
 
                 // Skip basic lands
-                if (basicLandNames.includes(cardName)) continue;
-                const typeLine = (fullCard.type_line || '').toLowerCase();
-                if (typeLine.includes('basic') && typeLine.includes('land')) continue;
+                if (isBasicLand(fullCard)) continue;
 
                 // Check if card matches category
                 const cardText = (fullCard.oracle_text || '').toLowerCase();
-                const matchesCategory = keywords.some(kw =>
+                const cardMatchesCategory = keywords.some(kw =>
                     cardText.includes(kw) || cardName.toLowerCase().includes(kw)
                 );
 
-                if (matchesCategory && !seenInDeck.has(cardName)) {
+                if (cardMatchesCategory && !seenInDeck.has(cardName)) {
                     seenInDeck.add(cardName);
                     if (!cardCounts[cardName]) {
                         // Parse image_uris if string
                         let imageUri = null;
                         if (fullCard.image_uris) {
-                            const imageUris = typeof fullCard.image_uris === 'string'
-                                ? JSON.parse(fullCard.image_uris)
-                                : fullCard.image_uris;
+                            const imageUris = safeParse(fullCard.image_uris, null);
                             imageUri = imageUris?.normal || imageUris?.small || null;
                         }
                         cardCounts[cardName] = { count: 0, scryfallId: fullCard.id || card.scryfall_id || card.id, imageUri };
@@ -982,8 +924,7 @@ const getCategoryCards = async (req, res) => {
             totalDecks: decksInLeague.length
         });
     } catch (err) {
-        console.error('Error fetching category cards:', err.message);
-        res.status(500).json({ error: 'Failed to fetch category cards.' });
+        handleError(res, err, 'Failed to fetch category cards');
     }
 };
 
@@ -1027,7 +968,7 @@ const getCommanderMatchups = async (req, res) => {
             if (!podMap[row.pod_id]) {
                 podMap[row.pod_id] = [];
             }
-            const commanders = typeof row.commanders === 'string' ? JSON.parse(row.commanders) : row.commanders;
+            const commanders = safeParse(row.commanders, []);
             const commanderName = Array.isArray(commanders) && commanders.length > 0
                 ? (commanders[0].name || commanders[0])
                 : 'Unknown';
@@ -1116,8 +1057,7 @@ const getCommanderMatchups = async (req, res) => {
             totalGames: Object.keys(podMap).length
         });
     } catch (err) {
-        console.error('Error fetching commander matchups:', err.message);
-        res.status(500).json({ error: 'Failed to fetch commander matchups.' });
+        handleError(res, err, 'Failed to fetch commander matchups');
     }
 };
 

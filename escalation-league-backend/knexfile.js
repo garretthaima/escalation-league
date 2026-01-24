@@ -11,7 +11,7 @@ if (environment === 'production') {
     // require('dotenv').config({ path: '../.env.prod' });
     require('dotenv').config({ path: '.env.prod' });
 } else if (environment === 'test') {
-    // require('dotenv').config({ path: '../.env.dev' });
+    require('dotenv').config({ path: '../.env.dev' });
     require('dotenv').config({ path: '.env.dev' });
 }
 

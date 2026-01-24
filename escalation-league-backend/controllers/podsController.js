@@ -1,5 +1,6 @@
 const db = require('../models/db'); // Import the database connection
 const gameService = require('../services/gameService');
+const podService = require('../services/podService');
 const logger = require('../utils/logger');
 const {
     emitPodCreated,
@@ -11,7 +12,7 @@ const {
 const { cacheInvalidators } = require('../middlewares/cacheMiddleware');
 const { createNotification } = require('../services/notificationService');
 const { logPodCreated, logPodJoined, logGameResultDeclared, logGameResultConfirmed, logGameCompleted, logPodOverridden } = require('../services/activityLogService');
-const { calculateEloChanges } = require('../utils/eloCalculator');
+const { handleError, notFound, badRequest } = require('../utils/errorUtils');
 
 // Create a Pod
 // Supports two modes:
@@ -144,11 +145,7 @@ const createPod = async (req, res) => {
 
         res.status(201).json(pod);
     } catch (err) {
-        logger.error('Error creating pod', err, {
-            userId: creatorId,
-            leagueId: effectiveLeagueId
-        });
-        res.status(500).json({ error: 'Failed to create pod.' });
+        handleError(res, err, 'Failed to create pod');
     }
 };
 
@@ -208,8 +205,7 @@ const joinPod = async (req, res) => {
 
         res.status(200).json({ message: 'Joined pod successfully.' });
     } catch (err) {
-        console.error('Error joining pod:', err.message);
-        res.status(500).json({ error: 'Failed to join pod.' });
+        handleError(res, err, 'Failed to join pod');
     }
 };
 
@@ -327,116 +323,18 @@ const logPodResult = async (req, res) => {
             // Determine the pod result
             const podResult = participants.some((p) => p.result === 'draw') ? 'draw' : 'win';
 
-            // Get the league ID and point settings for this pod
-            const pod = await db('game_pods').where({ id: podId }).select('league_id').first();
+            // Get the league ID for this pod
+            const podData = await db('game_pods').where({ id: podId }).select('league_id').first();
 
-            if (!pod || !pod.league_id) {
-                return res.status(404).json({ error: 'League not found for this pod.' });
+            if (!podData || !podData.league_id) {
+                throw notFound('League for this pod');
             }
 
-            // Fetch league point settings
-            const league = await db('leagues')
-                .where({ id: pod.league_id })
-                .select('points_per_win', 'points_per_loss', 'points_per_draw')
-                .first();
+            // Apply game stats using podService
+            await podService.applyGameStats(participants, podData.league_id);
 
-            // Update stats for all participants
-            for (const p of participants) {
-                // DQ'd players get 0 for everything
-                if (p.result === 'disqualified') {
-                    // DQ'd players don't get any stats or points
-                    continue;
-                }
-
-                const wins = p.result === 'win' ? 1 : 0;
-                const losses = p.result === 'loss' ? 1 : 0;
-                const draws = p.result === 'draw' ? 1 : 0;
-
-                // Calculate points based on league settings
-                let points = 0;
-                if (p.result === 'win') {
-                    points = league.points_per_win || 4;
-                } else if (p.result === 'loss') {
-                    points = league.points_per_loss || 1;
-                } else if (p.result === 'draw') {
-                    points = league.points_per_draw || 1;
-                }
-
-                // Update user stats
-                await db('users')
-                    .where({ id: p.player_id })
-                    .increment({
-                        wins: wins,
-                        losses: losses,
-                        draws: draws
-                    });
-
-                // Update league stats
-                await db('user_leagues')
-                    .where({ user_id: p.player_id, league_id: pod.league_id })
-                    .increment({
-                        league_wins: wins,
-                        league_losses: losses,
-                        league_draws: draws,
-                        total_points: points
-                    });
-            }
-
-            // === ELO CALCULATION ===
-            // Fetch current ELO ratings and prepare player data for calculation
-            const playersWithElo = await Promise.all(
-                participants.map(async (p) => {
-                    const user = await db('users')
-                        .where({ id: p.player_id })
-                        .select('elo_rating', 'wins', 'losses', 'draws')
-                        .first();
-
-                    const userLeague = await db('user_leagues')
-                        .where({ user_id: p.player_id, league_id: pod.league_id })
-                        .select('elo_rating')
-                        .first();
-
-                    // Total games for K-factor calculation
-                    const gamesPlayed = (user?.wins || 0) + (user?.losses || 0) + (user?.draws || 0);
-
-                    return {
-                        playerId: p.player_id,
-                        currentElo: user?.elo_rating || 1500,
-                        currentLeagueElo: userLeague?.elo_rating || 1500,
-                        result: p.result,
-                        turnOrder: p.turn_order,
-                        gamesPlayed
-                    };
-                })
-            );
-
-            // Calculate ELO changes
-            const eloChanges = calculateEloChanges(playersWithElo);
-
-            // Apply ELO changes and store history
-            for (const change of eloChanges) {
-                const player = playersWithElo.find(p => p.playerId === change.playerId);
-
-                if (change.eloChange !== 0) {
-                    // Update global ELO
-                    await db('users')
-                        .where({ id: change.playerId })
-                        .update({ elo_rating: player.currentElo + change.eloChange });
-
-                    // Update league ELO
-                    await db('user_leagues')
-                        .where({ user_id: change.playerId, league_id: pod.league_id })
-                        .update({ elo_rating: player.currentLeagueElo + change.eloChange });
-                }
-
-                // Store ELO change in game_players for history/audit
-                await db('game_players')
-                    .where({ pod_id: podId, player_id: change.playerId })
-                    .update({
-                        elo_change: change.eloChange,
-                        elo_before: change.eloBefore
-                    });
-            }
+            // Apply ELO changes using podService
+            await podService.applyEloChanges(participants, podId, podData.league_id);
 
             // Update the pod's status to 'complete'
             await db('game_pods')
@@ -450,10 +348,10 @@ const logPodResult = async (req, res) => {
             await logGameCompleted(playerId, podId);
 
             // Emit game completed event
-            emitGameConfirmed(req.app, pod.league_id, podId, playerId, true);
+            emitGameConfirmed(req.app, podData.league_id, podId, playerId, true);
 
             // Invalidate caches for this league
-            cacheInvalidators.gameCompleted(pod.league_id);
+            cacheInvalidators.gameCompleted(podData.league_id);
 
             // Notify all players that the game is complete
             for (const p of participants) {
@@ -485,8 +383,7 @@ const logPodResult = async (req, res) => {
             return res.status(200).json({ message: 'Confirmation recorded. Waiting for other players.' });
         }
     } catch (err) {
-        console.error('Error logging pod result:', err.message);
-        res.status(500).json({ error: 'Failed to log pod result.' });
+        handleError(res, err, 'Failed to log pod result');
     }
 };
 
@@ -548,8 +445,7 @@ const getPods = async (req, res) => {
 
         res.status(200).json(podsWithParticipants);
     } catch (err) {
-        console.error('Error fetching pods:', err.message);
-        res.status(500).json({ error: 'Failed to fetch pods.' });
+        handleError(res, err, 'Failed to fetch pods');
     }
 };
 
@@ -585,8 +481,7 @@ const overridePod = async (req, res) => {
 
         res.status(200).json({ message: 'Pod successfully overridden to active.' });
     } catch (err) {
-        console.error('Error overriding pod:', err.message);
-        res.status(500).json({ error: 'Failed to override pod.' });
+        handleError(res, err, 'Failed to override pod');
     }
 };
 

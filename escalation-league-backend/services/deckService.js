@@ -1,11 +1,12 @@
 const redis = require('../utils/redisClient');
 const db = require('../models/db');
+const logger = require('../utils/logger');
 const { fetchMoxfieldDeck, fetchArchidektDeck } = require('./deckFetchers');
 
 // Fetch deck data from the database or platform if stale
 const fetchDeckDataIfStale = async (deck) => {
     try {
-        console.log(`fetchDeckDataIfStale called for deck ID: ${deck.id}`);
+        logger.debug('fetchDeckDataIfStale called', { deckId: deck.id });
         const { id: deckId, platform, last_synced_at: lastSyncedAt } = deck;
         const cacheKeyDeck = `deck:${deckId}`;
 
@@ -25,11 +26,10 @@ const fetchDeckDataIfStale = async (deck) => {
         // Determine if the deck data is stale
         const isStale = !lastSyncedAtDate || platformUpdatedAt > lastSyncedAtDate;
 
-        console.log(`Deck ${deckId} last synced at: ${lastSyncedAtDate}`);
-        console.log('Is stale:', isStale);
+        logger.debug('Deck staleness check', { deckId, lastSyncedAt: lastSyncedAtDate, isStale });
 
         if (isStale) {
-            console.log(`Deck ${deckId} is stale. Updating database and cache...`);
+            logger.debug('Deck is stale, updating database and cache', { deckId });
 
             // Update the database with the fresh data
             await db('decks')
@@ -47,14 +47,14 @@ const fetchDeckDataIfStale = async (deck) => {
             // Invalidate the price check cache since deck data changed
             const priceCheckKey = `price-check:${deckId}`;
             await redis.del(priceCheckKey);
-            console.log(`Invalidated price check cache for deck ${deckId}`);
+            logger.debug('Invalidated price check cache', { deckId });
         } else {
-            console.log(`Deck ${deckId} is up-to-date. Using cached data.`);
+            logger.debug('Deck is up-to-date, using cached data', { deckId });
         }
 
         return platformDeckData;
     } catch (error) {
-        console.error(`Error in fetchDeckDataIfStale for deck ID: ${deck.id}`, error.message);
+        logger.error('Error in fetchDeckDataIfStale', { deckId: deck.id, error: error.message });
         throw error; // Re-throw the error to propagate it to the calling function
     }
 };

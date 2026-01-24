@@ -4,6 +4,7 @@ const { fetchDeckDataIfStale, getCachedPriceCheck, cachePriceCheckResults } = re
 const { getDeckFromDatabase, saveDeckToDatabase } = require('../services/databaseService');
 const { calculateDeckPrices } = require('../services/priceService');
 const logger = require('../utils/logger');
+const { handleError, badRequest, notFound } = require('../utils/errorUtils');
 
 // Helper function: Validate the decklist URL
 const validateDecklistUrl = (decklistUrl) => {
@@ -17,28 +18,27 @@ const validateDecklistUrl = (decklistUrl) => {
 
 // Main function: Validate and cache deck data
 const validateAndCacheDeck = async (req, res) => {
-    const { decklistUrl } = req.body;
+    try {
+        const { decklistUrl } = req.body;
 
-    logger.info('Deck validation requested', {
-        userId: req.user?.id,
-        decklistUrl
-    });
-
-    if (!decklistUrl) {
-        logger.warn('Deck validation failed - missing URL', { userId: req.user?.id });
-        return res.status(400).json({ error: 'Decklist URL is required.' });
-    }
-
-    const platform = validateDecklistUrl(decklistUrl);
-    if (!platform) {
-        logger.warn('Deck validation failed - unsupported format', {
+        logger.info('Deck validation requested', {
             userId: req.user?.id,
             decklistUrl
         });
-        return res.status(400).json({ error: 'Unsupported decklist URL format.' });
-    }
 
-    try {
+        if (!decklistUrl) {
+            logger.warn('Deck validation failed - missing URL', { userId: req.user?.id });
+            throw badRequest('Decklist URL is required');
+        }
+
+        const platform = validateDecklistUrl(decklistUrl);
+        if (!platform) {
+            logger.warn('Deck validation failed - unsupported format', {
+                userId: req.user?.id,
+                decklistUrl
+            });
+            throw badRequest('Unsupported decklist URL format');
+        }
         const deckId = platform === 'Moxfield'
             ? decklistUrl.split('/').pop()
             : decklistUrl.match(/^https:\/\/archidekt\.com\/decks\/([0-9]+)/)[1];
@@ -79,63 +79,56 @@ const validateAndCacheDeck = async (req, res) => {
 
         res.status(200).json({ deck: deckData, cached: !!cachedDeck });
     } catch (error) {
-        logger.error('Error validating or caching deck', error, {
-            decklistUrl,
-            platform,
-            userId: req.user?.id
-        });
-        res.status(500).json({ error: 'Failed to validate or cache deck.' });
+        handleError(res, error, 'Failed to validate or cache deck');
     }
 };
 
 const priceCheckDeck = async (req, res) => {
-    const { deckId } = req.body;
-    const { refresh } = req.query; // Optional query parameter to force refresh
-
-    if (!deckId) {
-        return res.status(400).json({ error: 'Deck ID is required.' });
-    }
-
-    const cacheKey = `deck:${deckId}`;
-
     try {
+        const { deckId } = req.body;
+        const { refresh } = req.query; // Optional query parameter to force refresh
+
+        if (!deckId) {
+            throw badRequest('Deck ID is required');
+        }
+
+        const cacheKey = `deck:${deckId}`;
         let deck;
         let dbDeck;
 
         // Always fetch from database to get last_synced_at
         dbDeck = await getDeckFromDatabase(deckId);
         if (!dbDeck) {
-            return res.status(404).json({ error: 'Deck not found.' });
+            throw notFound('Deck');
         }
 
         // Attempt to fetch the deck from Redis for card data
         const cachedDeck = await redis.get(cacheKey);
         if (cachedDeck) {
-            console.log('Deck found in Redis cache:', deckId);
+            logger.debug('Deck found in Redis cache', { deckId });
             deck = JSON.parse(cachedDeck);
             // Merge database metadata with cached data
             deck.last_synced_at = dbDeck.last_synced_at;
             deck.platform = dbDeck.platform;
         } else {
-            console.log('Deck not found in Redis cache. Using database data...');
+            logger.debug('Deck not found in Redis cache, using database data', { deckId });
             deck = dbDeck;
 
             // Re-cache the deck in Redis
             await redis.set(cacheKey, JSON.stringify(deck), 'EX', 3600); // Cache for 1 hour
-            console.log('Deck re-cached in Redis:', deckId);
+            logger.debug('Deck re-cached in Redis', { deckId });
         }
 
         // Ensure the deck data is up-to-date
-        console.log(`Calling fetchDeckDataIfStale for deck ID: ${deck.id}`);
+        logger.debug('Fetching deck data if stale', { deckId: deck.id });
         const deckData = await fetchDeckDataIfStale(deck);
 
-        console.log('deckData received:', JSON.stringify({
+        logger.debug('Deck data received', {
             id: deckData.id,
             name: deckData.name,
             hasCards: !!deckData.cards,
-            cardsType: typeof deckData.cards,
             cardsLength: Array.isArray(deckData.cards) ? deckData.cards.length : 'N/A'
-        }));
+        });
 
         // Calculate prices for the deck
         const priceCheckResults = await calculateDeckPrices(deckData);
@@ -146,8 +139,7 @@ const priceCheckDeck = async (req, res) => {
 
         res.status(200).json(priceCheckResults);
     } catch (error) {
-        console.error('Error during price check:', error.message);
-        res.status(500).json({ error: 'Failed to perform price check.' });
+        handleError(res, error, 'Failed to perform price check');
     }
 };
 

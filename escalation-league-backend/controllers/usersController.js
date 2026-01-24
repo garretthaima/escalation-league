@@ -292,7 +292,7 @@ const deactivateUser = async (req, res) => {
 const updateUserStats = async (req, res) => {
   const { userId, wins, losses, draws } = req.body;
 
-  console.log('Request body:', req.body); // Log the request body for debugging
+  logger.debug('updateUserStats called', { userId, wins, losses, draws });
 
   if (!userId) {
     return res.status(400).json({ error: 'User ID is required.' });
