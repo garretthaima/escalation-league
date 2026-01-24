@@ -232,14 +232,14 @@ const PodsHistory = () => {
                     No completed games found.
                 </div>
             ) : viewMode === 'table' ? (
-                <div className="table-responsive">
-                    <table className="table table-hover">
+                <div>
+                    <table className="table table-hover align-middle">
                         <thead>
                             <tr>
-                                <th className="w-70">Pod #</th>
-                                <th className="w-100">Date</th>
-                                <th>Winner</th>
-                                <th className="text-center d-none d-sm-table-cell w-100">Your Result</th>
+                                <th style={{ width: '70px' }}>Pod #</th>
+                                <th style={{ width: '100px' }}>Date</th>
+                                <th style={{ width: '150px' }}>Winner</th>
+                                <th className="text-center d-none d-sm-table-cell" style={{ width: '100px' }}>Your Result</th>
                                 <th className="d-none d-md-table-cell">Participants</th>
                             </tr>
                         </thead>

@@ -91,24 +91,13 @@ const ProfileSection = ({ user, handleLogout, darkMode, toggleDarkMode }) => {
                             <i className={`fas ${darkMode ? 'fa-sun' : 'fa-moon'} profile-section-icon`}></i> {darkMode ? 'Light Mode' : 'Dark Mode'}
                         </button>
                     </li>
-                    <li><hr className="dropdown-divider" style={{ borderColor: 'rgba(255, 255, 255, 0.15)', margin: '0.5rem 0' }} /></li>
+                    <li><hr className="dropdown-divider profile-section-divider" /></li>
                     <li>
                         <button
-                            className="dropdown-item"
+                            className="dropdown-item profile-section-dropdown-btn"
                             onClick={() => handleItemClick(handleLogout)}
-                            style={{
-                                color: 'rgba(255, 255, 255, 0.85)',
-                                padding: '0.75rem 1rem',
-                                fontSize: '0.95rem',
-                                background: 'transparent',
-                                border: 'none',
-                                width: '100%',
-                                textAlign: 'left',
-                                cursor: 'pointer',
-                                display: 'block'
-                            }}
                         >
-                            <i className="fas fa-sign-out-alt" style={{ marginRight: '0.75rem', width: '20px', textAlign: 'center' }}></i> Logout
+                            <i className="fas fa-sign-out-alt profile-section-icon"></i> Logout
                         </button>
                     </li>
                 </ul>,
