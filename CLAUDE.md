@@ -51,6 +51,14 @@ git checkout -b hotfix/fix-mobile-websocket
 - Use conventional commit style: `Add`, `Fix`, `Update`, `Remove`, etc.
 - Include `Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>` in commits
 
+## Pull Request Guidelines
+
+- Use GitHub keywords in PR descriptions to auto-close issues:
+  - `Closes #123` or `Fixes #123` - closes the issue when PR is merged
+  - Place the keyword in the PR body, not the title
+- PR title should be descriptive: `Add frontend test coverage (#135)`
+- Include a summary of changes and test plan in the PR body
+
 ## Testing Requirements
 
 ### Coverage Standards
