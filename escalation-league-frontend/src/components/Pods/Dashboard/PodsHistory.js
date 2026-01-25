@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getPods } from '../../../api/podsApi';
 import { getUserProfile } from '../../../api/usersApi';
-import { usePermissions } from '../../context/PermissionsProvider';
+import { usePermissions } from '../../../context/PermissionsProvider';
 import LoadingSpinner from '../../Shared/LoadingSpinner';
 
 /**
@@ -232,13 +232,13 @@ const PodsHistory = () => {
                     No completed games found.
                 </div>
             ) : viewMode === 'table' ? (
-                <div className="table-responsive">
-                    <table className="table table-hover">
+                <div>
+                    <table className="table table-hover align-middle">
                         <thead>
                             <tr>
                                 <th style={{ width: '70px' }}>Pod #</th>
                                 <th style={{ width: '100px' }}>Date</th>
-                                <th>Winner</th>
+                                <th style={{ width: '150px' }}>Winner</th>
                                 <th className="text-center d-none d-sm-table-cell" style={{ width: '100px' }}>Your Result</th>
                                 <th className="d-none d-md-table-cell">Participants</th>
                             </tr>
@@ -294,9 +294,9 @@ const PodsHistory = () => {
                                         </tr>
                                         {/* Mobile expanded details */}
                                         {isExpanded && (
-                                            <tr className="d-md-none" style={{ background: 'var(--bg-secondary)' }}>
-                                                <td colSpan="3" style={{ padding: '0.75rem 1rem' }}>
-                                                    <div style={{ fontSize: '0.85rem' }}>
+                                            <tr className="d-md-none bg-secondary-subtle">
+                                                <td colSpan="3" className="py-2 px-3">
+                                                    <div className="text-sm">
                                                         {userParticipant && (
                                                             <div className="mb-2">
                                                                 <span className="text-muted">Your Result: </span>

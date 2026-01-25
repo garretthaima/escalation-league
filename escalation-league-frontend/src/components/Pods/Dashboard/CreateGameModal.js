@@ -2,8 +2,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { getLeagueParticipants } from '../../../api/userLeaguesApi';
 import { createPod } from '../../../api/podsApi';
-import { useToast } from '../../context/ToastContext';
-import LoadingSpinner from '../../Shared/LoadingSpinner';
+import { useToast } from '../../../context/ToastContext';
+import { useTurnOrder } from '../../../hooks';
+import { LoadingSpinner, LoadingButton } from '../../Shared';
+import './CreateGameModal.css';
 
 /**
  * Modal for creating a new game with player selection and turn order
@@ -11,12 +13,21 @@ import LoadingSpinner from '../../Shared/LoadingSpinner';
 const CreateGameModal = ({ show, onHide, leagueId, userId, onGameCreated }) => {
     const [leagueUsers, setLeagueUsers] = useState([]);
     const [selectedPlayers, setSelectedPlayers] = useState([]);
-    const [turnOrder, setTurnOrder] = useState([]);
     const [creating, setCreating] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [draggedId, setDraggedId] = useState(null);
-    const [dragOverId, setDragOverId] = useState(null);
     const { showToast } = useToast();
+
+    // Use the turn order hook
+    const {
+        turnOrder,
+        setTurnOrder,
+        randomize,
+        moveUp,
+        moveDown,
+        draggedId,
+        dragOverId,
+        dragHandlers
+    } = useTurnOrder([]);
 
     // Load league participants when modal opens
     useEffect(() => {
@@ -52,7 +63,7 @@ const CreateGameModal = ({ show, onHide, leagueId, userId, onGameCreated }) => {
             setSelectedPlayers([]);
             setTurnOrder([]);
         }
-    }, [show, leagueId, userId, showToast]);
+    }, [show, leagueId, userId, showToast, setTurnOrder]);
 
     // Toggle player selection
     const togglePlayer = (user) => {
@@ -77,87 +88,16 @@ const CreateGameModal = ({ show, onHide, leagueId, userId, onGameCreated }) => {
         }
     };
 
-    // Randomize turn order
-    const randomizeTurnOrder = useCallback(() => {
-        setTurnOrder(prev => {
-            const shuffled = [...prev];
-            for (let i = shuffled.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-            }
-            return shuffled;
-        });
+    // Wrapper to show toast on randomize
+    const handleRandomize = useCallback(() => {
+        randomize();
         showToast('Turn order randomized', 'info');
-    }, [showToast]);
-
-    // Move player up in turn order
-    const moveUp = useCallback((playerId) => {
-        setTurnOrder(prev => {
-            const order = [...prev];
-            const index = order.indexOf(playerId);
-            if (index <= 0) return prev;
-            [order[index], order[index - 1]] = [order[index - 1], order[index]];
-            return order;
-        });
-    }, []);
-
-    // Move player down in turn order
-    const moveDown = useCallback((playerId) => {
-        setTurnOrder(prev => {
-            const order = [...prev];
-            const index = order.indexOf(playerId);
-            if (index === -1 || index >= order.length - 1) return prev;
-            [order[index], order[index + 1]] = [order[index + 1], order[index]];
-            return order;
-        });
-    }, []);
+    }, [randomize, showToast]);
 
     // Get player by ID - use leagueUsers as source of truth for player data
-    // Use String comparison to handle potential type mismatches between numbers/strings
     const getPlayer = useCallback((playerId) => {
         return leagueUsers.find(p => String(p.id) === String(playerId));
     }, [leagueUsers]);
-
-    // Drag and drop handlers
-    const handleDragStart = useCallback((e, playerId) => {
-        setDraggedId(playerId);
-        e.dataTransfer.effectAllowed = 'move';
-    }, []);
-
-    const handleDragOver = useCallback((e, playerId) => {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-        if (playerId !== draggedId) {
-            setDragOverId(playerId);
-        }
-    }, [draggedId]);
-
-    const handleDragLeave = useCallback(() => {
-        setDragOverId(null);
-    }, []);
-
-    const handleDrop = useCallback((e, targetId) => {
-        e.preventDefault();
-        if (draggedId && draggedId !== targetId) {
-            setTurnOrder(prev => {
-                const order = [...prev];
-                const draggedIndex = order.indexOf(draggedId);
-                const targetIndex = order.indexOf(targetId);
-                if (draggedIndex !== -1 && targetIndex !== -1) {
-                    order.splice(draggedIndex, 1);
-                    order.splice(targetIndex, 0, draggedId);
-                }
-                return order;
-            });
-        }
-        setDraggedId(null);
-        setDragOverId(null);
-    }, [draggedId]);
-
-    const handleDragEnd = useCallback(() => {
-        setDraggedId(null);
-        setDragOverId(null);
-    }, []);
 
     // Create the game
     const handleCreate = async () => {
@@ -189,7 +129,7 @@ const CreateGameModal = ({ show, onHide, leagueId, userId, onGameCreated }) => {
 
     return (
         <>
-            <div className="modal fade show" style={{ display: 'block' }} tabIndex="-1">
+            <div className="modal fade show create-game-modal-visible" tabIndex="-1">
                 <div className="modal-dialog modal-lg">
                     <div className="modal-content">
                         <div className="modal-header">
@@ -220,10 +160,7 @@ const CreateGameModal = ({ show, onHide, leagueId, userId, onGameCreated }) => {
                                         <p className="text-muted small mb-2">
                                             Select 3-4 players for this game
                                         </p>
-                                        <div
-                                            className="list-group"
-                                            style={{ maxHeight: '350px', overflowY: 'auto' }}
-                                        >
+                                        <div className="list-group create-game-modal-player-list">
                                             {leagueUsers.map(user => {
                                                 const isSelected = selectedPlayers.some(p => String(p.id) === String(user.id));
                                                 const isCurrentUser = String(user.id) === String(userId);
@@ -231,24 +168,13 @@ const CreateGameModal = ({ show, onHide, leagueId, userId, onGameCreated }) => {
                                                     <button
                                                         key={user.id}
                                                         type="button"
-                                                        className={`list-group-item list-group-item-action d-flex justify-content-between align-items-center`}
+                                                        className={`list-group-item list-group-item-action d-flex justify-content-between align-items-center ${isSelected ? 'create-game-modal-player-selected' : ''}`}
                                                         onClick={() => togglePlayer(user)}
-                                                        style={isSelected ? {
-                                                            background: 'var(--brand-purple)',
-                                                            borderColor: 'var(--brand-purple)',
-                                                            color: '#fff'
-                                                        } : {}}
                                                     >
                                                         <span>
                                                             {user.firstname} {user.lastname}
                                                             {isCurrentUser && (
-                                                                <span
-                                                                    className="badge ms-2"
-                                                                    style={{
-                                                                        background: isSelected ? 'var(--brand-gold)' : 'var(--brand-gold)',
-                                                                        color: '#1a1a2e'
-                                                                    }}
-                                                                >
+                                                                <span className="badge ms-2 create-game-modal-badge-you">
                                                                     You
                                                                 </span>
                                                             )}
@@ -268,14 +194,9 @@ const CreateGameModal = ({ show, onHide, leagueId, userId, onGameCreated }) => {
                                                 Turn Order
                                             </h6>
                                             <button
-                                                className="btn btn-sm"
-                                                onClick={randomizeTurnOrder}
+                                                className="btn btn-sm create-game-modal-btn-secondary"
+                                                onClick={handleRandomize}
                                                 disabled={turnOrder.length < 2}
-                                                style={{
-                                                    background: 'var(--bg-secondary)',
-                                                    border: '1px solid var(--border-color)',
-                                                    color: 'var(--text-secondary)'
-                                                }}
                                             >
                                                 <i className="fas fa-random me-1"></i>
                                                 Randomize
@@ -302,22 +223,15 @@ const CreateGameModal = ({ show, onHide, leagueId, userId, onGameCreated }) => {
                                                         <div
                                                             key={playerId}
                                                             draggable
-                                                            onDragStart={(e) => handleDragStart(e, playerId)}
-                                                            onDragOver={(e) => handleDragOver(e, playerId)}
-                                                            onDragLeave={handleDragLeave}
-                                                            onDrop={(e) => handleDrop(e, playerId)}
-                                                            onDragEnd={handleDragEnd}
-                                                            className="list-group-item d-flex justify-content-between align-items-center py-2"
-                                                            style={{
-                                                                background: isDragOver ? 'rgba(45, 27, 78, 0.2)' : index === 0 ? 'rgba(212, 175, 55, 0.15)' : 'var(--bg-primary)',
-                                                                borderColor: isDragOver ? 'var(--brand-purple)' : index === 0 ? 'var(--brand-gold)' : 'var(--border-color)',
-                                                                opacity: isDragging ? 0.5 : 1,
-                                                                cursor: 'grab',
-                                                                transition: 'background 0.15s, border-color 0.15s'
-                                                            }}
+                                                            onDragStart={(e) => dragHandlers.handleDragStart(e, playerId)}
+                                                            onDragOver={(e) => dragHandlers.handleDragOver(e, playerId)}
+                                                            onDragLeave={dragHandlers.handleDragLeave}
+                                                            onDrop={(e) => dragHandlers.handleDrop(e, playerId)}
+                                                            onDragEnd={dragHandlers.handleDragEnd}
+                                                            className={`list-group-item d-flex justify-content-between align-items-center py-2 turn-order-item cursor-grab ${index === 0 ? 'is-first' : ''} ${isDragging ? 'is-dragging' : ''} ${isDragOver ? 'is-drag-over' : ''}`}
                                                         >
                                                             <div className="d-flex align-items-center flex-grow-1 min-width-0">
-                                                                <i className="fas fa-grip-vertical text-muted me-2 flex-shrink-0 d-none d-md-inline" style={{ cursor: 'grab' }}></i>
+                                                                <i className="fas fa-grip-vertical text-muted me-2 flex-shrink-0 d-none d-md-inline cursor-grab"></i>
                                                                 <span
                                                                     className="badge me-2 flex-shrink-0"
                                                                     style={{
@@ -374,29 +288,20 @@ const CreateGameModal = ({ show, onHide, leagueId, userId, onGameCreated }) => {
                             >
                                 Cancel
                             </button>
-                            <button
-                                type="button"
-                                className="btn"
+                            <LoadingButton
+                                loading={creating}
                                 onClick={handleCreate}
-                                disabled={selectedPlayers.length < 3 || creating}
+                                disabled={selectedPlayers.length < 3}
+                                loadingText="Creating..."
+                                icon="fas fa-play"
                                 style={{
                                     background: 'var(--brand-purple)',
                                     borderColor: 'var(--brand-purple)',
                                     color: '#fff'
                                 }}
                             >
-                                {creating ? (
-                                    <>
-                                        <span className="spinner-border spinner-border-sm me-2"></span>
-                                        Creating...
-                                    </>
-                                ) : (
-                                    <>
-                                        <i className="fas fa-play me-2"></i>
-                                        Create Game
-                                    </>
-                                )}
-                            </button>
+                                Create Game
+                            </LoadingButton>
                         </div>
                     </div>
                 </div>

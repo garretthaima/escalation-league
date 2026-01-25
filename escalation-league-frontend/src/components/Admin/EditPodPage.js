@@ -3,9 +3,11 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { updatePod, deletePod } from '../../api/podsAdminApi';
 import { getPods } from '../../api/podsApi';
 import { getLeagueParticipants } from '../../api/userLeaguesApi';
-import { useToast } from '../context/ToastContext';
+import { useToast } from '../../context/ToastContext';
+import { useTurnOrder } from '../../hooks';
 import ConfirmModal from '../Shared/ConfirmModal';
 import LoadingSpinner from '../Shared/LoadingSpinner';
+import Modal from '../Shared/Modal';
 import './EditPodPage.css';
 
 const EditPodPage = () => {
@@ -29,10 +31,21 @@ const EditPodPage = () => {
     const [originalParticipants, setOriginalParticipants] = useState([]); // Track original state for comparison
     const [originalWinnerId, setOriginalWinnerId] = useState('');
     const [originalIsDraw, setOriginalIsDraw] = useState(false);
-    const [turnOrder, setTurnOrder] = useState([]); // Track turn order as array of player_ids
     const [originalTurnOrder, setOriginalTurnOrder] = useState([]); // Track original turn order
-    const [draggedId, setDraggedId] = useState(null); // Track dragged player for drag-and-drop
-    const [dragOverId, setDragOverId] = useState(null); // Track drag-over target
+
+    // Turn order management via custom hook
+    const {
+        turnOrder,
+        setTurnOrder,
+        randomize: randomizeTurnOrderBase,
+        moveUp: movePlayerUp,
+        moveDown: movePlayerDown,
+        addPlayer: addToTurnOrder,
+        removePlayer: removeFromTurnOrder,
+        draggedId,
+        dragOverId,
+        dragHandlers: { handleDragStart, handleDragOver, handleDragLeave, handleDrop, handleDragEnd }
+    } = useTurnOrder([]);
 
     useEffect(() => {
         const fetchPodDetails = async () => {
@@ -92,6 +105,7 @@ const EditPodPage = () => {
         };
 
         fetchPodDetails();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [podId, navigate, showToast]);
 
     // Check if there are any unsaved changes
@@ -138,40 +152,11 @@ const EditPodPage = () => {
         return false;
     };
 
-    // Randomize turn order using Fisher-Yates shuffle
+    // Randomize turn order with toast notification
     const randomizeTurnOrder = useCallback(() => {
-        setTurnOrder(prev => {
-            const shuffled = [...prev];
-            for (let i = shuffled.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-            }
-            return shuffled;
-        });
+        randomizeTurnOrderBase();
         showToast('Turn order randomized', 'info');
-    }, [showToast]);
-
-    // Move player up in turn order
-    const movePlayerUp = useCallback((playerId) => {
-        setTurnOrder(prev => {
-            const order = [...prev];
-            const index = order.indexOf(playerId);
-            if (index <= 0) return prev;
-            [order[index], order[index - 1]] = [order[index - 1], order[index]];
-            return order;
-        });
-    }, []);
-
-    // Move player down in turn order
-    const movePlayerDown = useCallback((playerId) => {
-        setTurnOrder(prev => {
-            const order = [...prev];
-            const index = order.indexOf(playerId);
-            if (index === -1 || index >= order.length - 1) return prev;
-            [order[index], order[index + 1]] = [order[index + 1], order[index]];
-            return order;
-        });
-    }, []);
+    }, [randomizeTurnOrderBase, showToast]);
 
     // Get participant by player_id
     const getParticipantById = useCallback((playerId) => {
@@ -179,53 +164,12 @@ const EditPodPage = () => {
                pendingAdditions.find(p => p.player_id === playerId);
     }, [participants, pendingAdditions]);
 
-    // Drag and drop handlers for turn order
-    const handleDragStart = useCallback((e, playerId) => {
-        setDraggedId(playerId);
-        e.dataTransfer.effectAllowed = 'move';
-    }, []);
-
-    const handleDragOver = useCallback((e, playerId) => {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-        if (playerId !== draggedId) {
-            setDragOverId(playerId);
-        }
-    }, [draggedId]);
-
-    const handleDragLeave = useCallback(() => {
-        setDragOverId(null);
-    }, []);
-
-    const handleDrop = useCallback((e, targetId) => {
-        e.preventDefault();
-        if (draggedId && draggedId !== targetId) {
-            setTurnOrder(prev => {
-                const order = [...prev];
-                const draggedIndex = order.indexOf(draggedId);
-                const targetIndex = order.indexOf(targetId);
-                if (draggedIndex !== -1 && targetIndex !== -1) {
-                    order.splice(draggedIndex, 1);
-                    order.splice(targetIndex, 0, draggedId);
-                }
-                return order;
-            });
-        }
-        setDraggedId(null);
-        setDragOverId(null);
-    }, [draggedId]);
-
-    const handleDragEnd = useCallback(() => {
-        setDraggedId(null);
-        setDragOverId(null);
-    }, []);
-
     const handleRemoveParticipant = (participantId) => {
         // Mark for removal instead of actually removing from state
         setPendingRemovals([...pendingRemovals, participantId]);
 
         // Remove from turn order
-        setTurnOrder(prev => prev.filter(id => id !== participantId));
+        removeFromTurnOrder(participantId);
 
         // If removing the winner, clear winner selection
         if (winnerId === String(participantId)) {
@@ -239,7 +183,7 @@ const EditPodPage = () => {
     const handleUndoRemove = (participantId) => {
         setPendingRemovals(pendingRemovals.filter(id => id !== participantId));
         // Re-add to turn order at the end
-        setTurnOrder(prev => [...prev, participantId]);
+        addToTurnOrder(participantId);
         showToast('Removal cancelled', 'info');
     };
 
@@ -283,7 +227,7 @@ const EditPodPage = () => {
 
         setPendingAdditions([...pendingAdditions, newParticipant]);
         // Add to turn order at the end
-        setTurnOrder(prev => [...prev, userToAdd.id]);
+        addToTurnOrder(userToAdd.id);
         showToast('Participant marked for addition', 'info');
         setShowAddModal(false);
         setSelectedUserId('');
@@ -292,7 +236,7 @@ const EditPodPage = () => {
     const handleUndoAdd = (participantId) => {
         setPendingAdditions(pendingAdditions.filter(p => p.player_id !== participantId));
         // Remove from turn order
-        setTurnOrder(prev => prev.filter(id => id !== participantId));
+        removeFromTurnOrder(participantId);
         showToast('Addition cancelled', 'info');
     };
 
@@ -439,14 +383,8 @@ const EditPodPage = () => {
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <div>
                     <button
-                        className="text-decoration-none p-0 mb-2"
+                        className="btn-back-link text-decoration-none p-0 mb-2"
                         onClick={() => navigate('/admin/pods')}
-                        style={{
-                            color: 'var(--text-primary)',
-                            background: 'none',
-                            border: 'none',
-                            cursor: 'pointer'
-                        }}
                     >
                         <i className="fas fa-arrow-left me-2"></i>
                         Back to Pods
@@ -463,8 +401,7 @@ const EditPodPage = () => {
                     {/* Pod Information Card */}
                     <div className="card mb-4">
                         <div
-                            className="card-header d-flex justify-content-between align-items-center"
-                            style={{ cursor: 'pointer' }}
+                            className="card-header d-flex justify-content-between align-items-center cursor-pointer"
                             onClick={() => setShowPodInfo(!showPodInfo)}
                         >
                             <h5 className="mb-0">
@@ -646,15 +583,10 @@ const EditPodPage = () => {
                                 Turn Order
                             </h5>
                             <button
-                                className="btn btn-sm"
+                                className="btn btn-sm btn-styled-secondary"
                                 onClick={randomizeTurnOrder}
                                 title="Randomize turn order"
                                 disabled={turnOrder.length < 2}
-                                style={{
-                                    background: 'var(--bg-secondary)',
-                                    border: '1px solid var(--border-color)',
-                                    color: 'var(--text-secondary)'
-                                }}
                             >
                                 <i className="fas fa-random me-1"></i>
                                 Randomize
@@ -689,36 +621,21 @@ const EditPodPage = () => {
                                                 onDrop={(e) => handleDrop(e, playerId)}
                                                 onDragEnd={handleDragEnd}
                                                 className={`turn-order-item d-flex align-items-center justify-content-between p-2 mb-1 rounded ${
-                                                    isPendingRemoval ? 'opacity-50' : ''
+                                                    index === 0 ? 'is-first' : ''
+                                                } ${isDragging ? 'is-dragging' : ''} ${isDragOver ? 'is-drag-over' : ''} ${
+                                                    isPendingRemoval ? 'opacity-50 cursor-default' : 'cursor-grab'
                                                 }`}
-                                                style={{
-                                                    background: isDragOver ? 'rgba(45, 27, 78, 0.2)' : index === 0 ? 'rgba(212, 175, 55, 0.15)' : 'var(--bg-primary)',
-                                                    border: `1px solid ${isDragOver ? 'var(--brand-purple)' : index === 0 ? 'var(--brand-gold)' : 'var(--border-color)'}`,
-                                                    opacity: isDragging ? 0.5 : isPendingRemoval ? 0.5 : 1,
-                                                    cursor: isPendingRemoval ? 'default' : 'grab',
-                                                    transition: 'background 0.15s, border-color 0.15s'
-                                                }}
                                             >
                                                 <div className="d-flex align-items-center">
-                                                    <i className="fas fa-grip-vertical text-muted me-2 d-none d-md-inline" style={{ cursor: isPendingRemoval ? 'default' : 'grab' }}></i>
+                                                    <i className={`fas fa-grip-vertical text-muted me-2 d-none d-md-inline ${isPendingRemoval ? 'cursor-default' : 'cursor-grab'}`}></i>
                                                     <span
-                                                        className="badge me-2"
-                                                        style={{
-                                                            background: index === 0 ? 'var(--brand-gold)' : 'var(--bg-secondary)',
-                                                            color: index === 0 ? '#1a1a2e' : 'var(--text-primary)'
-                                                        }}
+                                                        className={`badge me-2 ${index === 0 ? 'badge-position-first' : 'badge-position'}`}
                                                     >
                                                         {index + 1}
                                                     </span>
                                                     <span>{participant.firstname} {participant.lastname}</span>
                                                     {index === 0 && (
-                                                        <span
-                                                            className="badge ms-2"
-                                                            style={{
-                                                                background: 'var(--brand-gold)',
-                                                                color: '#1a1a2e'
-                                                            }}
-                                                        >
+                                                        <span className="badge ms-2 badge-position-first">
                                                             <i className="fas fa-play-circle me-1"></i>
                                                             First
                                                         </span>
@@ -729,28 +646,18 @@ const EditPodPage = () => {
                                                 </div>
                                                 <div className="btn-group btn-group-sm">
                                                     <button
-                                                        className="btn btn-sm px-2"
+                                                        className="btn btn-sm btn-styled-secondary px-2"
                                                         onClick={() => movePlayerUp(playerId)}
                                                         disabled={index === 0}
                                                         title="Move up"
-                                                        style={{
-                                                            background: 'var(--bg-secondary)',
-                                                            border: '1px solid var(--border-color)',
-                                                            color: 'var(--text-secondary)'
-                                                        }}
                                                     >
                                                         <i className="fas fa-chevron-up"></i>
                                                     </button>
                                                     <button
-                                                        className="btn btn-sm px-2"
+                                                        className="btn btn-sm btn-styled-secondary px-2"
                                                         onClick={() => movePlayerDown(playerId)}
                                                         disabled={index === turnOrder.length - 1}
                                                         title="Move down"
-                                                        style={{
-                                                            background: 'var(--bg-secondary)',
-                                                            border: '1px solid var(--border-color)',
-                                                            color: 'var(--text-secondary)'
-                                                        }}
                                                     >
                                                         <i className="fas fa-chevron-down"></i>
                                                     </button>
@@ -865,68 +772,57 @@ const EditPodPage = () => {
             />
 
             {/* Add Participant Modal */}
-            {showAddModal && (
-                <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-                    <div className="modal-dialog modal-dialog-centered">
-                        <div className="modal-content">
-                            <div className="modal-header">
-                                <h5 className="modal-title">
-                                    <i className="fas fa-user-plus me-2"></i>
-                                    Add Participant
-                                </h5>
-                                <button
-                                    type="button"
-                                    className="btn-close"
-                                    onClick={() => setShowAddModal(false)}
-                                ></button>
-                            </div>
-                            <div className="modal-body">
-                                <p>Select a player to add to this pod:</p>
-                                <select
-                                    className="form-select"
-                                    value={selectedUserId}
-                                    onChange={(e) => setSelectedUserId(e.target.value)}
-                                >
-                                    <option value="">Choose player...</option>
-                                    {leagueUsers
-                                        .filter(user => {
-                                            // Exclude if user is in pod AND NOT pending removal
-                                            const isInPod = participants.some(p => p.player_id === user.id);
-                                            const isPendingRemoval = pendingRemovals.some(id => id === user.id);
-                                            const isPendingAddition = pendingAdditions.some(p => p.player_id === user.id);
+            <Modal
+                show={showAddModal}
+                onHide={() => setShowAddModal(false)}
+                title="Add Participant"
+                headerIcon="fas fa-user-plus"
+                size="md"
+                footer={
+                    <>
+                        <button
+                            type="button"
+                            className="btn btn-secondary"
+                            onClick={() => setShowAddModal(false)}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            className="btn btn-primary"
+                            onClick={confirmAddParticipant}
+                            disabled={!selectedUserId}
+                        >
+                            <i className="fas fa-plus me-2"></i>
+                            Add Player
+                        </button>
+                    </>
+                }
+            >
+                <p>Select a player to add to this pod:</p>
+                <select
+                    className="form-select"
+                    value={selectedUserId}
+                    onChange={(e) => setSelectedUserId(e.target.value)}
+                >
+                    <option value="">Choose player...</option>
+                    {leagueUsers
+                        .filter(user => {
+                            // Exclude if user is in pod AND NOT pending removal
+                            const isInPod = participants.some(p => p.player_id === user.id);
+                            const isPendingRemoval = pendingRemovals.some(id => id === user.id);
+                            const isPendingAddition = pendingAdditions.some(p => p.player_id === user.id);
 
-                                            // Show user if: (not in pod OR pending removal) AND not pending addition
-                                            return (!isInPod || isPendingRemoval) && !isPendingAddition;
-                                        })
-                                        .map(user => (
-                                            <option key={user.id} value={user.id}>
-                                                {user.firstname} {user.lastname}
-                                            </option>
-                                        ))}
-                                </select>
-                            </div>
-                            <div className="modal-footer">
-                                <button
-                                    type="button"
-                                    className="btn btn-secondary"
-                                    onClick={() => setShowAddModal(false)}
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="button"
-                                    className="btn btn-primary"
-                                    onClick={confirmAddParticipant}
-                                    disabled={!selectedUserId}
-                                >
-                                    <i className="fas fa-plus me-2"></i>
-                                    Add Player
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+                            // Show user if: (not in pod OR pending removal) AND not pending addition
+                            return (!isInPod || isPendingRemoval) && !isPendingAddition;
+                        })
+                        .map(user => (
+                            <option key={user.id} value={user.id}>
+                                {user.firstname} {user.lastname}
+                            </option>
+                        ))}
+                </select>
+            </Modal>
         </div>
     );
 };

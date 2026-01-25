@@ -1,10 +1,10 @@
 import React, { useState, useCallback, useRef, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { loginUser, registerUser, googleAuth } from '../../api/authApi';
-import { usePermissions } from '../context/PermissionsProvider';
+import { usePermissions } from '../../context/PermissionsProvider';
 import GoogleSignInButton from './GoogleSignInButton';
 import TurnstileWidget from './TurnstileWidget';
-import { useToast } from '../context/ToastContext';
+import { useToast } from '../../context/ToastContext';
 import { validatePassword, getPasswordStrength } from '../../utils/passwordValidation';
 import './Auth.css';
 

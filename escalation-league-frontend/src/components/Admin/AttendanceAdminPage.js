@@ -16,9 +16,9 @@ import {
     postSessionRecap
 } from '../../api/attendanceApi';
 import { getLeagueParticipants } from '../../api/userLeaguesApi';
-import { usePermissions } from '../context/PermissionsProvider';
-import { useToast } from '../context/ToastContext';
-import { useWebSocket } from '../context/WebSocketProvider';
+import { usePermissions } from '../../context/PermissionsProvider';
+import { useToast } from '../../context/ToastContext';
+import { useWebSocket } from '../../context/WebSocketProvider';
 import LoadingSpinner from '../Shared/LoadingSpinner';
 
 const AttendanceAdminPage = () => {
@@ -458,7 +458,7 @@ const AttendanceAdminPage = () => {
                                 <i className="fas fa-plus"></i>
                             </button>
                         </div>
-                        <div className="list-group list-group-flush" style={{ maxHeight: '50vh', overflowY: 'auto' }}>
+                        <div className="list-group list-group-flush scroll-container-lg">
                             {sessions.length === 0 ? (
                                 <div className="list-group-item text-muted text-center py-4">
                                     No sessions yet
@@ -867,7 +867,7 @@ const AttendanceAdminPage = () => {
 
             {/* Create Session Modal */}
             {showCreateSessionModal && (
-                <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                <div className="modal show d-block modal-backdrop-custom" tabIndex="-1">
                     <div className="modal-dialog">
                         <div className="modal-content">
                             <div className="modal-header">
@@ -920,7 +920,7 @@ const AttendanceAdminPage = () => {
 
             {/* Discord Poll Modal */}
             {showDiscordPollModal && (
-                <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                <div className="modal show d-block modal-backdrop-custom" tabIndex="-1">
                     <div className="modal-dialog">
                         <div className="modal-content">
                             <div className="modal-header">
@@ -973,7 +973,7 @@ const AttendanceAdminPage = () => {
 
             {/* Matchup Matrix Modal */}
             {showMatchupMatrix && matchupMatrix && (
-                <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                <div className="modal show d-block modal-backdrop-custom" tabIndex="-1">
                     <div className="modal-dialog modal-xl">
                         <div className="modal-content">
                             <div className="modal-header">
@@ -993,7 +993,7 @@ const AttendanceAdminPage = () => {
                                             <tr>
                                                 <th></th>
                                                 {matchupMatrix.players?.map(p => (
-                                                    <th key={p.id} className="text-center" style={{ fontSize: '0.75rem' }}>
+                                                    <th key={p.id} className="text-center text-xs">
                                                         {p.firstname}
                                                     </th>
                                                 ))}
@@ -1002,7 +1002,7 @@ const AttendanceAdminPage = () => {
                                         <tbody>
                                             {matchupMatrix.players?.map((p1, i) => (
                                                 <tr key={p1.id}>
-                                                    <th style={{ fontSize: '0.75rem' }}>{p1.firstname}</th>
+                                                    <th className="text-xs">{p1.firstname}</th>
                                                     {matchupMatrix.players?.map((p2, j) => (
                                                         <td
                                                             key={p2.id}

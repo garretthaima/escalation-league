@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { getActivityLogs, getActionTypes } from '../../api/activityLogsApi';
 import { getAllUsers } from '../../api/adminApi';
-import { useToast } from '../context/ToastContext';
+import { useToast } from '../../context/ToastContext';
 import LoadingSpinner from '../Shared/LoadingSpinner';
 import './ActivityLogsPage.css';
 

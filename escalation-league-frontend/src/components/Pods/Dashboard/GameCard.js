@@ -1,5 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import './GameCard.css';
 
 /**
  * Commander pod-style game card - 2x2 grid layout like a real table
@@ -29,14 +30,8 @@ const GameCard = ({ pod, userId, onDeclareResult, showActions = true }) => {
                     <h6 className="card-title mb-0">Pod #{pod.id}</h6>
                     {showActions && isParticipant && onDeclareResult && (
                         <button
-                            className="btn btn-sm"
+                            className="btn btn-sm btn-declare"
                             onClick={() => onDeclareResult(pod.id)}
-                            style={{
-                                background: 'var(--brand-gold)',
-                                border: 'none',
-                                color: '#1a1a2e',
-                                fontWeight: 600
-                            }}
                         >
                             <i className="fas fa-trophy me-1"></i>
                             Declare
@@ -45,28 +40,14 @@ const GameCard = ({ pod, userId, onDeclareResult, showActions = true }) => {
                 </div>
 
                 {/* 2x2 Pod Grid */}
-                <div
-                    style={{
-                        display: 'grid',
-                        gridTemplateColumns: '1fr 1fr',
-                        gap: '8px'
-                    }}
-                >
+                <div className="pod-grid">
                     {gridOrder.map((idx) => {
                         const participant = paddedParticipants[idx];
                         if (!participant) {
                             return (
                                 <div
                                     key={`empty-${idx}`}
-                                    style={{
-                                        padding: '8px 12px',
-                                        borderRadius: '8px',
-                                        background: 'var(--bg-secondary)',
-                                        opacity: 0.3,
-                                        textAlign: 'center',
-                                        fontSize: '0.8rem',
-                                        color: 'var(--text-muted)'
-                                    }}
+                                    className="pod-slot-empty"
                                 >
                                     —
                                 </div>
@@ -76,40 +57,31 @@ const GameCard = ({ pod, userId, onDeclareResult, showActions = true }) => {
                         const isYou = String(participant.player_id) === String(userId);
                         const isFirst = idx === 0 && participant.turn_order;
 
+                        const slotClasses = [
+                            'pod-slot',
+                            isYou ? 'pod-slot-current-user' : ''
+                        ].filter(Boolean).join(' ');
+
+                        const nameClasses = [
+                            'pod-participant-name',
+                            (isYou || isFirst) ? 'pod-participant-name-highlighted' : '',
+                            isFirst ? 'pod-participant-name-first' : ''
+                        ].filter(Boolean).join(' ');
+
+                        const badgeClasses = [
+                            'pod-turn-badge',
+                            isFirst ? 'pod-turn-badge-first' : 'pod-turn-badge-default'
+                        ].join(' ');
+
                         return (
                             <div
                                 key={participant.player_id}
-                                style={{
-                                    padding: '8px 12px',
-                                    borderRadius: '8px',
-                                    background: isYou ? 'rgba(74, 47, 112, 0.2)' : 'var(--bg-secondary)',
-                                    border: isYou ? '2px solid var(--brand-purple)' : '2px solid transparent',
-                                    textAlign: 'center'
-                                }}
+                                className={slotClasses}
                                 title={`${participant.firstname} ${participant.lastname}`}
                             >
-                                <div
-                                    style={{
-                                        fontWeight: isYou || isFirst ? '600' : '500',
-                                        fontSize: '0.85rem',
-                                        color: isFirst ? 'var(--brand-gold)' : 'inherit'
-                                    }}
-                                >
+                                <div className={nameClasses}>
                                     {participant.turn_order && (
-                                        <span
-                                            style={{
-                                                display: 'inline-flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                width: '18px',
-                                                height: '18px',
-                                                borderRadius: '50%',
-                                                background: isFirst ? 'var(--brand-gold)' : 'var(--brand-purple)',
-                                                color: '#fff',
-                                                fontSize: '0.7rem',
-                                                marginRight: '6px'
-                                            }}
-                                        >
+                                        <span className={badgeClasses}>
                                             {idx + 1}
                                         </span>
                                     )}

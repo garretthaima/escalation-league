@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { getMatchupMatrix } from '../../api/attendanceApi';
-import { usePermissions } from '../context/PermissionsProvider';
+import { usePermissions } from '../../context/PermissionsProvider';
 import LoadingSpinner from '../Shared/LoadingSpinner';
 import './MatchupMatrixPage.css';
 

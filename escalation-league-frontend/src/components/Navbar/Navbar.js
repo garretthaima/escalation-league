@@ -1,6 +1,6 @@
 import React, { useRef, useCallback, useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { usePermissions } from '../context/PermissionsProvider';
+import { usePermissions } from '../../context/PermissionsProvider';
 import ProfileSection from './ProfileSection';
 import NotificationCenter from './NotificationCenter';
 import navbarLinks from './navbarLinks';

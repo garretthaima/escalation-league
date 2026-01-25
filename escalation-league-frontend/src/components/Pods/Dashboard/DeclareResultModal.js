@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
+import './DeclareResultModal.css';
 
 /**
  * Modal for declaring game result (win or draw)
@@ -29,12 +30,12 @@ const DeclareResultModal = ({ show, onHide, onDeclareWin, onDeclareDraw }) => {
     if (confirmingWin) {
         return (
             <>
-                <div className="modal fade show" style={{ display: 'block' }} tabIndex="-1">
+                <div className="modal fade show declare-result-modal-visible" tabIndex="-1">
                     <div className="modal-dialog">
                         <div className="modal-content">
                             <div className="modal-header">
                                 <h5 className="modal-title">
-                                    <i className="fas fa-trophy me-2" style={{ color: 'var(--brand-gold)' }}></i>
+                                    <i className="fas fa-trophy me-2 text-brand-gold"></i>
                                     Confirm Your Win
                                 </h5>
                                 <button
@@ -60,14 +61,8 @@ const DeclareResultModal = ({ show, onHide, onDeclareWin, onDeclareDraw }) => {
                                 </button>
                                 <button
                                     type="button"
-                                    className="btn flex-fill"
+                                    className="btn flex-fill declare-result-btn-gold"
                                     onClick={onDeclareWin}
-                                    style={{
-                                        background: 'var(--brand-gold)',
-                                        borderColor: 'var(--brand-gold)',
-                                        color: '#1a1a2e',
-                                        fontWeight: 600
-                                    }}
                                 >
                                     <i className="fas fa-check me-1"></i>
                                     Yes, I Won

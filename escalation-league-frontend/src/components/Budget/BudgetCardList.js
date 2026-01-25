@@ -152,8 +152,7 @@ const BudgetCardList = ({ budgetId, cards, remainingBudget, onCardUpdated, onCar
                                                     <img
                                                         src={card.image_uri}
                                                         alt={card.card_name}
-                                                        className="me-2"
-                                                        style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px' }}
+                                                        className="me-2 img-thumbnail-sm"
                                                     />
                                                 )}
                                                 <div>
@@ -172,8 +171,7 @@ const BudgetCardList = ({ budgetId, cards, remainingBudget, onCardUpdated, onCar
                                             {isEditing ? (
                                                 <input
                                                     type="number"
-                                                    className="form-control form-control-sm"
-                                                    style={{ width: '70px' }}
+                                                    className="form-control form-control-sm w-70"
                                                     min="1"
                                                     value={editQuantity}
                                                     onChange={(e) => setEditQuantity(e.target.value)}
@@ -255,7 +253,7 @@ const BudgetCardList = ({ budgetId, cards, remainingBudget, onCardUpdated, onCar
 
             {/* Delete Confirmation Modal */}
             {showDeleteModal && (
-                <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                <div className="modal show d-block modal-backdrop-custom" tabIndex="-1">
                     <div className="modal-dialog modal-dialog-centered">
                         <div className="modal-content">
                             <div className="modal-header">

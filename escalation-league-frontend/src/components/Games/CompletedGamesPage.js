@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getPods } from '../../api/podsApi';
 import { getUserProfile } from '../../api/usersApi';
-import { usePermissions } from '../context/PermissionsProvider';
+import { usePermissions } from '../../context/PermissionsProvider';
 
 const CompletedGamesTab = () => {
     const [completedGames, setCompletedGames] = useState([]);

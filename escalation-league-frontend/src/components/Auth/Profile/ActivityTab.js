@@ -131,10 +131,7 @@ const ActivityTab = () => {
                             Activity Log
                         </h5>
                         {pagination.total > 0 && (
-                            <span
-                                className="badge ms-auto"
-                                style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}
-                            >
+                            <span className="badge ms-auto activity-badge-total">
                                 {pagination.total} total
                             </span>
                         )}
@@ -142,10 +139,7 @@ const ActivityTab = () => {
                     <div className="profile-card-body p-0">
                         {logs.length === 0 ? (
                             <div className="text-center py-5">
-                                <i
-                                    className="fas fa-clipboard-list fa-4x mb-3"
-                                    style={{ color: 'var(--text-secondary)', opacity: 0.3 }}
-                                ></i>
+                                <i className="fas fa-clipboard-list fa-4x mb-3 activity-empty-icon"></i>
                                 <h5 className="mb-2">No Activity Yet</h5>
                                 <p className="text-muted mb-0">
                                     Your activity will appear here as you use the app.

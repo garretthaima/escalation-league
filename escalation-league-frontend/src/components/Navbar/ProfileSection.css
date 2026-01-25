@@ -45,3 +45,104 @@
     overflow: hidden;
     border-top: 1px solid rgba(255, 255, 255, 0.15);
 }
+
+/* ===========================
+   Profile Section Component Styles
+   =========================== */
+
+/* Profile button - removes default button styling */
+.profile-section-btn {
+    cursor: pointer;
+    outline: none;
+    box-shadow: none;
+}
+
+.profile-section-btn:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+/* Profile avatar image */
+.profile-section-avatar {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+}
+
+/* Custom dropdown menu portal */
+.profile-custom-dropdown {
+    background-color: #2d1b4e;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 0.5rem;
+    min-width: 200px;
+    padding: 0.5rem 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    position: fixed;
+    right: 1rem;
+    z-index: 99999;
+    list-style: none;
+    margin: 0;
+    display: block;
+}
+
+.profile-custom-dropdown li {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+/* Desktop positioning */
+.profile-custom-dropdown--desktop {
+    top: 70px;
+}
+
+/* Mobile positioning */
+.profile-custom-dropdown--mobile {
+    top: 56px;
+}
+
+/* Dropdown item link styling - use !important to override Bootstrap */
+.profile-custom-dropdown .profile-section-dropdown-link {
+    color: rgba(255, 255, 255, 0.85) !important;
+    padding: 0.75rem 1.25rem !important;
+    font-size: 1rem !important;
+    display: block !important;
+    text-decoration: none !important;
+}
+
+.profile-custom-dropdown .profile-section-dropdown-link:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: white !important;
+}
+
+/* Dropdown item button styling - use !important to override Bootstrap */
+.profile-custom-dropdown .profile-section-dropdown-btn {
+    color: rgba(255, 255, 255, 0.85) !important;
+    padding: 0.75rem 1.25rem !important;
+    font-size: 1rem !important;
+    background: transparent !important;
+    border: none !important;
+    width: 100% !important;
+    text-align: left !important;
+    cursor: pointer !important;
+    display: block !important;
+}
+
+.profile-custom-dropdown .profile-section-dropdown-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: white !important;
+}
+
+/* Dropdown icon styling */
+.profile-section-icon {
+    margin-right: 0.75rem;
+    width: 20px;
+    text-align: center;
+    display: inline-block;
+}
+
+/* Dropdown divider styling */
+.profile-section-divider {
+    border-color: rgba(255, 255, 255, 0.15);
+    margin: 0.5rem 0;
+}

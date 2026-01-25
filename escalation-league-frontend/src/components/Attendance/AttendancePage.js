@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { getActivePollSession, getTodaySession, checkIn, checkOut } from '../../api/attendanceApi';
-import { usePermissions } from '../context/PermissionsProvider';
-import { useToast } from '../context/ToastContext';
-import { useWebSocket } from '../context/WebSocketProvider';
+import { usePermissions } from '../../context/PermissionsProvider';
+import { useToast } from '../../context/ToastContext';
+import { useWebSocket } from '../../context/WebSocketProvider';
 import LoadingSpinner from '../Shared/LoadingSpinner';
 import './AttendancePage.css';
 

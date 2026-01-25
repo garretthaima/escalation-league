@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import { updateUserProfile, getDiscordAuthUrl, getDiscordStatus, unlinkDiscord } from '../../../api/usersApi';
-import { useToast } from '../../context/ToastContext';
+import { useToast } from '../../../context/ToastContext';
 
 const SettingsTab = ({ user, handlePictureUpdate }) => {
     const stockImages = [
@@ -152,7 +152,7 @@ const SettingsTab = ({ user, handlePictureUpdate }) => {
                                 disabled
                             />
                             {user.google_id && (
-                                <small style={{ color: 'var(--text-secondary)', marginTop: '0.25rem', display: 'block' }}>
+                                <small className="settings-helper-text">
                                     Email cannot be changed for Google accounts
                                 </small>
                             )}
@@ -192,16 +192,10 @@ const SettingsTab = ({ user, handlePictureUpdate }) => {
                             <img
                                 src={selectedPicture || stockImages[0]}
                                 alt="Selected profile"
-                                style={{
-                                    width: '80px',
-                                    height: '80px',
-                                    borderRadius: '50%',
-                                    border: '3px solid var(--brand-purple)',
-                                    objectFit: 'cover'
-                                }}
+                                className="settings-avatar-preview"
                             />
                         </div>
-                        <p className="text-center" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                        <p className="text-center settings-avatar-instruction">
                             Choose an avatar below
                         </p>
                         <div className="avatar-grid">
@@ -304,13 +298,7 @@ const SettingsTab = ({ user, handlePictureUpdate }) => {
                                         </div>
                                     </div>
                                     {user.google_id && (
-                                        <span
-                                            className="badge"
-                                            style={{
-                                                background: 'rgba(40, 167, 69, 0.15)',
-                                                color: '#28a745'
-                                            }}
-                                        >
+                                        <span className="badge settings-badge-primary">
                                             Primary
                                         </span>
                                     )}
@@ -318,12 +306,9 @@ const SettingsTab = ({ user, handlePictureUpdate }) => {
                             </div>
                         </div>
 
-                        <div
-                            className="mt-3 p-3 rounded"
-                            style={{ background: 'var(--bg-secondary)', fontSize: '0.85rem' }}
-                        >
-                            <i className="fas fa-info-circle me-2" style={{ color: 'var(--brand-purple)' }}></i>
-                            <span style={{ color: 'var(--text-secondary)' }}>
+                        <div className="mt-3 p-3 rounded settings-info-box">
+                            <i className="fas fa-info-circle me-2 settings-info-icon"></i>
+                            <span className="settings-info-text">
                                 Link your Discord account to enable check-in via Discord reactions and receive game notifications.
                             </span>
                         </div>

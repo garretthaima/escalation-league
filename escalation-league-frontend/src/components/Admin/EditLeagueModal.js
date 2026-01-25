@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Button, Form } from 'react-bootstrap';
 import { updateLeague } from '../../api/leaguesApi';
-import { useToast } from '../context/ToastContext';
+import { useToast } from '../../context/ToastContext';
 
 const EditLeagueModal = ({ show, onHide, league, onUpdate }) => {
     const { showToast } = useToast();

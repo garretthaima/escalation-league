@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { getGlobalLeaderboard } from '../../api/usersApi';
-import { usePermissions } from '../context/PermissionsProvider';
+import { usePermissions } from '../../context/PermissionsProvider';
 import { SkeletonLeaderboard } from '../Shared/Skeleton';
+import './GlobalLeaderboard.css';
 
 const GlobalLeaderboard = () => {
     const { user } = usePermissions();
@@ -67,7 +68,7 @@ const GlobalLeaderboard = () => {
 
     const renderSortIcon = (key) => {
         if (sortConfig.key !== key) {
-            return <i className="fas fa-sort ms-1" style={{ opacity: 0.3 }}></i>;
+            return <i className="fas fa-sort ms-1 sort-icon-inactive"></i>;
         }
         return <i className={`fas fa-sort-${sortConfig.direction === 'asc' ? 'up' : 'down'} ms-1`}></i>;
     };
@@ -131,32 +132,28 @@ const GlobalLeaderboard = () => {
                     <table className="table table-hover mb-0">
                         <thead>
                             <tr>
-                                <th style={{ width: '60px' }}>Rank</th>
+                                <th className="leaderboard-col-rank">Rank</th>
                                 <th>Player</th>
                                 <th
-                                    className="text-center"
-                                    style={{ width: '80px', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                                    className="text-center cursor-pointer leaderboard-col-elo"
                                     onClick={() => sortLeaderboard('elo_rating')}
                                 >
                                     ELO {renderSortIcon('elo_rating')}
                                 </th>
                                 <th
-                                    className="text-center d-none d-sm-table-cell"
-                                    style={{ width: '120px', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                                    className="text-center d-none d-sm-table-cell cursor-pointer leaderboard-col-record"
                                     onClick={() => sortLeaderboard('wins')}
                                 >
                                     Record {renderSortIcon('wins')}
                                 </th>
                                 <th
-                                    className="text-center d-none d-md-table-cell"
-                                    style={{ width: '90px', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                                    className="text-center d-none d-md-table-cell cursor-pointer leaderboard-col-games"
                                     onClick={() => sortLeaderboard('total_games')}
                                 >
                                     Games {renderSortIcon('total_games')}
                                 </th>
                                 <th
-                                    className="text-center d-none d-lg-table-cell"
-                                    style={{ width: '90px', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                                    className="text-center d-none d-lg-table-cell cursor-pointer leaderboard-col-winrate"
                                     onClick={() => sortLeaderboard('win_rate')}
                                 >
                                     Win % {renderSortIcon('win_rate')}
@@ -172,9 +169,8 @@ const GlobalLeaderboard = () => {
                                 return (
                                     <React.Fragment key={player.player_id}>
                                         <tr
-                                            className={isCurrentUser ? 'table-primary' : ''}
+                                            className={`${isCurrentUser ? 'table-primary' : ''} ${window.innerWidth < 576 ? 'cursor-pointer' : ''}`}
                                             onClick={() => window.innerWidth < 576 && toggleRow(player.player_id)}
-                                            style={{ cursor: window.innerWidth < 576 ? 'pointer' : 'default' }}
                                         >
                                             <td>
                                                 {player.rank <= 3 ? (
@@ -195,15 +191,7 @@ const GlobalLeaderboard = () => {
                                                 {isCurrentUser && <small className="text-muted ms-2">(you)</small>}
                                             </td>
                                             <td className="text-center">
-                                                <span
-                                                    style={{
-                                                        background: 'var(--bg-secondary)',
-                                                        padding: '4px 10px',
-                                                        borderRadius: '12px',
-                                                        fontWeight: 600,
-                                                        fontSize: '0.85rem'
-                                                    }}
-                                                >
+                                                <span className="elo-badge text-sm">
                                                     {player.elo_rating || 1500}
                                                 </span>
                                             </td>
@@ -227,9 +215,9 @@ const GlobalLeaderboard = () => {
                                         </tr>
                                         {/* Mobile expanded details */}
                                         {isExpanded && (
-                                            <tr className="d-sm-none" style={{ background: 'var(--bg-secondary)' }}>
-                                                <td colSpan="3" style={{ padding: '0.75rem 1rem' }}>
-                                                    <div className="d-flex flex-wrap gap-3" style={{ fontSize: '0.85rem' }}>
+                                            <tr className="d-sm-none leaderboard-expanded-row">
+                                                <td colSpan="3" className="leaderboard-expanded-cell">
+                                                    <div className="d-flex flex-wrap gap-3 text-sm">
                                                         <div>
                                                             <span className="text-muted">Record: </span>
                                                             <span className="text-success">{recordParts[0]}</span>

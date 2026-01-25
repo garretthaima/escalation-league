@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getLeagueStats } from '../../api/leaguesApi';
-import { usePermissions } from '../context/PermissionsProvider';
+import { usePermissions } from '../../context/PermissionsProvider';
 import { SkeletonLeaderboard, SkeletonText } from '../Shared/Skeleton';
+import './LeagueLeaderboard.css';
 
 const LeagueLeaderboard = () => {
     const { loading: loadingPermissions, activeLeague } = usePermissions();
@@ -116,15 +117,15 @@ const LeagueLeaderboard = () => {
                 <table className="table table-striped table-hover">
                     <thead className="thead-dark">
                         <tr>
-                            <th style={{ width: '50px' }}>Rank</th>
-                            <th onClick={() => sortLeaderboard('name')} style={{ cursor: 'pointer' }}>Player</th>
-                            <th onClick={() => sortLeaderboard('total_points')} style={{ cursor: 'pointer' }}>Points</th>
-                            <th className="d-none d-md-table-cell" onClick={() => sortLeaderboard('wins')} style={{ cursor: 'pointer' }}>Wins</th>
-                            <th className="d-none d-lg-table-cell" onClick={() => sortLeaderboard('losses')} style={{ cursor: 'pointer' }}>Losses</th>
-                            <th className="d-none d-lg-table-cell" onClick={() => sortLeaderboard('draws')} style={{ cursor: 'pointer' }}>Draws</th>
-                            <th className="d-none d-md-table-cell" onClick={() => sortLeaderboard('total_games')} style={{ cursor: 'pointer' }}>Games</th>
-                            <th className="d-none d-lg-table-cell" onClick={() => sortLeaderboard('win_rate')} style={{ cursor: 'pointer' }}>Win Rate</th>
-                            <th className="d-none d-md-table-cell" style={{ width: '80px' }}>Status</th>
+                            <th className="league-leaderboard-rank-col">Rank</th>
+                            <th onClick={() => sortLeaderboard('name')} className="cursor-pointer">Player</th>
+                            <th onClick={() => sortLeaderboard('total_points')} className="cursor-pointer">Points</th>
+                            <th className="d-none d-md-table-cell cursor-pointer" onClick={() => sortLeaderboard('wins')}>Wins</th>
+                            <th className="d-none d-lg-table-cell cursor-pointer" onClick={() => sortLeaderboard('losses')}>Losses</th>
+                            <th className="d-none d-lg-table-cell cursor-pointer" onClick={() => sortLeaderboard('draws')}>Draws</th>
+                            <th className="d-none d-md-table-cell cursor-pointer" onClick={() => sortLeaderboard('total_games')}>Games</th>
+                            <th className="d-none d-lg-table-cell cursor-pointer" onClick={() => sortLeaderboard('win_rate')}>Win Rate</th>
+                            <th className="d-none d-md-table-cell league-leaderboard-status-col">Status</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -134,12 +135,11 @@ const LeagueLeaderboard = () => {
                                 <React.Fragment key={player.player_id}>
                                     <tr
                                         onClick={() => toggleRow(player.player_id)}
-                                        className="d-md-none"
-                                        style={{ cursor: 'pointer' }}
+                                        className="d-md-none cursor-pointer"
                                     >
                                         <td className="fw-bold">
                                             {player.rank}
-                                            <i className={`fas fa-chevron-${isExpanded ? 'down' : 'right'} ms-2 text-muted`} style={{ fontSize: '0.8em' }}></i>
+                                            <i className={`fas fa-chevron-${isExpanded ? 'down' : 'right'} ms-2 text-muted league-leaderboard-chevron`}></i>
                                         </td>
                                         <td>
                                             <Link
@@ -155,7 +155,7 @@ const LeagueLeaderboard = () => {
                                     {/* Expanded row details for mobile */}
                                     {isExpanded && (
                                         <tr className="d-md-none">
-                                            <td colSpan="3" style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}>
+                                            <td colSpan="3" className="league-leaderboard-expanded-row">
                                                 <div className="p-2">
                                                     <div className="row g-2 small">
                                                         <div className="col-6">

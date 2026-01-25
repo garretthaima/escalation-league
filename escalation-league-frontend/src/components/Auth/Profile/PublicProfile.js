@@ -102,12 +102,12 @@ const PublicProfile = () => {
                         <div className="col-md-4">
                             {leagueDetails.commander_image && (
                                 <div className="mb-3">
-                                    <img src={leagueDetails.commander_image} alt={leagueDetails.commander} className="img-fluid rounded" style={{ maxWidth: '200px' }} />
+                                    <img src={leagueDetails.commander_image} alt={leagueDetails.commander} className="img-fluid rounded public-profile-commander-image" />
                                 </div>
                             )}
                             {leagueDetails.partner_image && (
                                 <div>
-                                    <img src={leagueDetails.partner_image} alt={leagueDetails.commanderPartner} className="img-fluid rounded" style={{ maxWidth: '200px' }} />
+                                    <img src={leagueDetails.partner_image} alt={leagueDetails.commanderPartner} className="img-fluid rounded public-profile-commander-image" />
                                 </div>
                             )}
                         </div>
@@ -151,7 +151,7 @@ const PublicProfile = () => {
                             {matchups.nemesis && (
                                 <div className="col-md-6">
                                     <div className="d-flex align-items-center">
-                                        <i className="fas fa-skull text-danger me-2" style={{ fontSize: '1.5rem' }}></i>
+                                        <i className="fas fa-skull text-danger me-2 public-profile-rivalry-icon"></i>
                                         <div>
                                             <strong>Nemesis</strong>
                                             <p className="mb-0">
@@ -167,7 +167,7 @@ const PublicProfile = () => {
                             {matchups.victim && (
                                 <div className="col-md-6">
                                     <div className="d-flex align-items-center">
-                                        <i className="fas fa-trophy text-success me-2" style={{ fontSize: '1.5rem' }}></i>
+                                        <i className="fas fa-trophy text-success me-2 public-profile-rivalry-icon"></i>
                                         <div>
                                             <strong>Favorite Victim</strong>
                                             <p className="mb-0">
@@ -206,9 +206,7 @@ const PublicProfile = () => {
                                 <div key={stat.position} className="col-6 col-md-3 mb-3">
                                     <div className="text-center p-2 border rounded">
                                         <div className="text-muted small">{stat.positionLabel}</div>
-                                        <div className="h4 mb-0" style={{
-                                            color: stat.winRate >= 40 ? '#198754' : stat.winRate >= 25 ? '#0d6efd' : '#6c757d'
-                                        }}>
+                                        <div className={`h4 mb-0 ${stat.winRate >= 40 ? 'public-profile-win-rate-good' : stat.winRate >= 25 ? 'public-profile-win-rate-average' : 'public-profile-win-rate'}`}>
                                             {stat.winRate}%
                                         </div>
                                         <div className="text-muted small">

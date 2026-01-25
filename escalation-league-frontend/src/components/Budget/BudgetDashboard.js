@@ -145,10 +145,10 @@ const BudgetDashboard = () => {
                 <div className="col-12">
                     <div className="d-flex align-items-center mb-3">
                         <h2 className="mb-0">
-                            <i className="fas fa-wallet me-2" style={{ fontSize: '1.5rem' }}></i>
+                            <i className="fas fa-wallet me-2 budget-header-icon"></i>
                             Budget Dashboard
                         </h2>
-                        <span className="badge bg-warning text-dark ms-3" style={{ fontSize: '0.9rem' }}>BETA</span>
+                        <span className="badge bg-warning text-dark ms-3 budget-beta-badge">BETA</span>
                     </div>
                     {activeLeague && (
                         <p className="text-muted mb-2">
@@ -182,7 +182,7 @@ const BudgetDashboard = () => {
                                     <span className="stat-value text-success">${remainingBudget.toFixed(2)}</span>
                                 </div>
                             </div>
-                            <div className="progress mt-3" style={{ height: '25px' }}>
+                            <div className="progress mt-3 budget-progress-bar">
                                 <div
                                     className={`progress-bar ${budgetPercentage > 90 ? 'bg-danger' : budgetPercentage > 70 ? 'bg-warning' : 'bg-success'}`}
                                     role="progressbar"

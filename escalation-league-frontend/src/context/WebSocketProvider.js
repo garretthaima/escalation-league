@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
 import { io } from 'socket.io-client';
-import { performTokenRefresh } from '../../api/axiosConfig';
+import { performTokenRefresh } from '../api/axiosConfig';
 
 const WebSocketContext = createContext(null);
 

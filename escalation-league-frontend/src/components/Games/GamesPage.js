@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { usePermissions } from '../context/PermissionsProvider';
+import { usePermissions } from '../../context/PermissionsProvider';
 import { Outlet, useLocation } from 'react-router-dom';
 import ActiveGamesPage from './ActiveGamesPage';
 import CompletedGamesPage from './CompletedGamesPage';

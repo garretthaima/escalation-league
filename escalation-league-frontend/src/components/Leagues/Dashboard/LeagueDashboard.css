@@ -165,3 +165,72 @@ body.dark-mode .league-dashboard .table-hover > tbody > tr:hover {
 body.dark-mode .league-dashboard .btn-link:hover {
     background: rgba(74, 47, 112, 0.3);
 }
+
+/* Leaderboard Section Styles */
+.points-badge {
+    background: var(--bg-secondary);
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.leaderboard-expanded-row {
+    background: var(--bg-secondary);
+}
+
+.leaderboard-expanded-cell {
+    padding: 0.75rem 1rem;
+}
+
+/* Leaderboard row - pointer cursor only on mobile */
+.leaderboard-row {
+    cursor: default;
+}
+
+@media (max-width: 575.98px) {
+    .leaderboard-row {
+        cursor: pointer;
+    }
+}
+
+/* Leaderboard table column widths */
+.leaderboard-col-rank {
+    width: 60px;
+}
+
+.leaderboard-col-points {
+    width: 80px;
+}
+
+.leaderboard-col-record {
+    width: 120px;
+}
+
+.leaderboard-col-games {
+    width: 80px;
+}
+
+.leaderboard-col-winrate {
+    width: 80px;
+}
+
+.leaderboard-col-elo {
+    width: 70px;
+}
+
+.leaderboard-col-playoffs {
+    width: 100px;
+}
+
+/* UserStandingCard commander image styles */
+.commander-placeholder {
+    width: 120px;
+    height: 88px;
+}
+
+.commander-partner-image {
+    width: 80px;
+    height: 60px;
+    object-fit: cover;
+}

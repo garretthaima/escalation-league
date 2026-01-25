@@ -1,0 +1,111 @@
+/* ConfirmationCard.css - Styles for games pending confirmation */
+
+/* Counter badge showing confirmation progress (e.g., 2/4) */
+.confirmation-card-counter {
+    padding: 3px 8px;
+    border-radius: 10px;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+}
+
+/* Declaration box container */
+.confirmation-card-declaration {
+    padding: 6px 10px;
+    border-radius: 6px;
+    background: var(--brand-purple);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Declarer name text */
+.confirmation-card-declarer-text {
+    color: var(--gray-100);
+}
+
+/* Result badge (WIN/DRAW) */
+.confirmation-card-result-badge {
+    padding: 1px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+.confirmation-card-result-badge-win {
+    background: var(--brand-gold);
+    color: var(--brand-black);
+}
+
+.confirmation-card-result-badge-draw {
+    background: rgba(255, 255, 255, 0.2);
+    color: var(--gray-100);
+}
+
+/* Pending state text */
+.confirmation-card-pending-text {
+    color: var(--gray-300);
+}
+
+/* 2x2 grid container for participants */
+.confirmation-card-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+
+.confirmation-card-grid-with-button {
+    margin-bottom: 10px;
+}
+
+/* Empty participant slot */
+.confirmation-card-slot-empty {
+    padding: 6px 8px;
+    border-radius: 6px;
+    background: var(--bg-secondary);
+    opacity: 0.3;
+    text-align: center;
+}
+
+/* Base participant slot */
+.confirmation-card-slot {
+    padding: 6px 8px;
+    border-radius: 6px;
+    background: var(--bg-secondary);
+    border: 2px solid transparent;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Current user slot highlight */
+.confirmation-card-slot-current-user {
+    background: rgba(74, 47, 112, 0.2);
+    border-color: var(--brand-purple);
+}
+
+/* Participant name styling */
+.confirmation-card-name {
+    font-weight: 400;
+}
+
+.confirmation-card-name-current-user {
+    font-weight: 600;
+}
+
+/* Trophy icon for winner */
+.confirmation-card-trophy {
+    font-size: 0.7rem;
+}
+
+/* Confirmation status icon */
+.confirmation-card-status-icon {
+    font-size: 0.65rem;
+}
+
+.confirmation-card-status-confirmed {
+    color: #28a745;
+}
+
+.confirmation-card-status-pending {
+    color: var(--text-muted);
+}

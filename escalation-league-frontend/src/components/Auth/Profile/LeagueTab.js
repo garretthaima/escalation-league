@@ -11,8 +11,7 @@ const LeagueTab = ({ currentLeague, onCommanderUpdated }) => {
             <div className="profile-card">
                 <div className="profile-card-body text-center py-5">
                     <i
-                        className="fas fa-trophy fa-4x mb-3"
-                        style={{ color: 'var(--text-secondary)', opacity: 0.3 }}
+                        className="fas fa-trophy fa-4x mb-3 empty-icon-muted"
                     ></i>
                     <h5 className="mb-2">No Active League</h5>
                     <p className="text-muted mb-3">
@@ -20,11 +19,7 @@ const LeagueTab = ({ currentLeague, onCommanderUpdated }) => {
                     </p>
                     <Link
                         to="/leagues"
-                        className="btn"
-                        style={{
-                            background: 'var(--brand-purple)',
-                            color: '#fff'
-                        }}
+                        className="btn btn-purple"
                     >
                         <i className="fas fa-search me-2"></i>
                         Browse Leagues
@@ -44,28 +39,20 @@ const LeagueTab = ({ currentLeague, onCommanderUpdated }) => {
             {/* League Header Card */}
             <div className="col-12">
                 <div
-                    className="profile-card"
-                    style={{
-                        background: 'linear-gradient(135deg, var(--brand-purple) 0%, rgba(45, 27, 78, 0.9) 100%)',
-                        border: 'none'
-                    }}
+                    className="profile-card league-header-gradient"
                 >
                     <div className="profile-card-body">
                         <div className="d-flex flex-column flex-md-row justify-content-between align-items-start gap-3">
                             <div>
                                 <span
-                                    className="badge mb-2"
-                                    style={{
-                                        background: currentLeague.is_active ? 'rgba(40, 167, 69, 0.2)' : 'rgba(108, 117, 125, 0.2)',
-                                        color: currentLeague.is_active ? '#4ade80' : '#9ca3af'
-                                    }}
+                                    className={`badge mb-2 ${currentLeague.is_active ? 'league-badge-active' : 'league-badge-inactive'}`}
                                 >
                                     {currentLeague.is_active ? 'Active' : 'Inactive'}
                                 </span>
-                                <h3 style={{ color: '#fff', marginBottom: '0.5rem' }}>
+                                <h3 className="league-header-title">
                                     {currentLeague.name}
                                 </h3>
-                                <p style={{ color: 'rgba(255, 255, 255, 0.7)', marginBottom: 0 }}>
+                                <p className="league-header-date">
                                     {new Date(currentLeague.start_date).toLocaleDateString('en-US', {
                                         month: 'short',
                                         day: 'numeric'
@@ -79,34 +66,20 @@ const LeagueTab = ({ currentLeague, onCommanderUpdated }) => {
                             <div className="d-flex gap-3">
                                 {currentLeague.rank && (
                                     <div className="text-center">
-                                        <div
-                                            style={{
-                                                fontSize: '2rem',
-                                                fontWeight: 700,
-                                                color: 'var(--brand-gold)',
-                                                lineHeight: 1.2
-                                            }}
-                                        >
+                                        <div className="league-stat-display league-stat-display-gold">
                                             #{currentLeague.rank}
                                         </div>
-                                        <div style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.6)' }}>
+                                        <div className="league-stat-sublabel">
                                             Rank
                                         </div>
                                     </div>
                                 )}
                                 {daysRemaining > 0 && (
                                     <div className="text-center">
-                                        <div
-                                            style={{
-                                                fontSize: '2rem',
-                                                fontWeight: 700,
-                                                color: '#fff',
-                                                lineHeight: 1.2
-                                            }}
-                                        >
+                                        <div className="league-stat-display league-stat-display-white">
                                             {daysRemaining}
                                         </div>
-                                        <div style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.6)' }}>
+                                        <div className="league-stat-sublabel">
                                             Days Left
                                         </div>
                                     </div>
@@ -121,28 +94,13 @@ const LeagueTab = ({ currentLeague, onCommanderUpdated }) => {
             <div className="col-md-6 col-lg-3">
                 <div className="profile-card h-100">
                     <div className="profile-card-body text-center">
-                        <div
-                            className="d-inline-flex align-items-center justify-content-center mb-2"
-                            style={{
-                                width: '48px',
-                                height: '48px',
-                                borderRadius: '12px',
-                                background: 'rgba(212, 175, 55, 0.15)',
-                                color: 'var(--brand-gold)'
-                            }}
-                        >
+                        <div className="d-inline-flex align-items-center justify-content-center mb-2 stat-icon-box stat-icon-box-gold">
                             <i className="fas fa-star fa-lg"></i>
                         </div>
-                        <div
-                            style={{
-                                fontSize: '1.75rem',
-                                fontWeight: 700,
-                                color: 'var(--brand-gold)'
-                            }}
-                        >
+                        <div className="stat-value-lg stat-value-gold">
                             {currentLeague.total_points || 0}
                         </div>
-                        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                        <div className="text-sm text-secondary">
                             Total Points
                         </div>
                     </div>
@@ -152,28 +110,13 @@ const LeagueTab = ({ currentLeague, onCommanderUpdated }) => {
             <div className="col-md-6 col-lg-3">
                 <div className="profile-card h-100">
                     <div className="profile-card-body text-center">
-                        <div
-                            className="d-inline-flex align-items-center justify-content-center mb-2"
-                            style={{
-                                width: '48px',
-                                height: '48px',
-                                borderRadius: '12px',
-                                background: 'rgba(40, 167, 69, 0.15)',
-                                color: '#28a745'
-                            }}
-                        >
+                        <div className="d-inline-flex align-items-center justify-content-center mb-2 stat-icon-box stat-icon-box-green">
                             <i className="fas fa-trophy fa-lg"></i>
                         </div>
-                        <div
-                            style={{
-                                fontSize: '1.75rem',
-                                fontWeight: 700,
-                                color: '#28a745'
-                            }}
-                        >
+                        <div className="stat-value-lg stat-value-green">
                             {currentLeague.league_wins || 0}
                         </div>
-                        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                        <div className="text-sm text-secondary">
                             Wins
                         </div>
                     </div>
@@ -183,28 +126,13 @@ const LeagueTab = ({ currentLeague, onCommanderUpdated }) => {
             <div className="col-md-6 col-lg-3">
                 <div className="profile-card h-100">
                     <div className="profile-card-body text-center">
-                        <div
-                            className="d-inline-flex align-items-center justify-content-center mb-2"
-                            style={{
-                                width: '48px',
-                                height: '48px',
-                                borderRadius: '12px',
-                                background: 'rgba(220, 53, 69, 0.15)',
-                                color: '#dc3545'
-                            }}
-                        >
+                        <div className="d-inline-flex align-items-center justify-content-center mb-2 stat-icon-box stat-icon-box-red">
                             <i className="fas fa-times-circle fa-lg"></i>
                         </div>
-                        <div
-                            style={{
-                                fontSize: '1.75rem',
-                                fontWeight: 700,
-                                color: '#dc3545'
-                            }}
-                        >
+                        <div className="stat-value-lg stat-value-red">
                             {currentLeague.league_losses || 0}
                         </div>
-                        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                        <div className="text-sm text-secondary">
                             Losses
                         </div>
                     </div>
@@ -214,28 +142,13 @@ const LeagueTab = ({ currentLeague, onCommanderUpdated }) => {
             <div className="col-md-6 col-lg-3">
                 <div className="profile-card h-100">
                     <div className="profile-card-body text-center">
-                        <div
-                            className="d-inline-flex align-items-center justify-content-center mb-2"
-                            style={{
-                                width: '48px',
-                                height: '48px',
-                                borderRadius: '12px',
-                                background: 'rgba(45, 27, 78, 0.15)',
-                                color: 'var(--brand-purple)'
-                            }}
-                        >
+                        <div className="d-inline-flex align-items-center justify-content-center mb-2 stat-icon-box stat-icon-box-purple">
                             <i className="fas fa-chart-line fa-lg"></i>
                         </div>
-                        <div
-                            style={{
-                                fontSize: '1.75rem',
-                                fontWeight: 700,
-                                color: 'var(--text-primary)'
-                            }}
-                        >
+                        <div className="stat-value-lg stat-value-primary">
                             {currentLeague.elo_rating || 1500}
                         </div>
-                        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                        <div className="text-sm text-secondary">
                             League ELO
                         </div>
                     </div>
@@ -259,18 +172,14 @@ const LeagueTab = ({ currentLeague, onCommanderUpdated }) => {
                                     <img
                                         src={`https://cards.scryfall.io/normal/front/${currentLeague.commander_scryfall_id.charAt(0)}/${currentLeague.commander_scryfall_id.charAt(1)}/${currentLeague.commander_scryfall_id}.jpg`}
                                         alt={currentLeague.commander_name || 'Commander'}
-                                        style={{
-                                            width: '120px',
-                                            borderRadius: '8px',
-                                            boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
-                                        }}
+                                        className="commander-card-img"
                                         onError={(e) => {
                                             e.target.style.display = 'none';
                                         }}
                                     />
                                 )}
                                 <div className="flex-grow-1">
-                                    <div style={{ fontWeight: 600, fontSize: '1.1rem', marginBottom: '0.5rem' }}>
+                                    <div className="commander-name-text">
                                         {currentLeague.commander_name || (
                                             <CommanderDisplay
                                                 commanderId={currentLeague.current_commander}
@@ -279,7 +188,7 @@ const LeagueTab = ({ currentLeague, onCommanderUpdated }) => {
                                         )}
                                     </div>
                                     {(currentLeague.partner_name || currentLeague.commander_partner) && (
-                                        <div style={{ color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
+                                        <div className="commander-partner-text">
                                             Partner: {currentLeague.partner_name || (
                                                 <CommanderDisplay
                                                     commanderId={currentLeague.commander_partner}
@@ -293,12 +202,7 @@ const LeagueTab = ({ currentLeague, onCommanderUpdated }) => {
                                             href={currentLeague.decklistUrl}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="btn btn-sm"
-                                            style={{
-                                                background: 'var(--brand-purple)',
-                                                color: '#fff',
-                                                borderRadius: '6px'
-                                            }}
+                                            className="btn btn-sm btn-purple"
                                         >
                                             <i className="fas fa-external-link-alt me-1"></i>
                                             View Decklist
@@ -328,47 +232,33 @@ const LeagueTab = ({ currentLeague, onCommanderUpdated }) => {
                     <div className="profile-card-body p-0">
                         <Link
                             to={`/leagues/${currentLeague.league_id}`}
-                            className="d-flex align-items-center justify-content-between p-3 text-decoration-none"
-                            style={{
-                                borderBottom: '1px solid var(--border-color)',
-                                color: 'var(--text-primary)'
-                            }}
+                            className="d-flex align-items-center justify-content-between p-3 text-decoration-none quick-action-item"
                         >
                             <span>
-                                <i className="fas fa-chart-line me-2" style={{ color: 'var(--brand-purple)' }}></i>
+                                <i className="fas fa-chart-line me-2 icon-brand-purple"></i>
                                 View Leaderboard
                             </span>
-                            <i className="fas fa-chevron-right" style={{ color: 'var(--text-secondary)' }}></i>
+                            <i className="fas fa-chevron-right icon-secondary"></i>
                         </Link>
                         <Link
                             to="/pods"
-                            className="d-flex align-items-center justify-content-between p-3 text-decoration-none"
-                            style={{
-                                borderBottom: '1px solid var(--border-color)',
-                                color: 'var(--text-primary)'
-                            }}
+                            className="d-flex align-items-center justify-content-between p-3 text-decoration-none quick-action-item"
                         >
                             <span>
-                                <i className="fas fa-gamepad me-2" style={{ color: 'var(--brand-purple)' }}></i>
+                                <i className="fas fa-gamepad me-2 icon-brand-purple"></i>
                                 View Your Games
                             </span>
-                            <i className="fas fa-chevron-right" style={{ color: 'var(--text-secondary)' }}></i>
+                            <i className="fas fa-chevron-right icon-secondary"></i>
                         </Link>
                         <button
                             onClick={() => setShowCommanderModal(true)}
-                            className="d-flex align-items-center justify-content-between p-3 text-decoration-none w-100 text-start"
-                            style={{
-                                background: 'transparent',
-                                border: 'none',
-                                color: 'var(--text-primary)',
-                                cursor: 'pointer'
-                            }}
+                            className="d-flex align-items-center justify-content-between p-3 text-decoration-none w-100 text-start quick-action-btn cursor-pointer"
                         >
                             <span>
-                                <i className="fas fa-hat-wizard me-2" style={{ color: 'var(--brand-purple)' }}></i>
+                                <i className="fas fa-hat-wizard me-2 icon-brand-purple"></i>
                                 Update Commander
                             </span>
-                            <i className="fas fa-chevron-right" style={{ color: 'var(--text-secondary)' }}></i>
+                            <i className="fas fa-chevron-right icon-secondary"></i>
                         </button>
                     </div>
                 </div>

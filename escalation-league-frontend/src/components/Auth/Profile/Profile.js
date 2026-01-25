@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { getUserProfile, updateUserProfile } from '../../../api/usersApi';
-import { usePermissions } from '../../context/PermissionsProvider';
+import { usePermissions } from '../../../context/PermissionsProvider';
 import LoadingSpinner from '../../Shared/LoadingSpinner';
 import OverviewTab from './OverviewTab';
 import SettingsTab from './SettingsTab';

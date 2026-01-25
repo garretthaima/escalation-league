@@ -81,57 +81,27 @@ const StatisticsTab = ({ user, currentLeague }) => {
                         {stats.gamesPlayed > 0 ? (
                             <>
                                 {/* Visual bar */}
-                                <div
-                                    className="d-flex rounded overflow-hidden mb-3"
-                                    style={{ height: '32px' }}
-                                >
+                                <div className="d-flex rounded overflow-hidden mb-3 breakdown-bar">
                                     {stats.wins > 0 && (
                                         <div
-                                            style={{
-                                                width: `${(stats.wins / stats.gamesPlayed) * 100}%`,
-                                                background: '#28a745',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                color: '#fff',
-                                                fontSize: '0.8rem',
-                                                fontWeight: 500,
-                                                minWidth: stats.wins > 0 ? '30px' : 0
-                                            }}
+                                            className="breakdown-segment breakdown-segment-wins"
+                                            style={{ width: `${(stats.wins / stats.gamesPlayed) * 100}%` }}
                                         >
                                             {stats.wins}
                                         </div>
                                     )}
                                     {stats.losses > 0 && (
                                         <div
-                                            style={{
-                                                width: `${(stats.losses / stats.gamesPlayed) * 100}%`,
-                                                background: '#dc3545',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                color: '#fff',
-                                                fontSize: '0.8rem',
-                                                fontWeight: 500,
-                                                minWidth: stats.losses > 0 ? '30px' : 0
-                                            }}
+                                            className="breakdown-segment breakdown-segment-losses"
+                                            style={{ width: `${(stats.losses / stats.gamesPlayed) * 100}%` }}
                                         >
                                             {stats.losses}
                                         </div>
                                     )}
                                     {stats.draws > 0 && (
                                         <div
-                                            style={{
-                                                width: `${(stats.draws / stats.gamesPlayed) * 100}%`,
-                                                background: '#6c757d',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                color: '#fff',
-                                                fontSize: '0.8rem',
-                                                fontWeight: 500,
-                                                minWidth: stats.draws > 0 ? '30px' : 0
-                                            }}
+                                            className="breakdown-segment breakdown-segment-draws"
+                                            style={{ width: `${(stats.draws / stats.gamesPlayed) * 100}%` }}
                                         >
                                             {stats.draws}
                                         </div>
@@ -141,21 +111,21 @@ const StatisticsTab = ({ user, currentLeague }) => {
                                 {/* Legend */}
                                 <div className="d-flex flex-wrap gap-3">
                                     <div className="d-flex align-items-center gap-2">
-                                        <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#28a745' }}></div>
-                                        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                        <div className="legend-indicator legend-indicator-wins"></div>
+                                        <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                                             Wins ({stats.wins})
                                         </span>
                                     </div>
                                     <div className="d-flex align-items-center gap-2">
-                                        <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#dc3545' }}></div>
-                                        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                        <div className="legend-indicator legend-indicator-losses"></div>
+                                        <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                                             Losses ({stats.losses})
                                         </span>
                                     </div>
                                     {stats.draws > 0 && (
                                         <div className="d-flex align-items-center gap-2">
-                                            <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#6c757d' }}></div>
-                                            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                            <div className="legend-indicator legend-indicator-draws"></div>
+                                            <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                                                 Draws ({stats.draws})
                                             </span>
                                         </div>
@@ -188,18 +158,14 @@ const StatisticsTab = ({ user, currentLeague }) => {
                                     <img
                                         src={`https://cards.scryfall.io/normal/front/${currentLeague.commander_scryfall_id.charAt(0)}/${currentLeague.commander_scryfall_id.charAt(1)}/${currentLeague.commander_scryfall_id}.jpg`}
                                         alt={currentLeague.commander_name || 'Commander'}
-                                        style={{
-                                            width: '140px',
-                                            borderRadius: '8px',
-                                            boxShadow: '0 4px 12px rgba(0,0,0,0.4)'
-                                        }}
+                                        className="commander-card-image"
                                         onError={(e) => {
                                             e.target.style.display = 'none';
                                         }}
                                     />
                                 )}
                                 <div className="flex-grow-1">
-                                    <h4 style={{ marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
+                                    <h4 className="commander-title">
                                         {currentLeague.commander_name || (
                                             <CommanderDisplay
                                                 commanderId={currentLeague.current_commander}
@@ -208,7 +174,7 @@ const StatisticsTab = ({ user, currentLeague }) => {
                                         )}
                                     </h4>
                                     {(currentLeague.partner_name || currentLeague.commander_partner) && (
-                                        <p style={{ color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
+                                        <p className="commander-partner-info">
                                             Partner: {currentLeague.partner_name || (
                                                 <CommanderDisplay
                                                     commanderId={currentLeague.commander_partner}
@@ -217,7 +183,7 @@ const StatisticsTab = ({ user, currentLeague }) => {
                                             )}
                                         </p>
                                     )}
-                                    <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+                                    <p className="commander-league-info">
                                         Playing in {currentLeague?.name || 'current league'}
                                     </p>
                                     {currentLeague.decklistUrl && (
@@ -225,15 +191,7 @@ const StatisticsTab = ({ user, currentLeague }) => {
                                             href={currentLeague.decklistUrl}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="btn"
-                                            style={{
-                                                background: 'var(--brand-purple)',
-                                                color: '#fff',
-                                                padding: '0.5rem 1rem',
-                                                borderRadius: '6px',
-                                                fontWeight: 500,
-                                                fontSize: '0.9rem'
-                                            }}
+                                            className="btn btn-view-decklist"
                                         >
                                             <i className="fas fa-external-link-alt me-2"></i>
                                             View Decklist

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createLeague } from '../../api/leaguesApi';
-import { useToast } from '../context/ToastContext';
+import { useToast } from '../../context/ToastContext';
 
 const CreateLeaguePage = () => {
     const navigate = useNavigate();

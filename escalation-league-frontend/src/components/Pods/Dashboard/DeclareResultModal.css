@@ -1,0 +1,20 @@
+/* DeclareResultModal.css - Styles for the Declare Result modal component */
+
+/* Modal display state */
+.declare-result-modal-visible {
+    display: block;
+}
+
+/* Gold-styled button for win declaration */
+.declare-result-btn-gold {
+    background: var(--brand-gold);
+    border-color: var(--brand-gold);
+    color: #1a1a2e;
+    font-weight: 600;
+}
+
+.declare-result-btn-gold:hover {
+    background: var(--brand-gold-light);
+    border-color: var(--brand-gold-light);
+    color: #1a1a2e;
+}

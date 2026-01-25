@@ -1,0 +1,50 @@
+/* ===========================
+   GlobalLeaderboard Component Styles
+=========================== */
+
+/* Sort icon inactive state */
+.sort-icon-inactive {
+    opacity: 0.3;
+}
+
+/* ELO rating badge styling */
+.elo-badge {
+    background: var(--bg-secondary);
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-weight: 600;
+}
+
+/* Mobile expanded details row */
+.leaderboard-expanded-row {
+    background: var(--bg-secondary);
+}
+
+.leaderboard-expanded-cell {
+    padding: 0.75rem 1rem;
+}
+
+/* Table header column widths */
+.leaderboard-col-rank {
+    width: 60px;
+}
+
+.leaderboard-col-elo {
+    width: 80px;
+    white-space: nowrap;
+}
+
+.leaderboard-col-record {
+    width: 120px;
+    white-space: nowrap;
+}
+
+.leaderboard-col-games {
+    width: 90px;
+    white-space: nowrap;
+}
+
+.leaderboard-col-winrate {
+    width: 90px;
+    white-space: nowrap;
+}

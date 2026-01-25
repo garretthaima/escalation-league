@@ -54,3 +54,18 @@
         width: 100%;
     }
 }
+
+/* Budget-specific icon sizing */
+.budget-header-icon {
+    font-size: 1.5rem;
+}
+
+/* Beta badge styling */
+.budget-beta-badge {
+    font-size: 0.9rem;
+}
+
+/* Budget progress bar height */
+.budget-progress-bar {
+    height: 25px;
+}
