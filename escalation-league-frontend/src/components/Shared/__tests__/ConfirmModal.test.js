@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import ConfirmModal from './ConfirmModal';
+import ConfirmModal from '../ConfirmModal';
 
 describe('ConfirmModal', () => {
     const defaultProps = {

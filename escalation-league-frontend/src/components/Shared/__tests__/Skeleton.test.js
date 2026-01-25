@@ -9,7 +9,7 @@ import {
     SkeletonLeaderboard,
     SkeletonStatsGrid,
     SkeletonProfileHeader
-} from './Skeleton';
+} from '../Skeleton';
 
 describe('Skeleton Components', () => {
     describe('Skeleton (base)', () => {

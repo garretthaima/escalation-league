@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import Pagination, { usePagination } from './Pagination';
+import Pagination, { usePagination } from '../Pagination';
 import { renderHook, act } from '@testing-library/react';
 
 // Mock localStorage

@@ -1,14 +1,14 @@
 import { renderHook, act } from '@testing-library/react';
 import React from 'react';
-import useLeagueRoom from './useLeagueRoom';
-import { WebSocketProvider } from '../context/WebSocketProvider';
+import useLeagueRoom from '../useLeagueRoom';
+import { WebSocketProvider } from '../../context/WebSocketProvider';
 
 // Mock the WebSocketProvider context
 const mockJoinLeague = jest.fn();
 const mockLeaveLeague = jest.fn();
 const mockSocket = { on: jest.fn(), off: jest.fn() };
 
-jest.mock('../context/WebSocketProvider', () => ({
+jest.mock('../../context/WebSocketProvider', () => ({
     useWebSocket: () => ({
         connected: true,
         joinLeague: mockJoinLeague,

@@ -1,14 +1,14 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { renderHook, act } from '@testing-library/react';
-import FilterBar, { useFilters } from './FilterBar';
+import FilterBar, { useFilters } from '../FilterBar';
 
 // Mock searchParams
 const mockSetSearchParams = jest.fn();
 let mockSearchParams = new URLSearchParams();
 
 jest.mock('react-router-dom', () => ({
-    ...jest.requireActual('../../__mocks__/react-router-dom'),
+    ...jest.requireActual('../../../__mocks__/react-router-dom'),
     useSearchParams: () => [mockSearchParams, mockSetSearchParams]
 }));
 

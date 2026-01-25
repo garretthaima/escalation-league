@@ -1,11 +1,11 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import NotAuthorized from './NotAuthorized';
+import NotAuthorized from '../NotAuthorized';
 
 // Mock useNavigate
 const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({
-    ...jest.requireActual('../../__mocks__/react-router-dom'),
+    ...jest.requireActual('../../../__mocks__/react-router-dom'),
     useNavigate: () => mockNavigate
 }));
 

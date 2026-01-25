@@ -1,14 +1,14 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import ForgotPassword from './ForgotPassword';
+import ForgotPassword from '../ForgotPassword';
 
 // Mock the API
-jest.mock('../../api/authApi', () => ({
+jest.mock('../../../api/authApi', () => ({
     requestPasswordReset: jest.fn()
 }));
 
 // Mock TurnstileWidget to automatically provide a token
-jest.mock('./TurnstileWidget', () => {
+jest.mock('../TurnstileWidget', () => {
     const MockTurnstile = require('react').forwardRef(({ onVerify }, ref) => {
         const React = require('react');
         React.useEffect(() => {
@@ -26,7 +26,7 @@ jest.mock('./TurnstileWidget', () => {
     return MockTurnstile;
 });
 
-const { requestPasswordReset } = require('../../api/authApi');
+const { requestPasswordReset } = require('../../../api/authApi');
 
 describe('ForgotPassword', () => {
     beforeEach(() => {

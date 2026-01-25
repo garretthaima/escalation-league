@@ -6,7 +6,7 @@ import {
     getLeagueStatusBadge,
     getUserStatusBadge,
     getConfirmationBadge
-} from './badgeHelpers';
+} from '../badgeHelpers';
 
 describe('badgeHelpers', () => {
     describe('getPodStatusBadge', () => {

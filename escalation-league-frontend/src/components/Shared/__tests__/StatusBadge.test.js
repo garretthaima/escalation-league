@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import StatusBadge from './StatusBadge';
+import StatusBadge from '../StatusBadge';
 
 describe('StatusBadge', () => {
     describe('status mapping', () => {

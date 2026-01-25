@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import ConfirmationCard from './ConfirmationCard';
+import ConfirmationCard from '../ConfirmationCard';
 
 describe('ConfirmationCard', () => {
     const createMockPod = (overrides = {}) => ({

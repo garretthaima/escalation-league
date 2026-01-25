@@ -2,7 +2,7 @@ import {
     validatePassword,
     getPasswordStrength,
     PASSWORD_MIN_LENGTH
-} from './passwordValidation';
+} from '../passwordValidation';
 
 describe('passwordValidation', () => {
     describe('validatePassword', () => {

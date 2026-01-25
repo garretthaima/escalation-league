@@ -1,5 +1,5 @@
 import { renderHook, act } from '@testing-library/react';
-import useTurnOrder from './useTurnOrder';
+import useTurnOrder from '../useTurnOrder';
 
 describe('useTurnOrder', () => {
     describe('initialization', () => {

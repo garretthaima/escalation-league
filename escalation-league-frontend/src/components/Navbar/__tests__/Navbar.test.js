@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import Navbar from './Navbar';
+import Navbar from '../Navbar';
 
 // Mock dependencies
 const mockToggleDarkMode = jest.fn();
@@ -13,11 +13,11 @@ const mockPermissionsContext = {
     loading: false
 };
 
-jest.mock('../../context/PermissionsProvider', () => ({
+jest.mock('../../../context/PermissionsProvider', () => ({
     usePermissions: () => mockPermissionsContext
 }));
 
-jest.mock('./ProfileSection', () => {
+jest.mock('../ProfileSection', () => {
     return function MockProfileSection({ user }) {
         return user
             ? <div data-testid="profile-section">Profile: {user.firstname}</div>
@@ -25,13 +25,13 @@ jest.mock('./ProfileSection', () => {
     };
 });
 
-jest.mock('./NotificationCenter', () => {
+jest.mock('../NotificationCenter', () => {
     return function MockNotificationCenter() {
         return <div data-testid="notification-center">Notifications</div>;
     };
 });
 
-jest.mock('./navbarLinks', () => {
+jest.mock('../navbarLinks', () => {
     return (inLeague) => [
         { path: '/', label: 'Home', type: 'link', section: 'public', order: 1 },
         { path: '/pods', label: 'Pods', type: 'link', section: 'pods', order: 2 },

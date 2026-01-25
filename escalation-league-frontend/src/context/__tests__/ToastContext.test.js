@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { ToastProvider, useToast } from './ToastContext';
+import { ToastProvider, useToast } from '../ToastContext';
 
 // Test component that uses the toast context
 const TestComponent = ({ toastType = 'success' }) => {

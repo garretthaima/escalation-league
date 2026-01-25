@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import CollapsibleSection from './CollapsibleSection';
+import CollapsibleSection from '../CollapsibleSection';
 
 describe('CollapsibleSection', () => {
     const defaultProps = {

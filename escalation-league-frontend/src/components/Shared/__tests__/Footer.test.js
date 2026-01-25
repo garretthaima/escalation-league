@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
-import Footer from './Footer';
+import Footer from '../Footer';
 
 // Mock fetch
 global.fetch = jest.fn();

@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import GameCard from './GameCard';
+import GameCard from '../GameCard';
 
 describe('GameCard', () => {
     const createMockPod = (overrides = {}) => ({
