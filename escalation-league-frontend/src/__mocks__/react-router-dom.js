@@ -14,6 +14,7 @@ export const useParams = () => ({});
 export const useSearchParams = () => [new URLSearchParams(), jest.fn()];
 
 export const BrowserRouter = ({ children }) => <>{children}</>;
+export const MemoryRouter = ({ children }) => <>{children}</>;
 export const Routes = ({ children }) => <>{children}</>;
 export const Route = () => null;
 export const Navigate = () => null;
