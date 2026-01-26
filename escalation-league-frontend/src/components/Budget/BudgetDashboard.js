@@ -139,6 +139,12 @@ const BudgetDashboard = () => {
     const remainingBudget = parseFloat(budget.budget_available) - parseFloat(budget.budget_used);
     const budgetPercentage = (parseFloat(budget.budget_used) / parseFloat(budget.budget_available)) * 100;
 
+    // Calculate expected budget by current week
+    // Week 1 is like week 0 (no budget yet), so expected = (current_week - 1) * weekly_budget
+    const currentWeek = activeLeague?.current_week || 1;
+    const weeklyBudget = activeLeague?.weekly_budget || 0;
+    const expectedBudget = (currentWeek - 1) * weeklyBudget;
+
     return (
         <div className="container mt-4 budget-dashboard">
             <div className="row mb-4">
@@ -169,6 +175,10 @@ const BudgetDashboard = () => {
                         <div className="card-body">
                             <h5 className="card-title">Budget Overview</h5>
                             <div className="budget-stats">
+                                <div className="stat-item">
+                                    <span className="stat-label">Expected by Week {currentWeek}:</span>
+                                    <span className="stat-value">${expectedBudget.toFixed(2)}</span>
+                                </div>
                                 <div className="stat-item">
                                     <span className="stat-label">Total Budget:</span>
                                     <span className="stat-value">${parseFloat(budget.budget_available).toFixed(2)}</span>
