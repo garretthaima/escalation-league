@@ -1,6 +1,8 @@
 .hero-section {
     position: relative;
-    height: 100vh;
+    height: 40vh;
+    min-height: 280px;
+    max-height: 400px;
     overflow: hidden;
     text-align: center;
     color: white;
@@ -8,11 +10,10 @@
 
 .hero-background {
     background-image: url('../../../public/images/hero-background.png');
-    /* Replace with your image path */
-    background-attachment: fixed;
-    /* Parallax effect */
     background-size: cover;
-    background-position: center;
+    /* Position to show the mountain peak and characters */
+    background-position: center 35%;
+    background-attachment: scroll;
     position: absolute;
     top: 0;
     left: 0;
@@ -48,6 +49,33 @@
 .quick-links .homepage-card:hover {
     transform: translateY(-4px);
     box-shadow: 0 6px 32px var(--shadow);
+}
+
+.quick-links .homepage-card.disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.quick-links .homepage-card.disabled:hover {
+    transform: none;
+    box-shadow: 0 4px 24px var(--shadow);
+}
+
+/* Homepage leaderboard - hide extra columns to fit in card */
+.homepage-leaderboard {
+    overflow-x: auto;
+}
+
+.homepage-leaderboard .table {
+    font-size: 0.9rem;
+}
+
+/* Hide more columns in homepage leaderboard preview */
+.homepage-leaderboard .leaderboard-col-games,
+.homepage-leaderboard .leaderboard-col-winrate,
+.homepage-leaderboard .leaderboard-col-elo,
+.homepage-leaderboard .leaderboard-col-playoffs {
+    display: none !important;
 }
 
 /* Dark mode handled automatically via CSS variables */
@@ -152,34 +180,36 @@
     color: #b8941f;
     text-decoration: underline;
 }
+
 /* Mobile optimizations for hero section */
 @media (max-width: 768px) {
     .hero-section {
-        height: 60vh;
-        min-height: 400px;
+        height: 35vh;
+        min-height: 220px;
+        max-height: 300px;
     }
-    
+
     .hero-content h1 {
         font-size: 1.75rem;
     }
-    
+
     .hero-content p {
         font-size: 0.95rem;
     }
-    
+
     .quick-links {
         flex-direction: column;
         gap: 1rem;
         padding: 0 1rem;
     }
-    
+
     .quick-links .homepage-card {
         width: 100%;
     }
 }
 
 /* Consistent card header height for collapsible sections */
-.card > .card-header {
+.card>.card-header {
     min-height: 56px;
     display: flex;
     align-items: center;
@@ -204,7 +234,7 @@
     }
 
     /* Slightly smaller card header on mobile */
-    .card > .card-header {
+    .card>.card-header {
         min-height: 48px;
     }
 }

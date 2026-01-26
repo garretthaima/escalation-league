@@ -1,0 +1,14 @@
+/* Dashboard.css */
+
+.dashboard {
+    max-width: 1200px;
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+    .dashboard .col-lg-4,
+    .dashboard .col-lg-8 {
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+    }
+}

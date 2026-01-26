@@ -1,0 +1,32 @@
+/* ActiveLeagueCard.css */
+
+.active-league-card {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+}
+
+.active-league-card .card-title {
+    color: var(--text-primary);
+}
+
+.active-league-progress {
+    height: 6px;
+    background: var(--bg-secondary);
+    border-radius: 3px;
+}
+
+.active-league-progress .progress-bar {
+    background: linear-gradient(90deg, var(--brand-purple) 0%, var(--brand-gold) 100%);
+    border-radius: 3px;
+}
+
+/* Mobile adjustments */
+@media (max-width: 576px) {
+    .active-league-card .card-body {
+        padding: 1rem;
+    }
+
+    .active-league-card .fs-5 {
+        font-size: 1rem !important;
+    }
+}
