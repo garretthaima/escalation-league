@@ -9,7 +9,8 @@ const {
     logParticipantRemoved,
     logParticipantAdded,
     logParticipantResultUpdated,
-    logPlayerDQToggled
+    logPlayerDQToggled,
+    logAdminSetWinner
 } = require('../services/activityLogService');
 const { handleError, notFound, badRequest } = require('../utils/errorUtils');
 
@@ -385,6 +386,326 @@ const toggleDQ = async (req, res) => {
     }
 };
 
+/**
+ * Admin Set Winner - Sets a winner for an active/pending pod and completes it
+ * This handles the full workflow:
+ * 1. Sets the winner's result to 'win', confirmed=1, confirmation_time
+ * 2. Sets all other players to 'loss', confirmed=1, confirmation_time
+ * 3. Updates pod status to 'complete' with result='win'
+ * 4. Applies game stats (wins/losses) to users and user_leagues
+ * 5. Calculates and applies ELO changes
+ */
+const setWinner = async (req, res) => {
+    const { podId } = req.params;
+    const { winnerId } = req.body;
+
+    if (!winnerId) {
+        return res.status(400).json({ error: 'Winner ID is required.' });
+    }
+
+    logger.info('Admin setWinner called', { podId, winnerId, adminId: req.user.id });
+
+    try {
+        // Get pod and validate it exists
+        const pod = await podService.getById(podId);
+        if (!pod) {
+            return res.status(404).json({ error: 'Pod not found.' });
+        }
+
+        // Only allow setting winner on active or pending pods
+        if (pod.confirmation_status === 'complete') {
+            return res.status(400).json({ error: 'Pod is already complete. Use updatePod to modify a completed pod.' });
+        }
+
+        if (pod.confirmation_status === 'open') {
+            return res.status(400).json({ error: 'Pod is still open. Wait for more players to join or override to active first.' });
+        }
+
+        // Get current participants
+        const participants = await podService.getParticipants(podId);
+        if (participants.length < 2) {
+            return res.status(400).json({ error: 'Pod must have at least 2 participants.' });
+        }
+
+        // Verify winner is a participant
+        const winnerParticipant = participants.find(p => p.player_id === parseInt(winnerId));
+        if (!winnerParticipant) {
+            return res.status(400).json({ error: 'Winner must be a participant in this pod.' });
+        }
+
+        // If pod was already pending (had stats partially applied), we need to reverse first
+        // This handles the case where someone declared a win but the pod wasn't completed
+        if (pod.confirmation_status === 'pending' && pod.league_id) {
+            // Check if any stats were applied (participants have results set)
+            const hasResults = participants.some(p => p.result !== null);
+            if (hasResults) {
+                logger.debug('Reversing partial stats from pending pod', { podId });
+                // Note: In pending state, stats shouldn't have been applied yet
+                // (stats are only applied when ALL players confirm and pod becomes complete)
+                // So we don't need to reverse here
+            }
+        }
+
+        const now = db.fn.now();
+
+        // Update winner: result='win', confirmed=1, confirmation_time=now
+        await db('game_players')
+            .where({ pod_id: podId, player_id: winnerId })
+            .whereNull('deleted_at')
+            .update({
+                result: 'win',
+                confirmed: 1,
+                confirmation_time: now
+            });
+
+        // Update all other players: result='loss', confirmed=1, confirmation_time=now
+        await db('game_players')
+            .where({ pod_id: podId })
+            .whereNot({ player_id: winnerId })
+            .whereNull('deleted_at')
+            .update({
+                result: 'loss',
+                confirmed: 1,
+                confirmation_time: now
+            });
+
+        // Update pod status to complete with result='win'
+        await db('game_pods')
+            .where({ id: podId })
+            .update({
+                confirmation_status: 'complete',
+                result: 'win'
+            });
+
+        // Fetch updated participants for stats application
+        const updatedParticipants = await podService.getParticipants(podId);
+
+        // Apply game stats if pod has a league
+        if (pod.league_id) {
+            // Apply stats (wins/losses to users and user_leagues)
+            await podService.applyGameStats(updatedParticipants, pod.league_id);
+
+            // Apply ELO changes
+            await podService.applyEloChanges(updatedParticipants, podId, pod.league_id);
+
+            // Invalidate caches
+            await cacheInvalidators.gameCompleted(pod.league_id);
+        }
+
+        // Log the admin action
+        await logAdminSetWinner(req.user.id, podId, winnerId);
+
+        // Fetch the complete pod with participants for response
+        const completedPod = await db('game_pods').where({ id: podId }).first();
+        const participantsWithDetails = await podService.getParticipantsWithUsers(podId);
+
+        logger.info('Admin setWinner completed', {
+            podId,
+            winnerId,
+            adminId: req.user.id,
+            leagueId: pod.league_id
+        });
+
+        res.status(200).json({
+            message: 'Winner set and pod completed successfully.',
+            pod: {
+                ...completedPod,
+                participants: participantsWithDetails
+            }
+        });
+    } catch (err) {
+        handleError(res, err, 'Failed to set winner');
+    }
+};
+
+/**
+ * Admin Declare Winner - Sets winner/losers and moves pod from active to pending
+ * Does NOT apply stats - waits for confirmations or admin force complete
+ *
+ * Flow: active → pending
+ *
+ * 1. Sets the winner's result to 'win' (not confirmed - waiting for others)
+ * 2. Sets all other players to 'loss' (not confirmed)
+ * 3. Updates pod status to 'pending' with result='win'
+ */
+const declareWinner = async (req, res) => {
+    const { podId } = req.params;
+    const { winnerId } = req.body;
+
+    if (!winnerId) {
+        return res.status(400).json({ error: 'Winner ID is required.' });
+    }
+
+    logger.info('Admin declareWinner called', { podId, winnerId, adminId: req.user.id });
+
+    try {
+        // Get pod and validate it exists
+        const pod = await podService.getById(podId);
+        if (!pod) {
+            return res.status(404).json({ error: 'Pod not found.' });
+        }
+
+        // Only allow declaring winner on active pods
+        if (pod.confirmation_status !== 'active') {
+            if (pod.confirmation_status === 'pending') {
+                return res.status(400).json({ error: 'Pod is already pending. Use "Force Complete" to finish it.' });
+            }
+            if (pod.confirmation_status === 'complete') {
+                return res.status(400).json({ error: 'Pod is already complete.' });
+            }
+            return res.status(400).json({ error: 'Pod must be active to declare a winner.' });
+        }
+
+        // Get current participants
+        const participants = await podService.getParticipants(podId);
+        if (participants.length < 2) {
+            return res.status(400).json({ error: 'Pod must have at least 2 participants.' });
+        }
+
+        // Verify winner is a participant
+        const winnerParticipant = participants.find(p => p.player_id === parseInt(winnerId));
+        if (!winnerParticipant) {
+            return res.status(400).json({ error: 'Winner must be a participant in this pod.' });
+        }
+
+        // Update winner: result='win' (NOT confirmed yet)
+        await db('game_players')
+            .where({ pod_id: podId, player_id: winnerId })
+            .whereNull('deleted_at')
+            .update({
+                result: 'win',
+                confirmed: 0
+            });
+
+        // Update all other players: result='loss' (NOT confirmed yet)
+        await db('game_players')
+            .where({ pod_id: podId })
+            .whereNot({ player_id: winnerId })
+            .whereNull('deleted_at')
+            .update({
+                result: 'loss',
+                confirmed: 0
+            });
+
+        // Update pod status to pending with result='win'
+        await db('game_pods')
+            .where({ id: podId })
+            .update({
+                confirmation_status: 'pending',
+                result: 'win'
+            });
+
+        // Log the admin action
+        await logPodUpdated(req.user.id, podId, { action: 'declare_winner', winnerId });
+
+        // Fetch the updated pod with participants for response
+        const updatedPod = await db('game_pods').where({ id: podId }).first();
+        const participantsWithDetails = await podService.getParticipantsWithUsers(podId);
+
+        logger.info('Admin declareWinner completed - pod moved to pending', {
+            podId,
+            winnerId,
+            adminId: req.user.id
+        });
+
+        res.status(200).json({
+            message: 'Winner declared. Pod is now pending confirmation.',
+            pod: {
+                ...updatedPod,
+                participants: participantsWithDetails
+            }
+        });
+    } catch (err) {
+        handleError(res, err, 'Failed to declare winner');
+    }
+};
+
+/**
+ * Admin Force Complete - Moves a pending pod to complete, applying stats
+ *
+ * Flow: pending → complete
+ *
+ * 1. Sets all participants to confirmed=1
+ * 2. Updates pod status to 'complete'
+ * 3. Applies game stats (wins/losses)
+ * 4. Applies ELO changes
+ */
+const forceComplete = async (req, res) => {
+    const { podId } = req.params;
+
+    logger.info('Admin forceComplete called', { podId, adminId: req.user.id });
+
+    try {
+        // Get pod and validate it exists
+        const pod = await podService.getById(podId);
+        if (!pod) {
+            return res.status(404).json({ error: 'Pod not found.' });
+        }
+
+        // Only allow force complete on pending pods
+        if (pod.confirmation_status !== 'pending') {
+            if (pod.confirmation_status === 'complete') {
+                return res.status(400).json({ error: 'Pod is already complete.' });
+            }
+            if (pod.confirmation_status === 'active') {
+                return res.status(400).json({ error: 'Pod is still active. Declare a winner first to move it to pending.' });
+            }
+            return res.status(400).json({ error: 'Pod must be pending to force complete.' });
+        }
+
+        const now = db.fn.now();
+
+        // Set all participants to confirmed
+        await db('game_players')
+            .where({ pod_id: podId })
+            .whereNull('deleted_at')
+            .update({
+                confirmed: 1,
+                confirmation_time: now
+            });
+
+        // Update pod status to complete
+        await db('game_pods')
+            .where({ id: podId })
+            .update({
+                confirmation_status: 'complete'
+            });
+
+        // Fetch updated participants for stats application
+        const updatedParticipants = await podService.getParticipants(podId);
+
+        // Apply game stats if pod has a league
+        if (pod.league_id) {
+            await podService.applyGameStats(updatedParticipants, pod.league_id);
+            await podService.applyEloChanges(updatedParticipants, podId, pod.league_id);
+            await cacheInvalidators.gameCompleted(pod.league_id);
+        }
+
+        // Log the admin action
+        await logPodUpdated(req.user.id, podId, { action: 'force_complete' });
+
+        // Fetch the complete pod with participants for response
+        const completedPod = await db('game_pods').where({ id: podId }).first();
+        const participantsWithDetails = await podService.getParticipantsWithUsers(podId);
+
+        logger.info('Admin forceComplete completed', {
+            podId,
+            adminId: req.user.id,
+            leagueId: pod.league_id
+        });
+
+        res.status(200).json({
+            message: 'Pod completed successfully. Stats have been applied.',
+            pod: {
+                ...completedPod,
+                participants: participantsWithDetails
+            }
+        });
+    } catch (err) {
+        handleError(res, err, 'Failed to force complete pod');
+    }
+};
+
 module.exports = {
     updatePod,
     removeParticipant,
@@ -392,4 +713,7 @@ module.exports = {
     updateParticipantResult,
     toggleDQ,
     deletePod,
+    setWinner,
+    declareWinner,
+    forceComplete,
 };

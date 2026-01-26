@@ -18,6 +18,9 @@ import {
     updateParticipantResult,
     toggleDQ,
     deletePod,
+    setWinner,
+    declareWinner,
+    forceComplete,
 } from '../podsAdminApi';
 
 describe('podsAdminApi', () => {
@@ -216,6 +219,105 @@ describe('podsAdminApi', () => {
             axiosInstance.delete.mockRejectedValue(error);
 
             await expect(deletePod(999)).rejects.toThrow('Pod not found');
+        });
+    });
+
+    describe('setWinner', () => {
+        it('should set winner and complete a pod successfully', async () => {
+            const podId = 1;
+            const winnerId = 100;
+            const mockResponse = {
+                message: 'Winner set and pod completed successfully.',
+                pod: {
+                    id: 1,
+                    confirmation_status: 'complete',
+                    result: 'win',
+                    participants: [
+                        { player_id: 100, result: 'win', confirmed: 1 },
+                        { player_id: 101, result: 'loss', confirmed: 1 },
+                    ],
+                },
+            };
+            axiosInstance.post.mockResolvedValue({ data: mockResponse });
+
+            const result = await setWinner(podId, winnerId);
+
+            expect(axiosInstance.post).toHaveBeenCalledWith('/admin/pods/1/set-winner', {
+                winnerId: 100,
+            });
+            expect(result).toEqual(mockResponse);
+        });
+
+        it('should propagate errors', async () => {
+            const error = new Error('Pod is already complete');
+            axiosInstance.post.mockRejectedValue(error);
+
+            await expect(setWinner(1, 100)).rejects.toThrow('Pod is already complete');
+        });
+    });
+
+    describe('declareWinner', () => {
+        it('should declare winner and move pod to pending', async () => {
+            const podId = 1;
+            const winnerId = 100;
+            const mockResponse = {
+                message: 'Winner declared. Pod is now pending confirmation.',
+                pod: {
+                    id: 1,
+                    confirmation_status: 'pending',
+                    result: 'win',
+                    participants: [
+                        { player_id: 100, result: 'win', confirmed: 0 },
+                        { player_id: 101, result: 'loss', confirmed: 0 },
+                    ],
+                },
+            };
+            axiosInstance.post.mockResolvedValue({ data: mockResponse });
+
+            const result = await declareWinner(podId, winnerId);
+
+            expect(axiosInstance.post).toHaveBeenCalledWith('/admin/pods/1/declare-winner', {
+                winnerId: 100,
+            });
+            expect(result).toEqual(mockResponse);
+        });
+
+        it('should propagate errors', async () => {
+            const error = new Error('Pod must be active to declare a winner');
+            axiosInstance.post.mockRejectedValue(error);
+
+            await expect(declareWinner(1, 100)).rejects.toThrow('Pod must be active to declare a winner');
+        });
+    });
+
+    describe('forceComplete', () => {
+        it('should force complete a pending pod', async () => {
+            const podId = 1;
+            const mockResponse = {
+                message: 'Pod completed successfully. Stats have been applied.',
+                pod: {
+                    id: 1,
+                    confirmation_status: 'complete',
+                    result: 'win',
+                    participants: [
+                        { player_id: 100, result: 'win', confirmed: 1 },
+                        { player_id: 101, result: 'loss', confirmed: 1 },
+                    ],
+                },
+            };
+            axiosInstance.post.mockResolvedValue({ data: mockResponse });
+
+            const result = await forceComplete(podId);
+
+            expect(axiosInstance.post).toHaveBeenCalledWith('/admin/pods/1/force-complete');
+            expect(result).toEqual(mockResponse);
+        });
+
+        it('should propagate errors', async () => {
+            const error = new Error('Pod must be pending to force complete');
+            axiosInstance.post.mockRejectedValue(error);
+
+            await expect(forceComplete(1)).rejects.toThrow('Pod must be pending to force complete');
         });
     });
 });

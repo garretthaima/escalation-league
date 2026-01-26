@@ -1,16 +1,27 @@
 /* GameCard.css - Styles for the Commander pod game card component */
 
-/* Declare button styling */
+/* Declare button styling - override Bootstrap defaults */
 .btn-declare {
-    background: var(--brand-gold);
-    border: none;
-    color: #1a1a2e;
+    background: var(--brand-gold) !important;
+    background-color: var(--brand-gold) !important;
+    border: none !important;
+    color: #1a1a2e !important;
     font-weight: 600;
+    opacity: 1 !important;
 }
 
-.btn-declare:hover {
-    background: var(--brand-gold-light);
-    color: #1a1a2e;
+.btn-declare:hover,
+.btn-declare:focus,
+.btn-declare:active {
+    background: var(--brand-gold-light) !important;
+    background-color: var(--brand-gold-light) !important;
+    color: #1a1a2e !important;
+    opacity: 1 !important;
+}
+
+.btn-declare:disabled {
+    background: var(--brand-gold) !important;
+    opacity: 0.65 !important;
 }
 
 /* Pod 2x2 grid layout */

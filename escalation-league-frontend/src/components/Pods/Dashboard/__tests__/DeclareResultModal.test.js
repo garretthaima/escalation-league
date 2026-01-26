@@ -302,6 +302,54 @@ describe('DeclareResultModal', () => {
         });
     });
 
+    describe('backdrop click to close', () => {
+        it('should call onHide when clicking backdrop in main view', () => {
+            render(<DeclareResultModal {...defaultProps} />);
+            const backdrop = document.querySelector('.modal-backdrop');
+            fireEvent.click(backdrop);
+            expect(defaultProps.onHide).toHaveBeenCalled();
+        });
+
+        it('should call onHide when clicking modal overlay (not content) in main view', () => {
+            render(<DeclareResultModal {...defaultProps} />);
+            const modal = document.querySelector('.modal');
+            // Click the modal itself (not the dialog/content)
+            fireEvent.click(modal);
+            expect(defaultProps.onHide).toHaveBeenCalled();
+        });
+
+        it('should not call onHide when clicking modal content in main view', () => {
+            render(<DeclareResultModal {...defaultProps} />);
+            const modalContent = document.querySelector('.modal-content');
+            fireEvent.click(modalContent);
+            expect(defaultProps.onHide).not.toHaveBeenCalled();
+        });
+
+        it('should call onHide when clicking backdrop in confirmation view', () => {
+            render(<DeclareResultModal {...defaultProps} />);
+            fireEvent.click(screen.getByText('I Won!'));
+            const backdrop = document.querySelector('.modal-backdrop');
+            fireEvent.click(backdrop);
+            expect(defaultProps.onHide).toHaveBeenCalled();
+        });
+
+        it('should call onHide when clicking modal overlay in confirmation view', () => {
+            render(<DeclareResultModal {...defaultProps} />);
+            fireEvent.click(screen.getByText('I Won!'));
+            const modal = document.querySelector('.modal');
+            fireEvent.click(modal);
+            expect(defaultProps.onHide).toHaveBeenCalled();
+        });
+
+        it('should not call onHide when clicking modal content in confirmation view', () => {
+            render(<DeclareResultModal {...defaultProps} />);
+            fireEvent.click(screen.getByText('I Won!'));
+            const modalContent = document.querySelector('.modal-content');
+            fireEvent.click(modalContent);
+            expect(defaultProps.onHide).not.toHaveBeenCalled();
+        });
+    });
+
     describe('button layout', () => {
         it('should have flex-fill class on Back and Yes, I Won buttons in confirmation view', () => {
             render(<DeclareResultModal {...defaultProps} />);
