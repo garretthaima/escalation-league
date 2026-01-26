@@ -7,6 +7,21 @@
  */
 
 /**
+ * Calculate number of weeks from start and end dates
+ * @param {string} startDate - League start date
+ * @param {string} endDate - League end date
+ * @returns {number} Number of weeks in the league
+ */
+export const calculateWeeksFromDates = (startDate, endDate) => {
+    if (!startDate || !endDate) return 8; // Default fallback
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const diffMs = end - start;
+    const diffDays = diffMs / (1000 * 60 * 60 * 24);
+    return Math.ceil(diffDays / 7);
+};
+
+/**
  * Calculate the budget accumulated by the current week
  * @param {number} currentWeek - The current week number (1-indexed)
  * @param {number} weeklyBudget - The budget added each week
@@ -44,14 +59,15 @@ export const calculateRemainingBudget = (budgetAccumulated, budgetUsed) => {
 
 /**
  * Get all budget values for a league
- * @param {Object} league - League object with current_week, weekly_budget, number_of_weeks
+ * @param {Object} league - League object with current_week, weekly_budget, and either number_of_weeks or start_date/end_date
  * @param {number} budgetUsed - Budget already spent (optional)
  * @returns {Object} Object containing all calculated budget values
  */
 export const getBudgetSummary = (league, budgetUsed = 0) => {
     const currentWeek = league?.current_week || 1;
     const weeklyBudget = league?.weekly_budget || 0;
-    const totalWeeks = league?.number_of_weeks || 8;
+    // Use number_of_weeks if available, otherwise calculate from dates
+    const totalWeeks = league?.number_of_weeks || calculateWeeksFromDates(league?.start_date, league?.end_date);
 
     const budgetAccumulated = calculateBudgetAccumulated(currentWeek, weeklyBudget);
     const totalSeasonBudget = calculateTotalSeasonBudget(totalWeeks, weeklyBudget);

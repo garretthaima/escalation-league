@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Link } from 'react-router-dom';
-import { calculateTotalSeasonBudget } from '../../utils/budgetCalculations';
+import { calculateTotalSeasonBudget, calculateWeeksFromDates } from '../../utils/budgetCalculations';
 import './ActiveLeagueCard.css';
 
 /**
@@ -29,8 +29,9 @@ const ActiveLeagueCard = ({ league, playerCount }) => {
     const daysElapsed = Math.max(0, totalDays - daysRemaining);
     const progressPercent = totalDays > 0 ? Math.min(100, (daysElapsed / totalDays) * 100) : 0;
 
-    // Calculate total season budget
-    const totalSeasonBudget = calculateTotalSeasonBudget(league.number_of_weeks, league.weekly_budget);
+    // Calculate total season budget (use number_of_weeks if available, otherwise calculate from dates)
+    const totalWeeks = league.number_of_weeks || calculateWeeksFromDates(league.start_date, league.end_date);
+    const totalSeasonBudget = calculateTotalSeasonBudget(totalWeeks, league.weekly_budget);
 
     const formatDate = (dateString) => {
         return new Date(dateString).toLocaleDateString('en-US', {
