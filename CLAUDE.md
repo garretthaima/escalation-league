@@ -88,9 +88,7 @@ git checkout -b hotfix/fix-mobile-websocket
 
 ### When Writing New Code
 1. Write the component/function
-2. Create corresponding test file:
-   - Frontend: `__tests__` folder next to source
-   - Backend: `tests/` folder mirroring source structure
+2. Create corresponding test file in `__tests__` folder
 3. Write tests covering main functionality
 4. Run coverage to verify 80%+ on new code
 
