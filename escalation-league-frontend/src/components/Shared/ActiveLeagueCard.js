@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Link } from 'react-router-dom';
+import { calculateTotalSeasonBudget } from '../../utils/budgetCalculations';
 import './ActiveLeagueCard.css';
 
 /**
@@ -27,6 +28,9 @@ const ActiveLeagueCard = ({ league, playerCount }) => {
     const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
     const daysElapsed = Math.max(0, totalDays - daysRemaining);
     const progressPercent = totalDays > 0 ? Math.min(100, (daysElapsed / totalDays) * 100) : 0;
+
+    // Calculate total season budget
+    const totalSeasonBudget = calculateTotalSeasonBudget(league.number_of_weeks, league.weekly_budget);
 
     const formatDate = (dateString) => {
         return new Date(dateString).toLocaleDateString('en-US', {
@@ -85,8 +89,8 @@ const ActiveLeagueCard = ({ league, playerCount }) => {
                         <small className="text-muted">Days Left</small>
                     </div>
                     <div className="text-center">
-                        <div className="fs-5 fw-bold text-info">${league.weekly_budget || 0}</div>
-                        <small className="text-muted">Weekly Budget</small>
+                        <div className="fs-5 fw-bold text-info">${totalSeasonBudget.toFixed(2)}</div>
+                        <small className="text-muted">Season Budget</small>
                     </div>
                 </div>
 
@@ -106,6 +110,7 @@ ActiveLeagueCard.propTypes = {
         name: PropTypes.string,
         description: PropTypes.string,
         current_week: PropTypes.number,
+        number_of_weeks: PropTypes.number,
         start_date: PropTypes.string,
         end_date: PropTypes.string,
         weekly_budget: PropTypes.number

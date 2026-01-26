@@ -4,6 +4,7 @@ import { getLeagueDetails, getLeagueStats } from '../../../api/leaguesApi';
 import { getLeagueParticipants, getUserLeagueStats } from '../../../api/userLeaguesApi';
 import { getMetagameAnalysis } from '../../../api/metagameApi';
 import { usePermissions } from '../../../context/PermissionsProvider';
+import { calculateTotalSeasonBudget } from '../../../utils/budgetCalculations';
 import CollapsibleSection from '../../Shared/CollapsibleSection';
 import LoadingSpinner from '../../Shared/LoadingSpinner';
 import UserStandingCard from './UserStandingCard';
@@ -154,7 +155,7 @@ const LeagueDashboard = () => {
                             </span>
                             <span>
                                 <i className="fas fa-dollar-sign me-1"></i>
-                                ${league.weekly_budget}/week budget
+                                ${calculateTotalSeasonBudget(league.number_of_weeks, league.weekly_budget).toFixed(2)} season budget
                             </span>
                         </div>
                     </div>

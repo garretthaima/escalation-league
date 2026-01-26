@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getActiveLeague } from '../../api/leaguesApi';
-import { getBudget, createBudget, getBudgetCards, getBudgetSummary, refreshCardPrices } from '../../api/budgetApi';
+import { getBudget, createBudget, getBudgetCards, getBudgetSummary as getBudgetSummaryApi, refreshCardPrices } from '../../api/budgetApi';
+import { getBudgetSummary } from '../../utils/budgetCalculations';
 import CardSearch from './CardSearch';
 import BudgetCardList from './BudgetCardList';
 import WeeklySummary from './WeeklySummary';
@@ -54,7 +55,7 @@ const BudgetDashboard = () => {
             // Fetch cards and summary
             const [cardsData, summaryData] = await Promise.all([
                 getBudgetCards(budgetData.id),
-                getBudgetSummary(budgetData.id)
+                getBudgetSummaryApi(budgetData.id)
             ]);
             setCards(cardsData);
             setSummary(summaryData.weekly_summary || []);
@@ -136,20 +137,12 @@ const BudgetDashboard = () => {
         );
     }
 
-    const remainingBudget = parseFloat(budget.budget_available) - parseFloat(budget.budget_used);
-    const budgetPercentage = (parseFloat(budget.budget_used) / parseFloat(budget.budget_available)) * 100;
+    const budgetUsed = parseFloat(budget.budget_used);
+    const budgetPercentage = (budgetUsed / parseFloat(budget.budget_available)) * 100;
 
-    // Calculate budget values
-    const currentWeek = activeLeague?.current_week || 1;
-    const weeklyBudget = activeLeague?.weekly_budget || 0;
-    const totalWeeks = activeLeague?.number_of_weeks || 8;
-
-    // Budget accumulated = (current_week - 1) * weekly_budget
-    // Week 1 is like week 0 (no budget yet)
-    const budgetAccumulated = (currentWeek - 1) * weeklyBudget;
-
-    // Total Season Budget = (weekly_budget * total_weeks) - weekly_budget
-    const totalSeasonBudget = (weeklyBudget * totalWeeks) - weeklyBudget;
+    // Calculate budget values using helper
+    const budgetInfo = getBudgetSummary(activeLeague, budgetUsed);
+    const { budgetAccumulated, totalSeasonBudget, remaining: remainingBudget } = budgetInfo;
 
     return (
         <div className="container mt-4 budget-dashboard">
