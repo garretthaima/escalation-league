@@ -139,11 +139,17 @@ const BudgetDashboard = () => {
     const remainingBudget = parseFloat(budget.budget_available) - parseFloat(budget.budget_used);
     const budgetPercentage = (parseFloat(budget.budget_used) / parseFloat(budget.budget_available)) * 100;
 
-    // Calculate expected budget by current week
-    // Week 1 is like week 0 (no budget yet), so expected = (current_week - 1) * weekly_budget
+    // Calculate budget values
     const currentWeek = activeLeague?.current_week || 1;
     const weeklyBudget = activeLeague?.weekly_budget || 0;
-    const expectedBudget = (currentWeek - 1) * weeklyBudget;
+    const totalWeeks = activeLeague?.number_of_weeks || 8;
+
+    // Budget accumulated = (current_week - 1) * weekly_budget
+    // Week 1 is like week 0 (no budget yet)
+    const budgetAccumulated = (currentWeek - 1) * weeklyBudget;
+
+    // Total Season Budget = (weekly_budget * total_weeks) - weekly_budget
+    const totalSeasonBudget = (weeklyBudget * totalWeeks) - weeklyBudget;
 
     return (
         <div className="container mt-4 budget-dashboard">
@@ -176,12 +182,12 @@ const BudgetDashboard = () => {
                             <h5 className="card-title">Budget Overview</h5>
                             <div className="budget-stats">
                                 <div className="stat-item">
-                                    <span className="stat-label">Expected by Week {currentWeek}:</span>
-                                    <span className="stat-value">${expectedBudget.toFixed(2)}</span>
+                                    <span className="stat-label">Budget Accumulated:</span>
+                                    <span className="stat-value">${budgetAccumulated.toFixed(2)}</span>
                                 </div>
                                 <div className="stat-item">
-                                    <span className="stat-label">Total Budget:</span>
-                                    <span className="stat-value">${parseFloat(budget.budget_available).toFixed(2)}</span>
+                                    <span className="stat-label">Total Season Budget:</span>
+                                    <span className="stat-value">${totalSeasonBudget.toFixed(2)}</span>
                                 </div>
                                 <div className="stat-item">
                                     <span className="stat-label">Used:</span>
