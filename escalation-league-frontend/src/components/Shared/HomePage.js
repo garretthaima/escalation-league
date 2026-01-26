@@ -109,22 +109,13 @@ const HomePage = () => {
                                     <p className="text-muted mb-4">
                                         Access the leaderboard, see active games, track your budget, and more.
                                     </p>
-                                    <div className="d-flex gap-3 justify-content-center">
-                                        <button
-                                            className="btn btn-primary btn-lg"
-                                            onClick={() => navigate('/signin')}
-                                        >
-                                            <i className="fas fa-sign-in-alt me-2"></i>
-                                            Sign In
-                                        </button>
-                                        <button
-                                            className="btn btn-outline-primary btn-lg"
-                                            onClick={() => navigate('/signup')}
-                                        >
-                                            <i className="fas fa-user-plus me-2"></i>
-                                            Create Account
-                                        </button>
-                                    </div>
+                                    <button
+                                        className="btn btn-primary btn-lg"
+                                        onClick={() => navigate('/signin')}
+                                    >
+                                        <i className="fas fa-sign-in-alt me-2"></i>
+                                        Sign In
+                                    </button>
                                 </div>
                             </div>
                         </div>
