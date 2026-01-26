@@ -1,5 +1,8 @@
 module.exports = {
     testEnvironment: 'node',
+    // setupFiles runs BEFORE modules are loaded - sets DB env vars to test database
+    setupFiles: ['<rootDir>/tests/setupEnv.js'],
+    // setupFilesAfterEnv runs after env setup - handles DB seeding and cleanup
     setupFilesAfterEnv: ['<rootDir>/tests/setup.js'],
     testMatch: ['**/tests/**/*.test.js'],
 
@@ -15,7 +18,10 @@ module.exports = {
         '!**/tests/**',
         '!**/migrations/**',
         '!**/seeds/**',
-        '!**/scripts/**'
+        '!**/scripts/**',
+        // Infrastructure files that are always mocked in tests
+        '!**/utils/redisClient.js',
+        '!**/utils/settingsUtils.js'
     ],
 
     coverageDirectory: 'coverage',
