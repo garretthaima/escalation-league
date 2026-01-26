@@ -77,7 +77,9 @@ git checkout -b hotfix/fix-mobile-websocket
   - Conditional rendering: permission-based UI, logged in/out states
 
 ### Backend Testing (Jest)
-- Test files go in `__tests__` folders
+- Test files go in the top-level `tests/` folder, mirroring source structure
+  - Example: `controllers/userController.js` → `tests/controllers/userController.test.js`
+- Run with: `TEST_DB_HOST=10.10.60.5 TEST_DB_PORT=3308 npm test -- --coverage --watchAll=false`
 - Mock external dependencies (database, APIs)
 - Test patterns:
   - Happy path: expected inputs produce expected outputs

@@ -13,7 +13,11 @@ async function clearDatabase() {
         'activity_logs',
         'user_settings',
         'role_requests',
-        'users',         // Clear users
+        'notifications',        // Clear notifications
+        'attendance_polls',     // Clear attendance polls
+        'session_attendance',   // Clear session attendance
+        'game_sessions',        // Clear game sessions
+        'users',               // Clear users
         'leagues',
         'awards',
         // Do NOT clear: roles, permissions, role_permissions, role_hierarchy, settings
@@ -50,9 +54,11 @@ async function createTestUser(overrides = {}) {
         firstname: overrides.firstname || 'Test',
         lastname: overrides.lastname || 'User',
         is_active: overrides.is_active !== undefined ? overrides.is_active : 1,
+        is_deleted: overrides.is_deleted !== undefined ? overrides.is_deleted : 0,
         wins: overrides.wins || 0,
         losses: overrides.losses || 0,
         draws: overrides.draws || 0,
+        elo_rating: overrides.elo_rating || 1500,
         role_id: overrides.role_id || null,
     });
 

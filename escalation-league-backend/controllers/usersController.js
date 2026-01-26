@@ -258,37 +258,6 @@ const changePassword = async (req, res) => {
   }
 };
 
-const getAllUsers = async (req, res) => {
-  if (req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Access denied. Admins only.' });
-  }
-
-  try {
-    const users = await db('users').select('id', 'firstname', 'lastname', 'email', 'role', 'is_active');
-    res.status(200).json({ users });
-  } catch (err) {
-    console.error('Error fetching all users:', err);
-    res.status(500).json({ error: 'Failed to fetch users.' });
-  }
-};
-
-const deactivateUser = async (req, res) => {
-  const { id } = req.params;
-
-  if (req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Access denied. Admins only.' });
-  }
-
-  try {
-    await db('users').where({ id }).update({ is_active: false });
-    res.status(200).json({ message: 'User account deactivated successfully.' });
-  } catch (err) {
-    console.error('Error deactivating user account:', err);
-    res.status(500).json({ error: 'Failed to deactivate user account.' });
-  }
-};
-
-
 const updateUserStats = async (req, res) => {
   const { userId, wins, losses, draws } = req.body;
 
@@ -310,33 +279,6 @@ const updateUserStats = async (req, res) => {
   } catch (err) {
     console.error('Error updating user stats:', err.message);
     res.status(500).json({ error: 'Failed to update user stats.' });
-  }
-};
-
-const requestRole = async (req, res) => {
-  const { requestedRoleId } = req.body;
-  const userId = req.user.id;
-
-  try {
-    // Check if a pending request already exists
-    const existingRequest = await db('role_requests')
-      .where({ user_id: userId, requested_role_id: requestedRoleId, status: 'pending' })
-      .first();
-
-    if (existingRequest) {
-      return res.status(400).json({ error: 'A pending request already exists.' });
-    }
-
-    // Create a new role request
-    await db('role_requests').insert({
-      user_id: userId,
-      requested_role_id: requestedRoleId,
-    });
-
-    res.status(200).json({ success: true, message: 'Role upgrade request submitted successfully.' });
-  } catch (err) {
-    console.error('Error submitting role request:', err.message);
-    res.status(500).json({ error: 'Failed to submit role request.' });
   }
 };
 
@@ -504,9 +446,7 @@ module.exports = {
   updateUserProfile,
   deleteUserAccount,
   changePassword,
-  getAllUsers,
   updateUserStats,
-  requestRole,
   getUserPermissions,
   getUserSummary,
   getUserSetting,

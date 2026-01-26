@@ -12,11 +12,18 @@ jest.mock('../../utils/settingsUtils', () => ({
     })
 }));
 
+// Mock socket emitter to avoid socket.io errors in tests
+jest.mock('../../utils/socketEmitter', () => ({
+    emitNotificationRead: jest.fn(),
+    setIo: jest.fn(),
+    getIo: jest.fn()
+}));
+
 const app = require('../../server');
 
-describe.skip('Notification Routes', () => {
+describe('Notification Routes', () => {
     describe('GET /api/notifications', () => {
-        it('should return user notifications', async () => {
+        it('should return user notifications with pagination', async () => {
             const { token, userId } = await getAuthToken();
 
             await createTestNotification(userId, {
@@ -33,8 +40,12 @@ describe.skip('Notification Routes', () => {
                 .set('Authorization', `Bearer ${token}`);
 
             expect(res.status).toBe(200);
-            expect(Array.isArray(res.body)).toBe(true);
-            expect(res.body.length).toBeGreaterThanOrEqual(2);
+            expect(res.body).toHaveProperty('notifications');
+            expect(Array.isArray(res.body.notifications)).toBe(true);
+            expect(res.body.notifications.length).toBe(2);
+            expect(res.body).toHaveProperty('total', 2);
+            expect(res.body).toHaveProperty('limit');
+            expect(res.body).toHaveProperty('offset');
         });
 
         it('should only return own notifications', async () => {
@@ -49,71 +60,185 @@ describe.skip('Notification Routes', () => {
                 .set('Authorization', `Bearer ${user1.token}`);
 
             expect(res.status).toBe(200);
-            expect(res.body.every(n => n.user_id === user1.userId)).toBe(true);
+            expect(res.body.notifications.length).toBe(1);
+            expect(res.body.notifications[0].title).toBe('For User 1');
         });
 
-        it('should filter by read status', async () => {
+        it('should support pagination with limit and offset', async () => {
             const { token, userId } = await getAuthToken();
 
-            await createTestNotification(userId, { is_read: 0 });
-            await createTestNotification(userId, { is_read: 1 });
+            // Create 5 notifications
+            for (let i = 1; i <= 5; i++) {
+                await createTestNotification(userId, {
+                    title: `Notification ${i}`,
+                    message: `Message ${i}`
+                });
+            }
 
             const res = await request(app)
                 .get('/api/notifications')
-                .query({ is_read: 0 })
+                .query({ limit: 2, offset: 2 })
                 .set('Authorization', `Bearer ${token}`);
 
             expect(res.status).toBe(200);
-            expect(res.body.every(n => n.is_read === 0)).toBe(true);
+            expect(res.body.notifications.length).toBe(2);
+            expect(res.body.total).toBe(5);
+            expect(res.body.limit).toBe(2);
+            expect(res.body.offset).toBe(2);
         });
 
-        // TODO: Test pagination
-        // TODO: Test sorting by created_at
+        it('should require authentication', async () => {
+            const res = await request(app)
+                .get('/api/notifications');
+
+            expect(res.status).toBe(401);
+        });
+    });
+
+    describe('GET /api/notifications/unread-count', () => {
+        it('should return unread notification count', async () => {
+            const { token, userId } = await getAuthToken();
+
+            await createTestNotification(userId, { is_read: false });
+            await createTestNotification(userId, { is_read: false });
+            await createTestNotification(userId, { is_read: true });
+
+            const res = await request(app)
+                .get('/api/notifications/unread-count')
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.status).toBe(200);
+            expect(res.body).toHaveProperty('count', 2);
+        });
+
+        it('should return 0 when no unread notifications', async () => {
+            const { token, userId } = await getAuthToken();
+
+            await createTestNotification(userId, { is_read: true });
+
+            const res = await request(app)
+                .get('/api/notifications/unread-count')
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.status).toBe(200);
+            expect(res.body).toHaveProperty('count', 0);
+        });
+
+        it('should require authentication', async () => {
+            const res = await request(app)
+                .get('/api/notifications/unread-count');
+
+            expect(res.status).toBe(401);
+        });
     });
 
     describe('PUT /api/notifications/:id/read', () => {
         it('should mark notification as read', async () => {
             const { token, userId } = await getAuthToken();
-            const notificationId = await createTestNotification(userId, { is_read: 0 });
+            const notificationId = await createTestNotification(userId, { is_read: false });
 
             const res = await request(app)
                 .put(`/api/notifications/${notificationId}/read`)
                 .set('Authorization', `Bearer ${token}`);
 
             expect(res.status).toBe(200);
+            expect(res.body).toHaveProperty('message', 'Notification marked as read.');
         });
 
-        it('should only allow marking own notifications', async () => {
+        it('should return success if already read', async () => {
+            const { token, userId } = await getAuthToken();
+            const notificationId = await createTestNotification(userId, { is_read: true });
+
+            const res = await request(app)
+                .put(`/api/notifications/${notificationId}/read`)
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.status).toBe(200);
+            expect(res.body).toHaveProperty('message', 'Already marked as read.');
+        });
+
+        it('should not allow marking other user notifications', async () => {
             const user1 = await getAuthToken();
             const user2 = await getAuthToken();
 
-            const notificationId = await createTestNotification(user1.userId);
+            const notificationId = await createTestNotification(user1.userId, { is_read: false });
 
             const res = await request(app)
                 .put(`/api/notifications/${notificationId}/read`)
                 .set('Authorization', `Bearer ${user2.token}`);
 
-            expect(res.status).toBe(403);
+            expect(res.status).toBe(404);
         });
 
-        // TODO: Test updates read_at timestamp
+        it('should return 404 for non-existent notification', async () => {
+            const { token } = await getAuthToken();
+
+            const res = await request(app)
+                .put('/api/notifications/99999/read')
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.status).toBe(404);
+        });
+
+        it('should require authentication', async () => {
+            const res = await request(app)
+                .put('/api/notifications/1/read');
+
+            expect(res.status).toBe(401);
+        });
     });
 
     describe('PUT /api/notifications/read-all', () => {
         it('should mark all notifications as read', async () => {
             const { token, userId } = await getAuthToken();
 
-            await createTestNotification(userId, { is_read: 0 });
-            await createTestNotification(userId, { is_read: 0 });
+            await createTestNotification(userId, { is_read: false });
+            await createTestNotification(userId, { is_read: false });
+            await createTestNotification(userId, { is_read: false });
 
             const res = await request(app)
                 .put('/api/notifications/read-all')
                 .set('Authorization', `Bearer ${token}`);
 
             expect(res.status).toBe(200);
+            expect(res.body).toHaveProperty('message', 'All notifications marked as read.');
+            expect(res.body).toHaveProperty('count', 3);
         });
 
-        // TODO: Test only marks user's own notifications
+        it('should only mark own notifications', async () => {
+            const user1 = await getAuthToken();
+            const user2 = await getAuthToken();
+
+            await createTestNotification(user1.userId, { is_read: false });
+            await createTestNotification(user2.userId, { is_read: false });
+
+            const res = await request(app)
+                .put('/api/notifications/read-all')
+                .set('Authorization', `Bearer ${user1.token}`);
+
+            expect(res.status).toBe(200);
+            expect(res.body.count).toBe(1);
+        });
+
+        it('should return count 0 when no unread notifications', async () => {
+            const { token, userId } = await getAuthToken();
+
+            await createTestNotification(userId, { is_read: true });
+
+            const res = await request(app)
+                .put('/api/notifications/read-all')
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.status).toBe(200);
+            expect(res.body.count).toBe(0);
+        });
+
+        it('should require authentication', async () => {
+            const res = await request(app)
+                .put('/api/notifications/read-all');
+
+            expect(res.status).toBe(401);
+        });
     });
 
     describe('DELETE /api/notifications/:id', () => {
@@ -126,9 +251,10 @@ describe.skip('Notification Routes', () => {
                 .set('Authorization', `Bearer ${token}`);
 
             expect(res.status).toBe(200);
+            expect(res.body).toHaveProperty('message', 'Notification deleted.');
         });
 
-        it('should only allow deleting own notifications', async () => {
+        it('should not allow deleting other user notifications', async () => {
             const user1 = await getAuthToken();
             const user2 = await getAuthToken();
 
@@ -138,24 +264,24 @@ describe.skip('Notification Routes', () => {
                 .delete(`/api/notifications/${notificationId}`)
                 .set('Authorization', `Bearer ${user2.token}`);
 
-            expect(res.status).toBe(403);
+            expect(res.status).toBe(404);
         });
-    });
 
-    describe('GET /api/notifications/unread-count', () => {
-        it('should return unread notification count', async () => {
-            const { token, userId } = await getAuthToken();
-
-            await createTestNotification(userId, { is_read: 0 });
-            await createTestNotification(userId, { is_read: 0 });
-            await createTestNotification(userId, { is_read: 1 });
+        it('should return 404 for non-existent notification', async () => {
+            const { token } = await getAuthToken();
 
             const res = await request(app)
-                .get('/api/notifications/unread-count')
+                .delete('/api/notifications/99999')
                 .set('Authorization', `Bearer ${token}`);
 
-            expect(res.status).toBe(200);
-            expect(res.body).toHaveProperty('count', 2);
+            expect(res.status).toBe(404);
+        });
+
+        it('should require authentication', async () => {
+            const res = await request(app)
+                .delete('/api/notifications/1');
+
+            expect(res.status).toBe(401);
         });
     });
 });

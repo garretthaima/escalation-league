@@ -14,44 +14,65 @@ jest.mock('../../utils/settingsUtils', () => ({
 }));
 
 // Mock the external deck fetchers to avoid actual API calls
+// Helper function to create default Moxfield response
+const createMoxfieldResponse = (deckId) => ({
+    id: deckId,
+    name: `Test Moxfield Deck ${deckId}`,
+    decklist_url: `https://www.moxfield.com/decks/${deckId}`,
+    platform: 'Moxfield',
+    commanders: [
+        { name: 'Atraxa, Praetors\' Voice', scryfall_id: 'abc123' }
+    ],
+    cards: [
+        { name: 'Sol Ring', scryfall_id: 'xyz789' },
+        { name: 'Command Tower', scryfall_id: 'def456' }
+    ],
+    updated_at: new Date().toISOString()
+});
+
+// Helper function to create default Archidekt response
+const createArchidektResponse = (deckId) => ({
+    id: deckId,
+    name: `Test Archidekt Deck ${deckId}`,
+    decklist_url: `https://archidekt.com/decks/${deckId}`,
+    platform: 'Archidekt',
+    commanders: [
+        { name: 'Teysa Karlov', scryfall_id: 'tey123' }
+    ],
+    cards: [
+        { name: 'Sol Ring', scryfall_id: 'xyz789' },
+        { name: 'Swamp', scryfall_id: 'swp123' }
+    ],
+    updated_at: new Date().toISOString()
+});
+
 jest.mock('../../services/deckFetchers', () => ({
-    fetchMoxfieldDeck: jest.fn((deckId) => {
-        return Promise.resolve({
-            id: deckId,
-            name: `Test Moxfield Deck ${deckId}`,
-            decklist_url: `https://www.moxfield.com/decks/${deckId}`,
-            platform: 'Moxfield',
-            commanders: [
-                { name: 'Atraxa, Praetors\' Voice', scryfall_id: 'abc123' }
-            ],
-            cards: [
-                { name: 'Sol Ring', scryfall_id: 'xyz789' },
-                { name: 'Command Tower', scryfall_id: 'def456' }
-            ],
-            updated_at: new Date().toISOString()
-        });
-    }),
-    fetchArchidektDeck: jest.fn((deckId) => {
-        return Promise.resolve({
-            id: deckId,
-            name: `Test Archidekt Deck ${deckId}`,
-            decklist_url: `https://archidekt.com/decks/${deckId}`,
-            platform: 'Archidekt',
-            commanders: [
-                { name: 'Teysa Karlov', scryfall_id: 'tey123' }
-            ],
-            cards: [
-                { name: 'Sol Ring', scryfall_id: 'xyz789' },
-                { name: 'Swamp', scryfall_id: 'swp123' }
-            ],
-            updated_at: new Date().toISOString()
-        });
-    })
+    fetchMoxfieldDeck: jest.fn(),
+    fetchArchidektDeck: jest.fn()
 }));
+
+// Import the mocked module to get references to the mock functions
+const deckFetchers = require('../../services/deckFetchers');
+const redis = require('../../utils/redisClient');
 
 const app = require('../../server');
 
 describe('Deck Management Tests', () => {
+    // Reset mocks before each test to ensure isolation
+    beforeEach(() => {
+        jest.clearAllMocks();
+        // Reset to default implementation
+        deckFetchers.fetchMoxfieldDeck.mockImplementation((deckId) => {
+            return Promise.resolve(createMoxfieldResponse(deckId));
+        });
+        deckFetchers.fetchArchidektDeck.mockImplementation((deckId) => {
+            return Promise.resolve(createArchidektResponse(deckId));
+        });
+        // Ensure redis mock returns undefined (cache miss) by default
+        redis.get.mockResolvedValue(undefined);
+        redis.set.mockResolvedValue('OK');
+        redis.setex.mockResolvedValue('OK');
+    });
     describe('Deck Sync from External Platforms', () => {
         it('should validate and cache deck from Moxfield', async () => {
             const { token } = await getAuthToken();
@@ -234,20 +255,26 @@ describe('Deck Management Tests', () => {
 
         it('should update last_synced_at timestamp', async () => {
             const { token } = await getAuthToken();
-            const deckUrl = 'https://www.moxfield.com/decks/synctime123';
+            // Use a unique deck ID to avoid conflicts with other tests
+            const uniqueId = `synctime_${Date.now()}`;
+            const deckUrl = `https://www.moxfield.com/decks/${uniqueId}`;
 
             const before = new Date();
             await new Promise(resolve => setTimeout(resolve, 100)); // Small delay
 
-            await request(app)
+            const res = await request(app)
                 .post('/api/decks/validate')
                 .set('Authorization', `Bearer ${token}`)
                 .send({ decklistUrl: deckUrl });
 
+            expect(res.status).toBe(200);
+
             const deck = await testDb('decks')
-                .where({ id: 'synctime123' })
+                .where({ id: uniqueId })
                 .first();
 
+            expect(deck).toBeTruthy();
+            expect(deck.last_synced_at).toBeTruthy();
             const syncTime = new Date(deck.last_synced_at);
             expect(syncTime.getTime()).toBeGreaterThanOrEqual(before.getTime());
         });
@@ -272,15 +299,19 @@ describe('Deck Management Tests', () => {
 
         it('should track deck owner in database', async () => {
             const { token, userId } = await getAuthToken();
-            const deckUrl = 'https://www.moxfield.com/decks/ownership123';
+            // Use a unique deck ID to avoid conflicts with other tests
+            const uniqueId = `ownership_${Date.now()}`;
+            const deckUrl = `https://www.moxfield.com/decks/${uniqueId}`;
 
-            await request(app)
+            const res = await request(app)
                 .post('/api/decks/validate')
                 .set('Authorization', `Bearer ${token}`)
                 .send({ decklistUrl: deckUrl });
 
+            expect(res.status).toBe(200);
+
             const deck = await testDb('decks')
-                .where({ id: 'ownership123' })
+                .where({ id: uniqueId })
                 .first();
 
             // Note: Current implementation doesn't set user_id
@@ -327,7 +358,7 @@ describe('Deck Management Tests', () => {
                 .send({});
 
             expect(res.status).toBe(400);
-            expect(res.body).toHaveProperty('error', 'Decklist URL is required.');
+            expect(res.body).toHaveProperty('error', 'Decklist URL is required');
         });
 
         it('should reject unsupported platform URL', async () => {
@@ -339,7 +370,7 @@ describe('Deck Management Tests', () => {
                 .send({ decklistUrl: 'https://example.com/decks/123' });
 
             expect(res.status).toBe(400);
-            expect(res.body).toHaveProperty('error', 'Unsupported decklist URL format.');
+            expect(res.body).toHaveProperty('error', 'Unsupported decklist URL format');
         });
 
         it('should reject malformed Moxfield URL', async () => {
@@ -382,14 +413,15 @@ describe('Deck Management Tests', () => {
             const { token } = await getAuthToken();
 
             // Mock the fetcher to throw an error for this specific ID
-            const { fetchMoxfieldDeck } = require('../../services/deckFetchers');
-            fetchMoxfieldDeck.mockRejectedValueOnce(new Error('Deck not found'));
+            deckFetchers.fetchMoxfieldDeck.mockRejectedValueOnce(new Error('Deck not found'));
 
             const res = await request(app)
                 .post('/api/decks/validate')
                 .set('Authorization', `Bearer ${token}`)
                 .send({ decklistUrl: 'https://www.moxfield.com/decks/nonexistent' });
 
+            // Controller returns 500 for unhandled errors from fetchers
+            // (only AppError instances get their status code preserved)
             expect(res.status).toBe(500);
             expect(res.body).toHaveProperty('error');
         });
@@ -398,8 +430,7 @@ describe('Deck Management Tests', () => {
             const { token } = await getAuthToken();
 
             // Mock timeout error for Moxfield (Archidekt IDs are numeric only)
-            const { fetchMoxfieldDeck } = require('../../services/deckFetchers');
-            fetchMoxfieldDeck.mockRejectedValueOnce(new Error('Request timeout'));
+            deckFetchers.fetchMoxfieldDeck.mockRejectedValueOnce(new Error('Request timeout'));
 
             const res = await request(app)
                 .post('/api/decks/validate')
@@ -429,7 +460,7 @@ describe('Deck Management Tests', () => {
                 .send({});
 
             expect(res.status).toBe(400);
-            expect(res.body).toHaveProperty('error', 'Deck ID is required.');
+            expect(res.body).toHaveProperty('error', 'Deck ID is required');
         });
 
         it('should return 404 for non-existent deck', async () => {
@@ -441,7 +472,7 @@ describe('Deck Management Tests', () => {
                 .send({ deckId: 'nonexistent-deck-id' });
 
             expect(res.status).toBe(404);
-            expect(res.body).toHaveProperty('error', 'Deck not found.');
+            expect(res.body).toHaveProperty('error', 'Deck not found');
         });
 
         it('should perform price check on existing deck', async () => {

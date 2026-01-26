@@ -866,7 +866,7 @@ describe('Pod Routes', () => {
                 expect(finalStats2.total_points).toBe(initialStats2.total_points + 2); // Loser gets 2 points
             });
 
-            it('should not update stats for disqualified players', async () => {
+            it('should give disqualified players a loss but 0 points', async () => {
                 const testDb = require('../helpers/testDb');
                 const leagueId = await createTestLeague({ is_active: 1 });
 
@@ -880,6 +880,11 @@ describe('Pod Routes', () => {
                 const initialStats2 = await testDb('users')
                     .where({ id: player2.userId })
                     .select('wins', 'losses', 'draws')
+                    .first();
+
+                const initialLeagueStats2 = await testDb('user_leagues')
+                    .where({ user_id: player2.userId, league_id: leagueId })
+                    .select('total_points')
                     .first();
 
                 const podId = await createTestPod(leagueId, player1.userId, {
@@ -899,15 +904,22 @@ describe('Pod Routes', () => {
                     .set('Authorization', `Bearer ${player2.token}`)
                     .send({ result: 'disqualified' });
 
-                // Check that DQ'd player stats didn't change
+                // Check that DQ'd player gets a loss on record but wins/draws unchanged
+                // Per podService: "DQ'd players get a loss on their record but 0 points"
                 const finalStats2 = await testDb('users')
                     .where({ id: player2.userId })
                     .select('wins', 'losses', 'draws')
                     .first();
 
+                const finalLeagueStats2 = await testDb('user_leagues')
+                    .where({ user_id: player2.userId, league_id: leagueId })
+                    .select('total_points')
+                    .first();
+
                 expect(finalStats2.wins).toBe(initialStats2.wins);
-                expect(finalStats2.losses).toBe(initialStats2.losses);
+                expect(finalStats2.losses).toBe(initialStats2.losses + 1); // DQ counts as a loss
                 expect(finalStats2.draws).toBe(initialStats2.draws);
+                expect(finalLeagueStats2.total_points).toBe(initialLeagueStats2.total_points); // DQ gets 0 points
             });
         });
     });
