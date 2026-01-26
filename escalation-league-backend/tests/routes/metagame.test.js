@@ -16,6 +16,14 @@ jest.mock('../../utils/settingsUtils', () => ({
     })
 }));
 
+// Mock redis cache
+jest.mock('../../utils/redisClient', () => ({
+    get: jest.fn().mockResolvedValue(null),
+    set: jest.fn().mockResolvedValue('OK'),
+    setex: jest.fn().mockResolvedValue('OK'),
+    del: jest.fn().mockResolvedValue(1)
+}));
+
 const app = require('../../server');
 
 describe('Metagame API', () => {

@@ -13,7 +13,11 @@ async function clearDatabase() {
         'activity_logs',
         'user_settings',
         'role_requests',
-        'users',         // Clear users
+        'notifications',        // Clear notifications
+        'attendance_polls',     // Clear attendance polls
+        'session_attendance',   // Clear session attendance
+        'game_sessions',        // Clear game sessions
+        'users',               // Clear users
         'leagues',
         'awards',
         // Do NOT clear: roles, permissions, role_permissions, role_hierarchy, settings

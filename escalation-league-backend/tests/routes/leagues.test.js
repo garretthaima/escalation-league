@@ -16,6 +16,14 @@ jest.mock('../../utils/settingsUtils', () => ({
     })
 }));
 
+// Mock redis cache
+jest.mock('../../utils/redisClient', () => ({
+    get: jest.fn().mockResolvedValue(null),
+    set: jest.fn().mockResolvedValue('OK'),
+    setex: jest.fn().mockResolvedValue('OK'),
+    del: jest.fn().mockResolvedValue(1)
+}));
+
 // Mock the permissions utility to use test DB
 jest.mock('../../utils/permissionsUtils', () => {
     const testDb = require('../helpers/testDb');
