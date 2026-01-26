@@ -11,7 +11,8 @@ import './Shared.css';
 
 const HomePage = () => {
     const navigate = useNavigate();
-    const { activeLeague: userActiveLeague } = usePermissions();
+    const { activeLeague: userActiveLeague, user, loading: authLoading } = usePermissions();
+    const isLoggedIn = !!user;
 
     const [loading, setLoading] = useState(true);
     const [league, setLeague] = useState(null);
@@ -24,7 +25,13 @@ const HomePage = () => {
     });
 
     useEffect(() => {
-        const fetchPublicData = async () => {
+        const fetchLeagueData = async () => {
+            // Only fetch league data if user is logged in
+            if (!isLoggedIn || authLoading) {
+                setLoading(false);
+                return;
+            }
+
             try {
                 setLoading(true);
 
@@ -62,8 +69,8 @@ const HomePage = () => {
             }
         };
 
-        fetchPublicData();
-    }, []);
+        fetchLeagueData();
+    }, [isLoggedIn, authLoading]);
 
     return (
         <div className="homepage">
@@ -79,16 +86,51 @@ const HomePage = () => {
                 </div>
             </div>
 
-            {/* Live Stats Bar */}
-            <LiveStatsBar
-                activeGames={stats.activeGames}
-                totalPlayers={stats.totalPlayers}
-                completedGames={stats.completedGames}
-                loading={loading}
-            />
+            {/* Live Stats Bar - only show when logged in */}
+            {isLoggedIn && (
+                <LiveStatsBar
+                    activeGames={stats.activeGames}
+                    totalPlayers={stats.totalPlayers}
+                    completedGames={stats.completedGames}
+                    loading={loading}
+                />
+            )}
 
             {/* Main Content */}
             <div className="container py-4">
+                {!isLoggedIn ? (
+                    /* Logged Out View - Show sign in prompt */
+                    <div className="row justify-content-center">
+                        <div className="col-lg-8">
+                            <div className="card text-center py-5">
+                                <div className="card-body">
+                                    <i className="fas fa-lock fa-3x text-muted mb-4"></i>
+                                    <h3 className="mb-3">Sign in to view league info</h3>
+                                    <p className="text-muted mb-4">
+                                        Access the leaderboard, see active games, track your budget, and more.
+                                    </p>
+                                    <div className="d-flex gap-3 justify-content-center">
+                                        <button
+                                            className="btn btn-primary btn-lg"
+                                            onClick={() => navigate('/signin')}
+                                        >
+                                            <i className="fas fa-sign-in-alt me-2"></i>
+                                            Sign In
+                                        </button>
+                                        <button
+                                            className="btn btn-outline-primary btn-lg"
+                                            onClick={() => navigate('/signup')}
+                                        >
+                                            <i className="fas fa-user-plus me-2"></i>
+                                            Create Account
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                /* Logged In View - Show league data */
                 <div className="row g-4">
                     {/* Active League Card */}
                     <div className="col-lg-4">
@@ -144,31 +186,34 @@ const HomePage = () => {
                         <RecentWinners games={recentGames} loading={loading} />
                     </div>
                 </div>
+                )}
 
-                {/* Quick Links */}
-                <div className="quick-links mt-4">
-                    <div
-                        className={`homepage-card ${userActiveLeague ? 'disabled' : ''}`}
-                        onClick={() => !userActiveLeague && navigate('/leagues')}
-                    >
-                        <i className={`fas fa-users fa-2x mb-3 ${userActiveLeague ? 'text-muted' : 'text-primary'}`}></i>
-                        <h3>{userActiveLeague ? 'Already in League' : 'Join a League'}</h3>
-                        <p>{userActiveLeague
-                            ? `You're in ${userActiveLeague.name || 'a league'}`
-                            : 'Find and join an active league to start competing.'
-                        }</p>
+                {/* Quick Links - Show for logged in users only */}
+                {isLoggedIn && (
+                    <div className="quick-links mt-4">
+                        <div
+                            className={`homepage-card ${userActiveLeague ? 'disabled' : ''}`}
+                            onClick={() => !userActiveLeague && navigate('/leagues')}
+                        >
+                            <i className={`fas fa-users fa-2x mb-3 ${userActiveLeague ? 'text-muted' : 'text-primary'}`}></i>
+                            <h3>{userActiveLeague ? 'Already in League' : 'Join a League'}</h3>
+                            <p>{userActiveLeague
+                                ? `You're in ${userActiveLeague.name || 'a league'}`
+                                : 'Find and join an active league to start competing.'
+                            }</p>
+                        </div>
+                        <div className="homepage-card" onClick={() => navigate('/pods')}>
+                            <i className="fas fa-gamepad fa-2x mb-3 text-success"></i>
+                            <h3>View Games</h3>
+                            <p>See the current games and their participants.</p>
+                        </div>
+                        <div className="homepage-card" onClick={() => navigate('/leagues')}>
+                            <i className="fas fa-chart-line fa-2x mb-3 text-info"></i>
+                            <h3>Leaderboard</h3>
+                            <p>Track your progress and see how you rank.</p>
+                        </div>
                     </div>
-                    <div className="homepage-card" onClick={() => navigate('/pods')}>
-                        <i className="fas fa-gamepad fa-2x mb-3 text-success"></i>
-                        <h3>View Games</h3>
-                        <p>See the current games and their participants.</p>
-                    </div>
-                    <div className="homepage-card" onClick={() => navigate('/leagues')}>
-                        <i className="fas fa-chart-line fa-2x mb-3 text-info"></i>
-                        <h3>Leaderboard</h3>
-                        <p>Track your progress and see how you rank.</p>
-                    </div>
-                </div>
+                )}
             </div>
         </div>
     );
