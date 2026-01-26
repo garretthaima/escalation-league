@@ -1,0 +1,48 @@
+/* RecentWinners.css */
+
+.recent-winners-card {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+}
+
+.recent-winners-card .card-title {
+    color: var(--text-primary);
+}
+
+.recent-winner-item {
+    background: transparent;
+    border-color: var(--border-color);
+    padding: 0.75rem 0;
+}
+
+.recent-winner-item:first-child {
+    padding-top: 0;
+}
+
+.recent-winner-item:last-child {
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.recent-winner-game-id {
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-right: 0.5rem;
+}
+
+.recent-winner-date {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.recent-winner-badge {
+    background: linear-gradient(135deg, var(--brand-gold) 0%, #c9a227 100%);
+    color: #1a1a2e;
+}
+
+/* Mobile adjustments */
+@media (max-width: 576px) {
+    .recent-winners-card .card-body {
+        padding: 1rem;
+    }
+}

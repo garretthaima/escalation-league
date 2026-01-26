@@ -1,0 +1,48 @@
+/* LiveStatsBar.css */
+
+.live-stats-bar {
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+    padding: 0.75rem 0;
+    text-align: center;
+}
+
+.live-stats-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.live-stats-item {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+
+.live-stats-item strong {
+    color: var(--text-primary);
+}
+
+.live-stats-divider {
+    color: var(--border-color);
+    margin: 0 0.5rem;
+}
+
+/* Mobile: hide dividers and stack vertically */
+@media (max-width: 576px) {
+    .live-stats-container {
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .live-stats-divider {
+        display: none;
+    }
+
+    .live-stats-item {
+        font-size: 0.85rem;
+    }
+}

@@ -95,16 +95,16 @@ const LeaderboardSection = ({ leaderboard, leagueId, currentUserId, compact = tr
                                             </>
                                         )}
                                     </td>
-                                    <td className="text-center d-none d-md-table-cell">
+                                    <td className="text-center d-none d-md-table-cell leaderboard-col-games">
                                         {player.total_games || 0}
                                     </td>
-                                    <td className="text-center d-none d-md-table-cell">
+                                    <td className="text-center d-none d-md-table-cell leaderboard-col-winrate">
                                         {player.win_rate ? `${player.win_rate}%` : '-'}
                                     </td>
-                                    <td className="text-center d-none d-lg-table-cell">
+                                    <td className="text-center d-none d-lg-table-cell leaderboard-col-elo">
                                         {player.elo_rating || 1500}
                                     </td>
-                                    <td className="text-center d-none d-lg-table-cell">
+                                    <td className="text-center d-none d-lg-table-cell leaderboard-col-playoffs">
                                         {player.qualified ? (
                                             <span className="badge bg-brand-gold">
                                                 <i className="fas fa-check me-1"></i>Qualified

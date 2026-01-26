@@ -8,13 +8,14 @@ const { logLeagueSignupApproved, logLeagueSignupRejected } = require('../service
 
 // Create a league
 const createLeague = async (req, res) => {
-    const { name, start_date, end_date, description, max_players, weekly_budget, league_code } = req.body;
+    const { name, start_date, end_date, description, max_players, weekly_budget, league_code, number_of_weeks } = req.body;
 
     logger.info('League creation requested', {
         userId: req.user?.id,
         name,
         start_date,
-        end_date
+        end_date,
+        number_of_weeks
     });
 
     if (!name || !start_date || !end_date) {
@@ -36,6 +37,7 @@ const createLeague = async (req, res) => {
             max_players,
             weekly_budget,
             league_code,
+            number_of_weeks,
         });
 
         logger.info('League created successfully', {
@@ -94,7 +96,8 @@ const updateLeague = async (req, res) => {
         is_active,
         points_per_win,
         points_per_loss,
-        points_per_draw
+        points_per_draw,
+        number_of_weeks
     } = req.body;
 
     if (!id) {
@@ -114,6 +117,7 @@ const updateLeague = async (req, res) => {
         if (points_per_win !== undefined) updates.points_per_win = points_per_win;
         if (points_per_loss !== undefined) updates.points_per_loss = points_per_loss;
         if (points_per_draw !== undefined) updates.points_per_draw = points_per_draw;
+        if (number_of_weeks !== undefined) updates.number_of_weeks = number_of_weeks;
 
         if (Object.keys(updates).length === 0) {
             return res.status(400).json({ error: 'No valid fields to update.' });

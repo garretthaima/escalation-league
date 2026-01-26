@@ -1,18 +1,97 @@
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
+import { BrowserRouter } from 'react-router-dom';
 import Dashboard from '../Dashboard';
 
-// Mock the API
-jest.mock('../../../api/usersApi', () => ({
-    getUserProfile: jest.fn()
+// Mock all APIs
+jest.mock('../../../api/leaguesApi', () => ({
+    getLeagueStats: jest.fn()
 }));
 
-const { getUserProfile } = require('../../../api/usersApi');
+jest.mock('../../../api/podsApi', () => ({
+    getPods: jest.fn(),
+    logPodResult: jest.fn()
+}));
+
+jest.mock('../../../api/userLeaguesApi', () => ({
+    getUserLeagueStats: jest.fn()
+}));
+
+// Mock context providers
+jest.mock('../../../context/PermissionsProvider', () => ({
+    usePermissions: jest.fn()
+}));
+
+jest.mock('../../../context/ToastContext', () => ({
+    useToast: () => ({
+        showToast: jest.fn()
+    })
+}));
+
+jest.mock('../../../context/WebSocketProvider', () => ({
+    useWebSocket: () => ({
+        socket: null,
+        connected: false,
+        joinLeague: jest.fn(),
+        leaveLeague: jest.fn()
+    })
+}));
+
+// Mock child components
+jest.mock('../LeagueInfoBanner', () => {
+    return function MockLeagueInfoBanner({ league }) {
+        return <div data-testid="league-info-banner">{league?.name || 'No league'}</div>;
+    };
+});
+
+jest.mock('../ActionItemsSection', () => {
+    return function MockActionItemsSection({ pendingPods, activePods }) {
+        return (
+            <div data-testid="action-items-section">
+                Pending: {pendingPods?.length || 0}, Active: {activePods?.length || 0}
+            </div>
+        );
+    };
+});
+
+jest.mock('../QuickStatsCard', () => {
+    return function MockQuickStatsCard({ userStats }) {
+        return (
+            <div data-testid="quick-stats-card">
+                Points: {userStats?.total_points || 0}
+            </div>
+        );
+    };
+});
+
+jest.mock('../../Leagues/Dashboard/LeaderboardSection', () => {
+    return function MockLeaderboardSection({ leaderboard }) {
+        return <div data-testid="leaderboard-section">{leaderboard?.length || 0} players</div>;
+    };
+});
+
+jest.mock('../../Pods/Dashboard/DeclareResultModal', () => {
+    return function MockDeclareResultModal() {
+        return null;
+    };
+});
+
+const { usePermissions } = require('../../../context/PermissionsProvider');
+const { getLeagueStats } = require('../../../api/leaguesApi');
+const { getPods } = require('../../../api/podsApi');
+const { getUserLeagueStats } = require('../../../api/userLeaguesApi');
+
+const renderDashboard = () => {
+    return render(
+        <BrowserRouter>
+            <Dashboard />
+        </BrowserRouter>
+    );
+};
 
 describe('Dashboard', () => {
     beforeEach(() => {
         jest.clearAllMocks();
-        // Suppress console.error for cleaner test output
         jest.spyOn(console, 'error').mockImplementation(() => {});
     });
 
@@ -21,189 +100,256 @@ describe('Dashboard', () => {
     });
 
     describe('loading state', () => {
-        it('should show loading message initially', () => {
-            getUserProfile.mockImplementation(() => new Promise(() => {})); // Never resolves
-            render(<Dashboard />);
-            expect(screen.getByText('Loading...')).toBeInTheDocument();
+        it('should show loading spinner while permissions are loading', () => {
+            usePermissions.mockReturnValue({
+                user: null,
+                loading: true,
+                activeLeague: null
+            });
+
+            renderDashboard();
+            expect(screen.getByRole('status')).toBeInTheDocument();
         });
 
-        it('should have correct loading class', () => {
-            getUserProfile.mockImplementation(() => new Promise(() => {}));
-            render(<Dashboard />);
-            const loadingDiv = screen.getByText('Loading...');
-            expect(loadingDiv).toHaveClass('text-center', 'mt-4');
+        it('should show loading spinner while fetching data', async () => {
+            usePermissions.mockReturnValue({
+                user: { id: 1 },
+                loading: false,
+                activeLeague: { league_id: 1, name: 'Test League' }
+            });
+
+            getUserLeagueStats.mockImplementation(() => new Promise(() => {}));
+            getLeagueStats.mockImplementation(() => new Promise(() => {}));
+            getPods.mockImplementation(() => new Promise(() => {}));
+
+            renderDashboard();
+            expect(screen.getByRole('status')).toBeInTheDocument();
         });
     });
 
-    describe('successful data fetch', () => {
-        const mockUser = {
-            id: 1,
-            firstname: 'John',
-            lastname: 'Doe',
-            email: 'john@example.com'
+    describe('no active league', () => {
+        beforeEach(() => {
+            usePermissions.mockReturnValue({
+                user: { id: 1, firstname: 'John', lastname: 'Doe' },
+                loading: false,
+                activeLeague: null
+            });
+        });
+
+        it('should show welcome message when user is not in a league', async () => {
+            renderDashboard();
+            await waitFor(() => {
+                expect(screen.getByText('Welcome to Escalation League!')).toBeInTheDocument();
+            });
+        });
+
+        it('should show prompt to join a league', async () => {
+            renderDashboard();
+            await waitFor(() => {
+                expect(screen.getByText(/not part of any league yet/i)).toBeInTheDocument();
+            });
+        });
+
+        it('should show Find a League button', async () => {
+            renderDashboard();
+            await waitFor(() => {
+                expect(screen.getByRole('link', { name: /find a league/i })).toBeInTheDocument();
+            });
+        });
+    });
+
+    describe('with active league', () => {
+        const mockActiveLeague = {
+            league_id: 1,
+            name: 'Test League',
+            current_week: 3,
+            end_date: '2026-03-01'
         };
 
+        const mockUserStats = {
+            total_points: 24,
+            league_wins: 6,
+            league_losses: 2,
+            league_draws: 0,
+            elo_rating: 1523
+        };
+
+        const mockLeaderboard = [
+            { player_id: 1, firstname: 'John', lastname: 'Doe', total_points: 24, rank: 1 },
+            { player_id: 2, firstname: 'Jane', lastname: 'Smith', total_points: 20, rank: 2 }
+        ];
+
         beforeEach(() => {
-            getUserProfile.mockResolvedValue({ user: mockUser });
+            usePermissions.mockReturnValue({
+                user: { id: 1, firstname: 'John', lastname: 'Doe' },
+                loading: false,
+                activeLeague: mockActiveLeague
+            });
+
+            getUserLeagueStats.mockResolvedValue(mockUserStats);
+            getLeagueStats.mockResolvedValue({ leaderboard: mockLeaderboard });
+            getPods.mockResolvedValue([]);
         });
 
-        it('should render welcome message with user name', async () => {
-            render(<Dashboard />);
+        it('should render LeagueInfoBanner with league data', async () => {
+            renderDashboard();
             await waitFor(() => {
-                expect(screen.getByText('Welcome, John Doe!')).toBeInTheDocument();
+                expect(screen.getByTestId('league-info-banner')).toBeInTheDocument();
             });
         });
 
-        it('should render success alert', async () => {
-            render(<Dashboard />);
+        it('should render QuickStatsCard with user stats', async () => {
+            renderDashboard();
             await waitFor(() => {
-                expect(screen.getByText('You are successfully logged in.')).toBeInTheDocument();
+                expect(screen.getByTestId('quick-stats-card')).toBeInTheDocument();
             });
         });
 
-        it('should render container with correct classes', async () => {
-            render(<Dashboard />);
+        it('should render LeaderboardSection', async () => {
+            renderDashboard();
             await waitFor(() => {
-                const container = screen.getByText('Welcome, John Doe!').closest('.container');
-                expect(container).toHaveClass('container', 'mt-4');
+                expect(screen.getByTestId('leaderboard-section')).toBeInTheDocument();
             });
         });
 
-        it('should render success alert with correct class', async () => {
-            render(<Dashboard />);
+        it('should render ActionItemsSection', async () => {
+            renderDashboard();
             await waitFor(() => {
-                const alert = screen.getByText('You are successfully logged in.').closest('.alert');
-                expect(alert).toHaveClass('alert', 'alert-success');
+                expect(screen.getByTestId('action-items-section')).toBeInTheDocument();
             });
         });
 
-        it('should render check icon', async () => {
-            render(<Dashboard />);
+        it('should fetch user league stats', async () => {
+            renderDashboard();
             await waitFor(() => {
-                const alert = screen.getByText('You are successfully logged in.').closest('.alert');
-                const icon = alert.querySelector('i');
-                expect(icon).toHaveClass('fas', 'fa-check-circle', 'me-2');
+                expect(getUserLeagueStats).toHaveBeenCalledWith(1);
             });
         });
 
-        it('should render h2 heading', async () => {
-            render(<Dashboard />);
+        it('should fetch league stats', async () => {
+            renderDashboard();
             await waitFor(() => {
-                const heading = screen.getByRole('heading', { level: 2 });
-                expect(heading).toBeInTheDocument();
-                expect(heading).toHaveClass('mb-4');
+                expect(getLeagueStats).toHaveBeenCalledWith(1);
+            });
+        });
+
+        it('should fetch pods for the league', async () => {
+            renderDashboard();
+            await waitFor(() => {
+                expect(getPods).toHaveBeenCalledWith({ league_id: 1 });
+            });
+        });
+    });
+
+    describe('with pending and active pods', () => {
+        const mockActiveLeague = {
+            league_id: 1,
+            name: 'Test League'
+        };
+
+        const mockPods = [
+            {
+                id: 1,
+                confirmation_status: 'pending',
+                participants: [
+                    { player_id: 1, confirmed: 0 },
+                    { player_id: 2, confirmed: 1 }
+                ]
+            },
+            {
+                id: 2,
+                confirmation_status: 'active',
+                participants: [
+                    { player_id: 1 },
+                    { player_id: 3 }
+                ]
+            },
+            {
+                id: 3,
+                confirmation_status: 'complete',
+                participants: [
+                    { player_id: 1 }
+                ]
+            }
+        ];
+
+        beforeEach(() => {
+            usePermissions.mockReturnValue({
+                user: { id: 1 },
+                loading: false,
+                activeLeague: mockActiveLeague
+            });
+
+            getUserLeagueStats.mockResolvedValue({});
+            getLeagueStats.mockResolvedValue({ leaderboard: [] });
+            getPods.mockResolvedValue(mockPods);
+        });
+
+        it('should filter pods for current user', async () => {
+            renderDashboard();
+            await waitFor(() => {
+                // Should show 1 pending (user hasn't confirmed) and 1 active
+                expect(screen.getByText('Pending: 1, Active: 1')).toBeInTheDocument();
             });
         });
     });
 
     describe('error handling', () => {
-        it('should show error message when API fails', async () => {
-            getUserProfile.mockRejectedValue(new Error('API Error'));
-            render(<Dashboard />);
-            await waitFor(() => {
-                expect(screen.getByText('Failed to load user information.')).toBeInTheDocument();
+        beforeEach(() => {
+            usePermissions.mockReturnValue({
+                user: { id: 1 },
+                loading: false,
+                activeLeague: { league_id: 1 }
             });
         });
 
-        it('should render error alert with correct class', async () => {
-            getUserProfile.mockRejectedValue(new Error('API Error'));
-            render(<Dashboard />);
+        it('should handle API failures gracefully and still render', async () => {
+            // Dashboard uses graceful degradation - individual API failures are caught
+            // and return default values (null/empty arrays) instead of throwing
+            getUserLeagueStats.mockRejectedValue(new Error('API Error'));
+            getLeagueStats.mockRejectedValue(new Error('API Error'));
+            getPods.mockRejectedValue(new Error('API Error'));
+
+            renderDashboard();
             await waitFor(() => {
-                const alert = screen.getByText('Failed to load user information.');
-                expect(alert).toHaveClass('alert', 'alert-danger', 'text-center', 'mt-4');
+                // Dashboard should still render with empty/default data
+                expect(screen.getByTestId('quick-stats-card')).toBeInTheDocument();
+                // ActionItemsSection should still render
+                expect(screen.getByTestId('action-items-section')).toBeInTheDocument();
             });
         });
 
-        it('should log error to console', async () => {
-            const testError = new Error('Test error');
-            getUserProfile.mockRejectedValue(testError);
-            render(<Dashboard />);
-            await waitFor(() => {
-                expect(console.error).toHaveBeenCalledWith('Error fetching user info:', testError);
-            });
-        });
-    });
+        it('should show empty leaderboard state when API fails', async () => {
+            getUserLeagueStats.mockRejectedValue(new Error('API Error'));
+            getLeagueStats.mockRejectedValue(new Error('API Error'));
+            getPods.mockRejectedValue(new Error('API Error'));
 
-    describe('no user data', () => {
-        it('should show warning when user is null', async () => {
-            getUserProfile.mockResolvedValue({ user: null });
-            render(<Dashboard />);
+            renderDashboard();
             await waitFor(() => {
-                expect(screen.getByText('No user data available.')).toBeInTheDocument();
-            });
-        });
-
-        it('should show warning when user is undefined', async () => {
-            getUserProfile.mockResolvedValue({});
-            render(<Dashboard />);
-            await waitFor(() => {
-                expect(screen.getByText('No user data available.')).toBeInTheDocument();
-            });
-        });
-
-        it('should render warning alert with correct class', async () => {
-            getUserProfile.mockResolvedValue({ user: null });
-            render(<Dashboard />);
-            await waitFor(() => {
-                const alert = screen.getByText('No user data available.');
-                expect(alert).toHaveClass('alert', 'alert-warning', 'text-center', 'mt-4');
+                // When leaderboard is empty, Dashboard shows "No standings yet"
+                expect(screen.getByText('No standings yet. Play some games!')).toBeInTheDocument();
             });
         });
     });
 
-    describe('API call behavior', () => {
-        it('should call getUserProfile on mount', async () => {
-            getUserProfile.mockResolvedValue({ user: { firstname: 'Test', lastname: 'User' } });
-            render(<Dashboard />);
-            await waitFor(() => {
-                expect(getUserProfile).toHaveBeenCalledTimes(1);
+    describe('API resilience', () => {
+        beforeEach(() => {
+            usePermissions.mockReturnValue({
+                user: { id: 1 },
+                loading: false,
+                activeLeague: { league_id: 1 }
             });
         });
 
-        it('should only call getUserProfile once', async () => {
-            getUserProfile.mockResolvedValue({ user: { firstname: 'Test', lastname: 'User' } });
-            render(<Dashboard />);
-            await waitFor(() => {
-                expect(screen.getByText('Welcome, Test User!')).toBeInTheDocument();
-            });
-            // Wait a bit more to ensure no additional calls
-            await new Promise(resolve => setTimeout(resolve, 100));
-            expect(getUserProfile).toHaveBeenCalledTimes(1);
-        });
-    });
+        it('should handle partial API failures gracefully', async () => {
+            getUserLeagueStats.mockResolvedValue({ total_points: 10 });
+            getLeagueStats.mockRejectedValue(new Error('Failed')); // This one fails
+            getPods.mockResolvedValue([]);
 
-    describe('different user data variations', () => {
-        it('should handle user with empty firstname', async () => {
-            getUserProfile.mockResolvedValue({ user: { firstname: '', lastname: 'Smith' } });
-            render(<Dashboard />);
+            renderDashboard();
             await waitFor(() => {
-                expect(screen.getByText('Welcome, Smith!')).toBeInTheDocument();
-            });
-        });
-
-        it('should handle user with empty lastname', async () => {
-            getUserProfile.mockResolvedValue({ user: { firstname: 'Jane', lastname: '' } });
-            render(<Dashboard />);
-            await waitFor(() => {
-                expect(screen.getByText('Welcome, Jane !')).toBeInTheDocument();
-            });
-        });
-
-        it('should handle user with special characters in name', async () => {
-            getUserProfile.mockResolvedValue({ user: { firstname: "O'Brien", lastname: 'Mc-Donald' } });
-            render(<Dashboard />);
-            await waitFor(() => {
-                expect(screen.getByText("Welcome, O'Brien Mc-Donald!")).toBeInTheDocument();
-            });
-        });
-
-        it('should handle user with long names', async () => {
-            const longFirstName = 'VeryLongFirstNameThatCouldPotentiallyBreakTheLayout';
-            const longLastName = 'VeryLongLastNameThatCouldPotentiallyBreakTheLayout';
-            getUserProfile.mockResolvedValue({ user: { firstname: longFirstName, lastname: longLastName } });
-            render(<Dashboard />);
-            await waitFor(() => {
-                expect(screen.getByText(`Welcome, ${longFirstName} ${longLastName}!`)).toBeInTheDocument();
+                // Should still render with available data
+                expect(screen.getByTestId('quick-stats-card')).toBeInTheDocument();
             });
         });
     });

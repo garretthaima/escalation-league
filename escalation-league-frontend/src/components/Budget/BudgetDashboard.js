@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getActiveLeague } from '../../api/leaguesApi';
-import { getBudget, createBudget, getBudgetCards, getBudgetSummary, refreshCardPrices } from '../../api/budgetApi';
+import { getBudget, createBudget, getBudgetCards, getBudgetSummary as getBudgetSummaryApi, refreshCardPrices } from '../../api/budgetApi';
+import { getBudgetSummary } from '../../utils/budgetCalculations';
 import CardSearch from './CardSearch';
 import BudgetCardList from './BudgetCardList';
 import WeeklySummary from './WeeklySummary';
@@ -54,7 +55,7 @@ const BudgetDashboard = () => {
             // Fetch cards and summary
             const [cardsData, summaryData] = await Promise.all([
                 getBudgetCards(budgetData.id),
-                getBudgetSummary(budgetData.id)
+                getBudgetSummaryApi(budgetData.id)
             ]);
             setCards(cardsData);
             setSummary(summaryData.weekly_summary || []);
@@ -136,8 +137,12 @@ const BudgetDashboard = () => {
         );
     }
 
-    const remainingBudget = parseFloat(budget.budget_available) - parseFloat(budget.budget_used);
-    const budgetPercentage = (parseFloat(budget.budget_used) / parseFloat(budget.budget_available)) * 100;
+    const budgetUsed = parseFloat(budget.budget_used);
+    const budgetPercentage = (budgetUsed / parseFloat(budget.budget_available)) * 100;
+
+    // Calculate budget values using helper
+    const budgetInfo = getBudgetSummary(activeLeague, budgetUsed);
+    const { budgetAccumulated, totalSeasonBudget, remaining: remainingBudget } = budgetInfo;
 
     return (
         <div className="container mt-4 budget-dashboard">
@@ -170,8 +175,12 @@ const BudgetDashboard = () => {
                             <h5 className="card-title">Budget Overview</h5>
                             <div className="budget-stats">
                                 <div className="stat-item">
-                                    <span className="stat-label">Total Budget:</span>
-                                    <span className="stat-value">${parseFloat(budget.budget_available).toFixed(2)}</span>
+                                    <span className="stat-label">Budget Accumulated:</span>
+                                    <span className="stat-value">${budgetAccumulated.toFixed(2)}</span>
+                                </div>
+                                <div className="stat-item">
+                                    <span className="stat-label">Total Season Budget:</span>
+                                    <span className="stat-value">${totalSeasonBudget.toFixed(2)}</span>
                                 </div>
                                 <div className="stat-item">
                                     <span className="stat-label">Used:</span>

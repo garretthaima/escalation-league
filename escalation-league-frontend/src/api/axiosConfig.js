@@ -197,6 +197,15 @@ axiosInstance.interceptors.response.use(
 
             originalRequest._retry = true;
 
+            // Check if we had tokens before attempting refresh
+            // If no refresh token exists, user was never logged in - just reject without redirecting
+            const refreshToken = localStorage.getItem('refreshToken');
+            if (!refreshToken) {
+                // No session to refresh - just reject the request
+                // This allows public pages to handle 401s gracefully
+                return Promise.reject(error);
+            }
+
             // Use centralized refresh function
             const newToken = await performTokenRefresh();
 
