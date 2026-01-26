@@ -125,11 +125,23 @@ const CreateGameModal = ({ show, onHide, leagueId, userId, onGameCreated }) => {
         }
     };
 
+    // Handle backdrop click to close modal
+    const handleBackdropClick = (e) => {
+        if (e.target === e.currentTarget) {
+            onHide();
+        }
+    };
+
     if (!show) return null;
 
     return (
         <>
-            <div className="modal fade show create-game-modal-visible" tabIndex="-1">
+            <div
+                className="modal fade show"
+                style={{ display: 'block' }}
+                tabIndex="-1"
+                onClick={handleBackdropClick}
+            >
                 <div className="modal-dialog modal-lg">
                     <div className="modal-content">
                         <div className="modal-header">
@@ -306,7 +318,7 @@ const CreateGameModal = ({ show, onHide, leagueId, userId, onGameCreated }) => {
                     </div>
                 </div>
             </div>
-            <div className="modal-backdrop fade show"></div>
+            <div className="modal-backdrop fade show" onClick={onHide}></div>
         </>
     );
 };

@@ -26,11 +26,23 @@ const DeclareResultModal = ({ show, onHide, onDeclareWin, onDeclareDraw }) => {
         onHide();
     };
 
+    // Handle backdrop click to close modal
+    const handleBackdropClick = (e) => {
+        if (e.target === e.currentTarget) {
+            handleHide();
+        }
+    };
+
     // Confirmation view for declaring win
     if (confirmingWin) {
         return (
             <>
-                <div className="modal fade show declare-result-modal-visible" tabIndex="-1">
+                <div
+                    className="modal fade show"
+                    style={{ display: 'block' }}
+                    tabIndex="-1"
+                    onClick={handleBackdropClick}
+                >
                     <div className="modal-dialog">
                         <div className="modal-content">
                             <div className="modal-header">
@@ -71,7 +83,7 @@ const DeclareResultModal = ({ show, onHide, onDeclareWin, onDeclareDraw }) => {
                         </div>
                     </div>
                 </div>
-                <div className="modal-backdrop fade show"></div>
+                <div className="modal-backdrop fade show" onClick={handleHide}></div>
             </>
         );
     }
@@ -79,7 +91,12 @@ const DeclareResultModal = ({ show, onHide, onDeclareWin, onDeclareDraw }) => {
     // Main result selection view
     return (
         <>
-            <div className="modal fade show" style={{ display: 'block' }} tabIndex="-1">
+            <div
+                className="modal fade show"
+                style={{ display: 'block' }}
+                tabIndex="-1"
+                onClick={handleBackdropClick}
+            >
                 <div className="modal-dialog">
                     <div className="modal-content">
                         <div className="modal-header">
@@ -133,7 +150,7 @@ const DeclareResultModal = ({ show, onHide, onDeclareWin, onDeclareDraw }) => {
                     </div>
                 </div>
             </div>
-            <div className="modal-backdrop fade show"></div>
+            <div className="modal-backdrop fade show" onClick={handleHide}></div>
         </>
     );
 };

@@ -35,3 +35,21 @@ export const deletePod = async (podId) => {
     const response = await axiosInstance.delete(`/admin/pods/${podId}`);
     return response.data;
 };
+
+// Set winner and complete a pod (for active/pending pods) - skips pending state
+export const setWinner = async (podId, winnerId) => {
+    const response = await axiosInstance.post(`/admin/pods/${podId}/set-winner`, { winnerId });
+    return response.data;
+};
+
+// Declare winner and move to pending (active → pending)
+export const declareWinner = async (podId, winnerId) => {
+    const response = await axiosInstance.post(`/admin/pods/${podId}/declare-winner`, { winnerId });
+    return response.data;
+};
+
+// Force complete a pending pod (pending → complete)
+export const forceComplete = async (podId) => {
+    const response = await axiosInstance.post(`/admin/pods/${podId}/force-complete`);
+    return response.data;
+};

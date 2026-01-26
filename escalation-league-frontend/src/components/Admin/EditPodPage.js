@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { updatePod, deletePod } from '../../api/podsAdminApi';
+import {
+    updatePod,
+    deletePod,
+    forceComplete as forceCompleteApi
+} from '../../api/podsAdminApi';
 import { getPods } from '../../api/podsApi';
 import { getLeagueParticipants } from '../../api/userLeaguesApi';
 import { useToast } from '../../context/ToastContext';
@@ -328,12 +332,17 @@ const EditPodPage = () => {
             updates.result = 'win';
         }
 
-        // DO NOT send confirmation_status - let the pod stay in its current state
-        // Status changes should only happen via Force Complete button or player confirmations
+        // If setting a winner on an active pod, move it to pending
+        if (pod.confirmation_status === 'active' && (winnerId || isDraw)) {
+            updates.confirmation_status = 'pending';
+        }
 
         try {
             await updatePod(pod.id, updates);
-            showToast('Pod updated successfully', 'success');
+            const message = pod.confirmation_status === 'active' && (winnerId || isDraw)
+                ? 'Pod updated and moved to pending'
+                : 'Pod updated successfully';
+            showToast(message, 'success');
             navigate('/admin/pods');
         } catch (err) {
             console.error('Error updating pod:', err.message);
@@ -341,25 +350,15 @@ const EditPodPage = () => {
         }
     };
 
+    // Force Complete: pending → complete (skips confirmations, applies stats)
     const handleForceComplete = async () => {
         try {
-            const updatedParticipants = participants.map((participant) => ({
-                player_id: participant.player_id,
-                result: participant.result || 'loss',
-                confirmed: 1,
-            }));
-
-            const updates = {
-                participants: updatedParticipants,
-                confirmation_status: 'complete',
-            };
-
-            await updatePod(pod.id, updates);
-            showToast('Pod marked as complete', 'success');
+            await forceCompleteApi(pod.id);
+            showToast('Pod completed. Stats have been applied.', 'success');
             navigate('/admin/pods');
         } catch (err) {
-            console.error('Error overriding pod status:', err.message);
-            showToast('Failed to override pod status', 'error');
+            console.error('Error force completing pod:', err.message);
+            showToast(err.response?.data?.error || 'Failed to force complete', 'error');
         }
     };
 
@@ -722,13 +721,16 @@ const EditPodPage = () => {
                                 Save Changes
                             </button>
 
+                            {/* Pending Pod: Force Complete option */}
                             {pod.confirmation_status === 'pending' && (
                                 <div className="alert alert-warning mb-3">
                                     <p className="mb-2">
-                                        <i className="fas fa-exclamation-triangle me-2"></i>
+                                        <i className="fas fa-clock me-2"></i>
                                         <strong>Pending Confirmation</strong>
                                     </p>
-                                    <p className="small mb-2">Waiting for player confirmations.</p>
+                                    <p className="small mb-2">
+                                        Waiting for players to confirm the result.
+                                    </p>
                                     <button
                                         className="btn btn-warning btn-sm w-100"
                                         onClick={handleForceComplete}
