@@ -226,13 +226,11 @@ const getLeagueStats = async (req, res) => {
                 { column: 'total_games', order: 'desc' }
             ]);
 
-        // Calculate playoff qualification (top 75%, rounded up to even number)
+        // Calculate playoff qualification (top 75%, rounded to nearest even number)
         const totalPlayers = leaderboard.length;
-        let playoffSpots = Math.ceil(totalPlayers * 0.75);
-        // Round up to even number
-        if (playoffSpots % 2 !== 0) {
-            playoffSpots++;
-        }
+        const rawSpots = totalPlayers * 0.75;
+        // Round to nearest even: divide by 2, round, multiply by 2
+        const playoffSpots = Math.round(rawSpots / 2) * 2;
 
         // Mark qualified players
         leaderboard.forEach((player, index) => {
