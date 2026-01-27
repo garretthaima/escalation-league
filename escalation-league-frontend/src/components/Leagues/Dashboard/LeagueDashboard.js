@@ -7,6 +7,7 @@ import { usePermissions } from '../../../context/PermissionsProvider';
 import { calculateTotalSeasonBudget, calculateWeeksFromDates } from '../../../utils/budgetCalculations';
 import CollapsibleSection from '../../Shared/CollapsibleSection';
 import LoadingSpinner from '../../Shared/LoadingSpinner';
+import { DiscordPromptBanner } from '../../Shared';
 import UserStandingCard from './UserStandingCard';
 import LeaderboardSection from './LeaderboardSection';
 import MetagamePreview from './MetagamePreview';
@@ -138,6 +139,9 @@ const LeagueDashboard = () => {
 
     return (
         <div className="container mt-4 league-dashboard">
+            {/* Discord Prompt Banner */}
+            <DiscordPromptBanner />
+
             {/* Hero Section */}
             <div className="dashboard-hero mb-4">
                 <div className="row align-items-center">

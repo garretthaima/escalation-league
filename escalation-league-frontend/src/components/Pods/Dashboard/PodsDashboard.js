@@ -7,6 +7,7 @@ import { useToast } from '../../../context/ToastContext';
 import { useWebSocket } from '../../../context/WebSocketProvider';
 import CollapsibleSection from '../../Shared/CollapsibleSection';
 import LoadingSpinner from '../../Shared/LoadingSpinner';
+import { DiscordPromptBanner } from '../../Shared';
 import GameCard from './GameCard';
 import ConfirmationCard from './ConfirmationCard';
 import CreateGameModal from './CreateGameModal';
@@ -263,6 +264,9 @@ const PodsDashboard = () => {
 
     return (
         <div className="container mt-4">
+            {/* Discord Prompt Banner */}
+            <DiscordPromptBanner />
+
             {/* Header */}
             <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
                 <div>
