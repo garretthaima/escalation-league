@@ -67,7 +67,7 @@ export const getTimezone = () => {
 
 /**
  * Parse a date string and return a Date object
- * Handles YYYY-MM-DD format as a local date (not UTC)
+ * Handles date-only formats as local dates (not UTC) to avoid off-by-one errors
  * @param {string|Date} dateString - Date string to parse
  * @returns {Date} Parsed Date object
  */
@@ -75,10 +75,15 @@ export const parseDate = (dateString) => {
     if (dateString instanceof Date) return dateString;
     if (!dateString) return new Date(NaN);
 
-    // Handle YYYY-MM-DD format - treat as local date, not UTC
-    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-        const [year, month, day] = dateString.split('-').map(Number);
-        return new Date(year, month - 1, day);
+    // Convert to string if needed
+    const str = String(dateString);
+
+    // Handle YYYY-MM-DD format (with optional T00:00:00 or T00:00:00.000Z suffix)
+    // These are "date-only" values that should be treated as local dates
+    const dateOnlyMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})(?:T00:00:00(?:\.000)?Z?)?$/);
+    if (dateOnlyMatch) {
+        const [, year, month, day] = dateOnlyMatch;
+        return new Date(Number(year), Number(month) - 1, Number(day));
     }
 
     return new Date(dateString);
