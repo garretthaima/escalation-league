@@ -36,6 +36,16 @@ const createPod = async (req, res) => {
                 return res.status(400).json({ error: 'Maximum 6 players allowed in a pod.' });
             }
 
+            // Validate player IDs are valid integers and no duplicates
+            const parsedIds = player_ids.map(id => parseInt(id, 10));
+            const uniqueIds = new Set(parsedIds);
+            if (parsedIds.some(id => !Number.isInteger(id) || id <= 0)) {
+                return res.status(400).json({ error: 'All player IDs must be valid positive integers.' });
+            }
+            if (uniqueIds.size !== player_ids.length) {
+                return res.status(400).json({ error: 'Duplicate player IDs are not allowed.' });
+            }
+
             // Validate turn_order if provided
             if (turn_order && Array.isArray(turn_order)) {
                 if (turn_order.length !== player_ids.length) {

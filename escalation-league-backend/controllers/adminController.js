@@ -9,6 +9,7 @@ const {
     logUserDeactivated,
     logPasswordReset
 } = require('../services/activityLogService');
+const { validatePassword } = require('../utils/passwordValidator');
 
 // Fetch All Users (Admin Only)
 const getAllUsers = async (req, res) => {
@@ -150,6 +151,15 @@ const resetUserPassword = async (req, res) => {
 
     if (!newPassword) {
         return res.status(400).json({ error: 'New password is required.' });
+    }
+
+    // Validate password strength
+    const passwordValidation = validatePassword(newPassword);
+    if (!passwordValidation.isValid) {
+        return res.status(400).json({
+            error: 'Password does not meet requirements',
+            details: passwordValidation.errors
+        });
     }
 
     try {
