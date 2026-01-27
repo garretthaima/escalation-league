@@ -1,5 +1,4 @@
 const jwt = require('jsonwebtoken');
-const { getSetting } = require('../utils/settingsUtils');
 const logger = require('../utils/logger');
 
 module.exports = (io) => {
@@ -23,10 +22,10 @@ module.exports = (io) => {
                 return next(new Error('Authentication required'));
             }
 
-            // Get JWT secret (prefer env var over database)
-            const jwtSecret = process.env.JWT_SECRET || await getSetting('secret_key');
+            // JWT_SECRET must be set in environment
+            const jwtSecret = process.env.JWT_SECRET;
             if (!jwtSecret) {
-                logger.error('JWT secret key not configured');
+                logger.error('JWT_SECRET environment variable is not set');
                 return next(new Error('Server configuration error'));
             }
 

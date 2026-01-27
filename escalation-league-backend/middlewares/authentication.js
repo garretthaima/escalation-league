@@ -16,10 +16,11 @@ const authenticateToken = async (req, res, next) => {
   }
 
   try {
-    // Use JWT_SECRET from environment (preferred) or fall back to database setting
-    const SECRET_KEY = process.env.JWT_SECRET || await getSetting('secret_key');
+    // JWT_SECRET must be set in environment
+    const SECRET_KEY = process.env.JWT_SECRET;
     if (!SECRET_KEY) {
-      return res.status(500).json({ error: 'Internal server error. Secret key not found.' });
+      console.error('JWT_SECRET environment variable is not set');
+      return res.status(500).json({ error: 'Internal server error. Server misconfigured.' });
     }
 
     // Verify the token (now properly promisified)

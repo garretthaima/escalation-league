@@ -34,10 +34,10 @@ const generateToken = async (user, options = {}) => {
             ...customClaims, // Include any additional claims dynamically
         };
 
-        // Sign and return the token (prefer env var over database)
-        const secretKey = process.env.JWT_SECRET || await getSetting('secret_key');
+        // JWT_SECRET must be set in environment
+        const secretKey = process.env.JWT_SECRET;
         if (!secretKey) {
-            throw new Error('JWT secret key not configured');
+            throw new Error('JWT_SECRET environment variable is not set');
         }
         return jwt.sign(payload, secretKey, { expiresIn: validatedExpiration });
     } catch (error) {
@@ -88,10 +88,10 @@ const generateAccessToken = async (user, options = {}) => {
             ...customClaims,
         };
 
-        // Sign and return the token (prefer env var over database)
-        const secretKey = process.env.JWT_SECRET || await getSetting('secret_key');
+        // JWT_SECRET must be set in environment
+        const secretKey = process.env.JWT_SECRET;
         if (!secretKey) {
-            throw new Error('JWT secret key not configured');
+            throw new Error('JWT_SECRET environment variable is not set');
         }
         return jwt.sign(payload, secretKey, { expiresIn: accessExpiration });
     } catch (error) {
