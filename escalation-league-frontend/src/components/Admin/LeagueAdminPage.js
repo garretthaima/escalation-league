@@ -8,6 +8,7 @@ import {
     rejectSignupRequest,
 } from '../../api/leaguesApi';
 import { getLeagueParticipants, updateParticipantStatus } from '../../api/userLeaguesApi';
+import { syncLeagueDecks } from '../../api/metagameApi';
 import { useToast } from '../../context/ToastContext';
 import { useWebSocket } from '../../context/WebSocketProvider';
 import EditLeagueModal from './EditLeagueModal';
@@ -22,6 +23,7 @@ const LeagueAdminPage = () => {
     const [error, setError] = useState(null);
     const [showEditModal, setShowEditModal] = useState(false);
     const [selectedLeague, setSelectedLeague] = useState(null);
+    const [syncingLeagueId, setSyncingLeagueId] = useState(null);
     const { showToast } = useToast();
     const { socket, connected, joinLeague, leaveLeague } = useWebSocket();
 
@@ -162,6 +164,24 @@ const LeagueAdminPage = () => {
         }
     };
 
+    // Handle syncing all decks in a league
+    const handleSyncLeagueDecks = async (leagueId) => {
+        if (syncingLeagueId) return; // Prevent multiple syncs at once
+
+        try {
+            setSyncingLeagueId(leagueId);
+            const result = await syncLeagueDecks(leagueId);
+            showToast(
+                `Deck sync complete: ${result.updated} updated, ${result.skipped} up-to-date, ${result.errors} errors`,
+                result.errors > 0 ? 'warning' : 'success'
+            );
+        } catch (err) {
+            showToast('Failed to sync decks. Please try again.', 'error');
+        } finally {
+            setSyncingLeagueId(null);
+        }
+    };
+
     if (loading) return <div className="text-center mt-4">Loading...</div>;
     if (error) return <div className="alert alert-danger mt-4">{error}</div>;
 
@@ -221,6 +241,15 @@ const LeagueAdminPage = () => {
                                         >
                                             <i className="fas fa-users me-1"></i>
                                             Manage Players
+                                        </button>
+                                        <button
+                                            className="btn btn-outline-secondary btn-sm me-2"
+                                            onClick={() => handleSyncLeagueDecks(league.id)}
+                                            disabled={syncingLeagueId !== null}
+                                            title="Refresh all deck data from Moxfield/Archidekt"
+                                        >
+                                            <i className={`fas fa-sync-alt me-1 ${syncingLeagueId === league.id ? 'fa-spin' : ''}`}></i>
+                                            {syncingLeagueId === league.id ? 'Syncing...' : 'Sync Decks'}
                                         </button>
                                         {!league.is_active && (
                                             <button

@@ -4,6 +4,13 @@ jest.mock('../../../../api/axiosConfig', () => ({
     default: { get: jest.fn(), post: jest.fn(), put: jest.fn(), delete: jest.fn() },
 }));
 
+// Mock decksApi
+const mockSyncDeck = jest.fn();
+jest.mock('../../../../api/decksApi', () => ({
+    __esModule: true,
+    syncDeck: (...args) => mockSyncDeck(...args),
+}));
+
 // Mock child components
 jest.mock('../CommanderDisplay', () => {
     return function MockCommanderDisplay({ commanderId, showPartner }) {
@@ -57,13 +64,15 @@ describe.skip('LeagueTab', () => {
         partner_name: null,
         elo_rating: 1650,
         decklistUrl: 'https://moxfield.com/decks/test123',
-        commander_scryfall_id: 'abc12345'
+        commander_scryfall_id: 'abc12345',
+        deck_id: 'test123'
     };
 
     const mockOnCommanderUpdated = jest.fn();
 
     beforeEach(() => {
         jest.clearAllMocks();
+        mockSyncDeck.mockReset();
         // Mock Date to have consistent "days remaining" calculations
         jest.useFakeTimers();
         jest.setSystemTime(new Date('2024-06-15T00:00:00.000Z'));
@@ -420,6 +429,90 @@ describe.skip('LeagueTab', () => {
                 img.src && img.src.includes('cards.scryfall.io')
             );
             expect(commanderImages.length).toBe(0);
+        });
+    });
+
+    describe('sync deck functionality', () => {
+        it('should display Sync Deck button when deck_id is available', () => {
+            renderWithRouter(<LeagueTab currentLeague={mockCurrentLeague} onCommanderUpdated={mockOnCommanderUpdated} />);
+
+            expect(screen.getByRole('button', { name: /Sync Deck/i })).toBeInTheDocument();
+        });
+
+        it('should not display Sync Deck button when deck_id is not available', () => {
+            renderWithRouter(
+                <LeagueTab
+                    currentLeague={{ ...mockCurrentLeague, deck_id: null }}
+                    onCommanderUpdated={mockOnCommanderUpdated}
+                />
+            );
+
+            expect(screen.queryByRole('button', { name: /Sync Deck/i })).not.toBeInTheDocument();
+        });
+
+        it('should call syncDeck when Sync Deck button is clicked', async () => {
+            mockSyncDeck.mockResolvedValue({ wasStale: true, deck: { name: 'Updated Deck' } });
+
+            renderWithRouter(<LeagueTab currentLeague={mockCurrentLeague} onCommanderUpdated={mockOnCommanderUpdated} />);
+
+            fireEvent.click(screen.getByRole('button', { name: /Sync Deck/i }));
+
+            expect(mockSyncDeck).toHaveBeenCalledWith('test123');
+        });
+
+        it('should show success message when deck is updated', async () => {
+            mockSyncDeck.mockResolvedValue({ wasStale: true, deck: { name: 'Updated Deck' } });
+
+            renderWithRouter(<LeagueTab currentLeague={mockCurrentLeague} onCommanderUpdated={mockOnCommanderUpdated} />);
+
+            fireEvent.click(screen.getByRole('button', { name: /Sync Deck/i }));
+
+            // Wait for the async operation
+            await screen.findByText(/Deck updated/i);
+        });
+
+        it('should show up-to-date message when deck was not stale', async () => {
+            mockSyncDeck.mockResolvedValue({ wasStale: false, deck: { name: 'Test Deck' } });
+
+            renderWithRouter(<LeagueTab currentLeague={mockCurrentLeague} onCommanderUpdated={mockOnCommanderUpdated} />);
+
+            fireEvent.click(screen.getByRole('button', { name: /Sync Deck/i }));
+
+            await screen.findByText(/already up to date/i);
+        });
+
+        it('should show error message on sync failure', async () => {
+            mockSyncDeck.mockRejectedValue({ response: { data: { error: 'Sync failed' } } });
+
+            renderWithRouter(<LeagueTab currentLeague={mockCurrentLeague} onCommanderUpdated={mockOnCommanderUpdated} />);
+
+            fireEvent.click(screen.getByRole('button', { name: /Sync Deck/i }));
+
+            await screen.findByText(/Sync failed/i);
+        });
+
+        it('should call onCommanderUpdated when deck is updated', async () => {
+            mockSyncDeck.mockResolvedValue({ wasStale: true, deck: { name: 'Updated Deck' } });
+
+            renderWithRouter(<LeagueTab currentLeague={mockCurrentLeague} onCommanderUpdated={mockOnCommanderUpdated} />);
+
+            fireEvent.click(screen.getByRole('button', { name: /Sync Deck/i }));
+
+            await screen.findByText(/Deck updated/i);
+
+            expect(mockOnCommanderUpdated).toHaveBeenCalled();
+        });
+
+        it('should not call onCommanderUpdated when deck was not stale', async () => {
+            mockSyncDeck.mockResolvedValue({ wasStale: false, deck: { name: 'Test Deck' } });
+
+            renderWithRouter(<LeagueTab currentLeague={mockCurrentLeague} onCommanderUpdated={mockOnCommanderUpdated} />);
+
+            fireEvent.click(screen.getByRole('button', { name: /Sync Deck/i }));
+
+            await screen.findByText(/already up to date/i);
+
+            expect(mockOnCommanderUpdated).not.toHaveBeenCalled();
         });
     });
 });

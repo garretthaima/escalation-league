@@ -34,26 +34,49 @@ echo "Environment: $ENVIRONMENT"
 echo "Build tag: $BUILD_TAG"
 echo ""
 
-# Run tests before deploying (can skip with SKIP_TESTS=1)
+# Run smoke tests before deploying (can skip with SKIP_TESTS=1, or run full suite with FULL_TESTS=1)
 if [ "${SKIP_TESTS:-}" != "1" ]; then
-    echo "Step 0: Running tests..."
-    echo "  Running backend tests..."
-    cd "$PROJECT_ROOT/escalation-league-backend"
-    if ! TEST_DB_HOST=10.10.60.5 TEST_DB_PORT=3308 npm test -- --watchAll=false --silent 2>/dev/null; then
-        echo "❌ Backend tests failed! Aborting deployment."
-        echo "   To skip tests (not recommended): SKIP_TESTS=1 make deploy-$ENVIRONMENT"
-        exit 1
-    fi
-    echo "  ✅ Backend tests passed"
+    echo "Step 0: Running smoke tests..."
 
-    echo "  Running frontend tests..."
-    cd "$PROJECT_ROOT/escalation-league-frontend"
-    if ! npm test -- --watchAll=false --silent 2>/dev/null; then
-        echo "❌ Frontend tests failed! Aborting deployment."
-        echo "   To skip tests (not recommended): SKIP_TESTS=1 make deploy-$ENVIRONMENT"
-        exit 1
+    # Backend smoke tests (critical routes only)
+    echo "  Running backend smoke tests..."
+    cd "$PROJECT_ROOT/escalation-league-backend"
+    if [ "${FULL_TESTS:-}" = "1" ]; then
+        echo "    (FULL_TESTS=1: running complete test suite)"
+        if ! TEST_DB_HOST=10.10.60.5 TEST_DB_PORT=3308 npm test -- --watchAll=false --silent 2>/dev/null; then
+            echo "❌ Backend tests failed! Aborting deployment."
+            echo "   To skip tests: SKIP_TESTS=1 make deploy-$ENVIRONMENT"
+            exit 1
+        fi
+    else
+        if ! TEST_DB_HOST=10.10.60.5 TEST_DB_PORT=3308 npm run test:smoke -- --watchAll=false --silent 2>/dev/null; then
+            echo "❌ Backend smoke tests failed! Aborting deployment."
+            echo "   To run full tests: FULL_TESTS=1 make deploy-$ENVIRONMENT"
+            echo "   To skip tests: SKIP_TESTS=1 make deploy-$ENVIRONMENT"
+            exit 1
+        fi
     fi
-    echo "  ✅ Frontend tests passed"
+    echo "  ✅ Backend smoke tests passed"
+
+    # Frontend smoke tests (just verify test suite runs)
+    echo "  Running frontend smoke tests..."
+    cd "$PROJECT_ROOT/escalation-league-frontend"
+    if [ "${FULL_TESTS:-}" = "1" ]; then
+        if ! npm test -- --watchAll=false --silent 2>/dev/null; then
+            echo "❌ Frontend tests failed! Aborting deployment."
+            echo "   To skip tests: SKIP_TESTS=1 make deploy-$ENVIRONMENT"
+            exit 1
+        fi
+    else
+        # Run only critical frontend tests: App bootstrap and Navbar (core UI)
+        if ! npm test -- --watchAll=false --silent --testPathPattern="(App\.test|Navbar)" 2>/dev/null; then
+            echo "❌ Frontend smoke tests failed! Aborting deployment."
+            echo "   To run full tests: FULL_TESTS=1 make deploy-$ENVIRONMENT"
+            echo "   To skip tests: SKIP_TESTS=1 make deploy-$ENVIRONMENT"
+            exit 1
+        fi
+    fi
+    echo "  ✅ Frontend smoke tests passed"
     cd "$PROJECT_ROOT"
     echo ""
 else

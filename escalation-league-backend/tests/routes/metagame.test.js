@@ -24,6 +24,15 @@ jest.mock('../../utils/redisClient', () => ({
     del: jest.fn().mockResolvedValue(1)
 }));
 
+// Mock deckService to prevent actual API calls during lazy sync
+jest.mock('../../services/deckService', () => ({
+    triggerLazySyncIfNeeded: jest.fn().mockResolvedValue(false),
+    fetchDeckDataIfStale: jest.fn().mockResolvedValue(null),
+    getCachedPriceCheck: jest.fn().mockResolvedValue(null),
+    cachePriceCheckResults: jest.fn().mockResolvedValue(null),
+    LAZY_SYNC_INTERVAL_HOURS: 6
+}));
+
 // Card data for Scryfall mock - maps card names to their details
 const scryfallCardData = {
     'sol ring': {
@@ -205,6 +214,87 @@ const scryfallCardData = {
         oracle_text: '({T}: Add {G}.)',
         keywords: '[]',
         image_uris: '{"normal":"https://example.com/forest.jpg"}'
+    },
+    // Edge case test cards
+    'command tower': {
+        id: 'command-tower-id',
+        name: 'Command Tower',
+        cmc: 0,
+        colors: '[]',
+        type_line: 'Land',
+        oracle_text: '{T}: Add one mana of any color in your commander\'s color identity.',
+        keywords: '[]',
+        image_uris: '{"normal":"https://example.com/command-tower.jpg"}'
+    },
+    'smothering tithe': {
+        id: 'smothering-tithe-id',
+        name: 'Smothering Tithe',
+        cmc: 4,
+        colors: '["W"]',
+        type_line: 'Enchantment',
+        oracle_text: 'Whenever an opponent draws a card, that player may pay {2}. If the player doesn\'t, you create a Treasure token.',
+        keywords: '[]',
+        image_uris: '{"normal":"https://example.com/smothering-tithe.jpg"}'
+    },
+    'viscera seer': {
+        id: 'viscera-seer-id',
+        name: 'Viscera Seer',
+        cmc: 1,
+        colors: '["B"]',
+        type_line: 'Creature — Vampire Wizard',
+        oracle_text: 'Sacrifice a creature: Scry 1.',
+        keywords: '[]',
+        image_uris: '{"normal":"https://example.com/viscera-seer.jpg"}'
+    },
+    'swords to plowshares': {
+        id: 'swords-to-plowshares-id',
+        name: 'Swords to Plowshares',
+        cmc: 1,
+        colors: '["W"]',
+        type_line: 'Instant',
+        oracle_text: 'Exile target creature. Its controller gains life equal to its power.',
+        keywords: '[]',
+        image_uris: '{"normal":"https://example.com/swords.jpg"}'
+    },
+    'path to exile': {
+        id: 'path-to-exile-id',
+        name: 'Path to Exile',
+        cmc: 1,
+        colors: '["W"]',
+        type_line: 'Instant',
+        oracle_text: 'Exile target creature. Its controller may search their library for a basic land card, put that card onto the battlefield tapped, then shuffle.',
+        keywords: '[]',
+        image_uris: '{"normal":"https://example.com/path.jpg"}'
+    },
+    'wrath of god': {
+        id: 'wrath-of-god-id',
+        name: 'Wrath of God',
+        cmc: 4,
+        colors: '["W"]',
+        type_line: 'Sorcery',
+        oracle_text: 'Destroy all creatures. They can\'t be regenerated.',
+        keywords: '[]',
+        image_uris: '{"normal":"https://example.com/wrath.jpg"}'
+    },
+    'plaguecrafter': {
+        id: 'plaguecrafter-id',
+        name: 'Plaguecrafter',
+        cmc: 3,
+        colors: '["B"]',
+        type_line: 'Creature — Human Shaman',
+        oracle_text: 'When Plaguecrafter enters, each player sacrifices a creature or planeswalker. Each player who can\'t discards a card.',
+        keywords: '[]',
+        image_uris: '{"normal":"https://example.com/plaguecrafter.jpg"}'
+    },
+    'birds of paradise': {
+        id: 'birds-of-paradise-id',
+        name: 'Birds of Paradise',
+        cmc: 1,
+        colors: '["G"]',
+        type_line: 'Creature — Bird',
+        oracle_text: 'Flying\n{T}: Add one mana of any color.',
+        keywords: '["Flying"]',
+        image_uris: '{"normal":"https://example.com/birds.jpg"}'
     }
 };
 
@@ -580,6 +670,201 @@ describe('Metagame API', () => {
 
             // But Sol Ring should be there
             expect(topCardNames).toContain('Sol Ring');
+        });
+
+        it('should exclude ALL lands (including non-basic) from mana curve', async () => {
+            await setupUserAndLeague();
+
+            const deckId = 'nonbasic-lands-deck';
+            await db('decks').insert({
+                id: deckId,
+                name: 'Nonbasic Lands Deck',
+                decklist_url: 'https://moxfield.com/test',
+                platform: 'moxfield',
+                commanders: JSON.stringify([{ name: 'Test Commander' }]),
+                cards: JSON.stringify([
+                    { name: 'Command Tower', scryfall_id: 'command-tower-id' },  // Non-basic land, CMC 0
+                    { name: 'Sol Ring', scryfall_id: 'sol-ring-id' },            // CMC 1
+                    { name: 'Arcane Signet', scryfall_id: 'arcane-signet-id' },  // CMC 2
+                    { name: 'Cultivate', scryfall_id: 'cultivate-id' }           // CMC 3
+                ])
+            });
+
+            await db('user_leagues')
+                .where({ user_id: userId, league_id: leagueId })
+                .update({ deck_id: deckId });
+
+            const res = await request(app)
+                .get(`/api/leagues/${leagueId}/metagame/analysis`)
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.status).toBe(200);
+
+            // Command Tower should NOT be in the mana curve (it's a land)
+            // Only 3 non-land cards should be counted
+            const cmcDistribution = res.body.manaCurve.distribution;
+            const totalCardsInCurve = cmcDistribution.reduce((sum, entry) => sum + entry.count, 0);
+
+            // Should only be 3 cards (Sol Ring, Arcane Signet, Cultivate)
+            expect(totalCardsInCurve).toBe(3);
+
+            // Average CMC should be (1 + 2 + 3) / 3 = 2.0
+            expect(res.body.manaCurve.averageCmc).toBe(2);
+        });
+
+        it('should NOT count Smothering Tithe as card draw (it creates treasures)', async () => {
+            await setupUserAndLeague();
+
+            const deckId = 'false-positive-deck';
+            await db('decks').insert({
+                id: deckId,
+                name: 'False Positive Test Deck',
+                decklist_url: 'https://moxfield.com/test',
+                platform: 'moxfield',
+                commanders: JSON.stringify([{ name: 'Test Commander' }]),
+                cards: JSON.stringify([
+                    { name: 'Smothering Tithe', scryfall_id: 'smothering-tithe-id' },  // NOT card draw
+                    { name: 'Rhystic Study', scryfall_id: 'rhystic-study-id' }         // IS card draw
+                ])
+            });
+
+            await db('user_leagues')
+                .where({ user_id: userId, league_id: leagueId })
+                .update({ deck_id: deckId });
+
+            const res = await request(app)
+                .get(`/api/leagues/${leagueId}/metagame/analysis`)
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.status).toBe(200);
+
+            // Smothering Tithe says "draws a card" in its text (referring to opponent)
+            // but it creates treasures, not card draw for you
+            // The improved keywords should only match "you may draw a card"
+            // which Rhystic Study has but Smothering Tithe doesn't
+            // Only Rhystic Study should count as card draw
+            expect(res.body.resources.cardDraw.totalCount).toBe(1);
+        });
+
+        it('should NOT count Viscera Seer as removal (it\'s a sacrifice outlet)', async () => {
+            await setupUserAndLeague();
+
+            const deckId = 'sacrifice-deck';
+            await db('decks').insert({
+                id: deckId,
+                name: 'Sacrifice Test Deck',
+                decklist_url: 'https://moxfield.com/test',
+                platform: 'moxfield',
+                commanders: JSON.stringify([{ name: 'Test Commander' }]),
+                cards: JSON.stringify([
+                    { name: 'Viscera Seer', scryfall_id: 'viscera-seer-id' },           // NOT removal (sacrifice outlet)
+                    { name: 'Swords to Plowshares', scryfall_id: 'swords-to-plowshares-id' }  // IS removal
+                ])
+            });
+
+            await db('user_leagues')
+                .where({ user_id: userId, league_id: leagueId })
+                .update({ deck_id: deckId });
+
+            const res = await request(app)
+                .get(`/api/leagues/${leagueId}/metagame/analysis`)
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.status).toBe(200);
+
+            // Viscera Seer has "Sacrifice a creature" but that's a cost, not removal
+            // Swords to Plowshares has "Exile target creature" which IS removal
+            // Only Swords should count as removal
+            expect(res.body.interaction.removal).toBe(1);
+        });
+
+        it('should detect targeted removal correctly', async () => {
+            await setupUserAndLeague();
+
+            const deckId = 'removal-deck';
+            await db('decks').insert({
+                id: deckId,
+                name: 'Removal Test Deck',
+                decklist_url: 'https://moxfield.com/test',
+                platform: 'moxfield',
+                commanders: JSON.stringify([{ name: 'Test Commander' }]),
+                cards: JSON.stringify([
+                    { name: 'Swords to Plowshares', scryfall_id: 'swords-to-plowshares-id' },  // Exile target creature
+                    { name: 'Path to Exile', scryfall_id: 'path-to-exile-id' }                 // Exile target creature
+                ])
+            });
+
+            await db('user_leagues')
+                .where({ user_id: userId, league_id: leagueId })
+                .update({ deck_id: deckId });
+
+            const res = await request(app)
+                .get(`/api/leagues/${leagueId}/metagame/analysis`)
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.status).toBe(200);
+
+            // Both Swords and Path should be detected as removal
+            expect(res.body.interaction.removal).toBe(2);
+        });
+
+        it('should detect board wipes correctly', async () => {
+            await setupUserAndLeague();
+
+            const deckId = 'boardwipe-deck';
+            await db('decks').insert({
+                id: deckId,
+                name: 'Board Wipe Test Deck',
+                decklist_url: 'https://moxfield.com/test',
+                platform: 'moxfield',
+                commanders: JSON.stringify([{ name: 'Test Commander' }]),
+                cards: JSON.stringify([
+                    { name: 'Wrath of God', scryfall_id: 'wrath-of-god-id' }  // Destroy all creatures
+                ])
+            });
+
+            await db('user_leagues')
+                .where({ user_id: userId, league_id: leagueId })
+                .update({ deck_id: deckId });
+
+            const res = await request(app)
+                .get(`/api/leagues/${leagueId}/metagame/analysis`)
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.status).toBe(200);
+
+            // Wrath of God should be detected as a board wipe
+            expect(res.body.interaction.boardWipes).toBe(1);
+        });
+
+        it('should detect mana dorks as ramp', async () => {
+            await setupUserAndLeague();
+
+            const deckId = 'mana-dork-deck';
+            await db('decks').insert({
+                id: deckId,
+                name: 'Mana Dork Test Deck',
+                decklist_url: 'https://moxfield.com/test',
+                platform: 'moxfield',
+                commanders: JSON.stringify([{ name: 'Test Commander' }]),
+                cards: JSON.stringify([
+                    { name: 'Llanowar Elves', scryfall_id: 'llanowar-elves-id' },    // {T}: Add G
+                    { name: 'Birds of Paradise', scryfall_id: 'birds-of-paradise-id' }  // {T}: Add any color
+                ])
+            });
+
+            await db('user_leagues')
+                .where({ user_id: userId, league_id: leagueId })
+                .update({ deck_id: deckId });
+
+            const res = await request(app)
+                .get(`/api/leagues/${leagueId}/metagame/analysis`)
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.status).toBe(200);
+
+            // Both mana dorks should be detected as ramp
+            expect(res.body.resources.ramp.totalCount).toBe(2);
         });
     });
 

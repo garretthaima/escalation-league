@@ -14,15 +14,114 @@ const { safeParse } = require('../utils/jsonUtils');
 
 /**
  * Keywords for categorizing cards by function
+ * Updated based on Commander community definitions and oracle text patterns
+ * See: https://mtg.cardsrealm.com/en-us/articles/removals-and-interactions-on-commander-categories-and-utilities
  */
 const ANALYSIS_KEYWORDS = {
-    removal: ['destroy', 'exile', 'sacrifice', 'remove', 'bounce', '-X/-X', 'dies'],
-    counterspell: ['counter target', 'counter spell'],
-    boardWipe: ['destroy all', 'exile all', 'each creature', 'all creatures'],
-    ramp: ['search your library for a land', 'add mana', 'ramp', 'sol ring', 'arcane signet', 'cultivate', 'kodama'],
-    cardDraw: ['draw cards', 'draw a card', 'draw two cards', 'card advantage', 'rhystic study', 'mystic remora', 'when you draw'],
+    // Targeted removal - must target opponent's permanents
+    removal: [
+        'destroy target creature',
+        'destroy target artifact',
+        'destroy target enchantment',
+        'destroy target permanent',
+        'destroy target planeswalker',
+        'exile target creature',
+        'exile target permanent',
+        'exile target artifact',
+        'exile target enchantment',
+        'return target creature to its owner\'s hand',
+        'return target nonland permanent to its owner\'s hand',
+        'return target permanent to its owner\'s hand',
+        'target creature gets -',  // -X/-X effects
+        'deals damage to any target',
+        'deals damage to target creature',
+        'each opponent sacrifices',  // Edicts
+        'target player sacrifices',
+    ],
+    // Counterspells - stack interaction
+    // Using broad patterns to catch all variants (Negate, Essence Scatter, etc.)
+    counterspell: [
+        'counter target',      // Catches "counter target spell", "counter target noncreature spell", etc.
+        'counter that spell',  // Conditional counters like Mana Drain
+        'exile target spell',  // Counterspell variants like Dissipate
+    ],
+    // Board wipes - mass removal
+    boardWipe: [
+        'destroy all creatures',
+        'destroy all nonland permanents',
+        'destroy all permanents',
+        'destroy all artifacts',
+        'destroy all enchantments',
+        'exile all creatures',
+        'exile all nonland permanents',
+        'all creatures get -',  // Mass -X/-X
+        'each creature gets -',
+        'damage to each creature',  // Blasphemous Act, Chain Reaction, etc.
+    ],
+    // Ramp - mana acceleration
+    ramp: [
+        // Land ramp
+        'search your library for a basic land',
+        'search your library for up to two basic land',
+        'search your library for a land card',
+        'put a land card from your hand onto the battlefield',
+        'put that card onto the battlefield',  // For land tutors
+        'land onto the battlefield tapped',
+        // Mana rocks/dorks - specific tap abilities
+        '{t}: add {',
+        '{t}: add one mana',
+        '{t}: add two',
+        '{t}: add three',
+        'add one mana of any color',
+        'add one mana of any type',
+        'add two mana',
+        'add three mana',
+        // Colored mana production (mana dorks)
+        'add one white mana',
+        'add one blue mana',
+        'add one black mana',
+        'add one red mana',
+        'add one green mana',
+        'add {w}',
+        'add {u}',
+        'add {b}',
+        'add {r}',
+        'add {g}',
+        'add {c}',
+        // Generic tap patterns
+        'tap: add',
+    ],
+    // Card draw - effects that CAUSE you to draw cards
+    // IMPORTANT: Exclude triggers like "whenever you draw" (Psychosis Crawler) - those don't draw cards
+    // Focus on patterns that actually cause card draw
+    cardDraw: [
+        // Direct "you draw" effects (not "whenever you draw")
+        'you may draw a card',
+        'you may draw two cards',
+        'you may draw that many',
+        // Activated abilities that draw
+        ': draw a card',      // "{T}: Draw a card", "{2}: Draw a card"
+        ': draw two cards',
+        // Triggered draws (ETB, combat, etc.) - but not "whenever you draw"
+        ', draw a card.',     // "When ~ enters, draw a card." (with period to avoid triggers)
+        ', draw two cards',
+        ', draw three cards',
+        // Spell effects
+        'draw two cards',     // Direct draw spells like Divination
+        'draw three cards',   // Like Harmonize
+        'draw four cards',
+        'draw cards equal to',
+        'draw that many cards',
+        'draw x cards',
+        // Combined effects
+        'then draw a card',
+        'and draw a card',
+    ],
+    // Combo pieces
     combo: ['infinite', 'win the game', 'copy', 'untap', 'goes infinite'],
+    // Alternate win conditions
     alternateWin: ['you win the game', 'win condition', 'mill', 'poison counter', 'infect'],
+    // Combat-focused
     combat: ['combat damage', 'attack', 'double strike', 'commander damage', '+1/+1 counter']
 };
 
@@ -61,6 +160,18 @@ const isBasicLand = (card) => {
     if (BASIC_LAND_NAMES.includes(card.name)) return true;
     const typeLine = (card.type_line || '').toLowerCase();
     return typeLine.includes('basic') && typeLine.includes('land');
+};
+
+/**
+ * Check if a card is any type of land (basic or non-basic)
+ * Used to exclude lands from mana curve calculations
+ * @param {Object} card - Card object with type_line
+ * @returns {boolean} True if card is a land
+ */
+const isLand = (card) => {
+    if (!card) return false;
+    const typeLine = (card.type_line || '').toLowerCase();
+    return typeLine.includes('land');
 };
 
 /**
@@ -229,7 +340,8 @@ const analyzeCard = (card, fullCardData) => {
         isRemoval: matchesCategory(cardText, cardName, 'removal'),
         isCounterspell: matchesCategory(cardText, cardName, 'counterspell'),
         isBoardWipe: matchesCategory(cardText, cardName, 'boardWipe'),
-        isRamp: matchesCategory(cardText, cardName, 'ramp'),
+        // Exclude lands from ramp - lands produce mana but aren't "ramp" cards
+        isRamp: !isLand(fullCardData) && matchesCategory(cardText, cardName, 'ramp'),
         isCardDraw: matchesCategory(cardText, cardName, 'cardDraw'),
 
         // Type classification
@@ -250,6 +362,7 @@ module.exports = {
 
     // Classification functions
     isBasicLand,
+    isLand,
     matchesCategory,
     getColorName,
     getPrimaryType,

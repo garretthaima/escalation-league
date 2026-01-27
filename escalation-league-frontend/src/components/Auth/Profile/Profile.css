@@ -836,6 +836,38 @@ body.dark-mode .quick-link-item:hover {
     border-radius: 6px;
 }
 
+.btn-outline-purple {
+    background: transparent;
+    color: var(--brand-purple);
+    border: 1px solid var(--brand-purple);
+    border-radius: 6px;
+}
+
+.btn-outline-purple:hover {
+    background: var(--brand-purple);
+    color: #fff;
+}
+
+.btn-outline-purple:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+body.dark-mode .btn-outline-purple {
+    color: #a78bfa;
+    border-color: #a78bfa;
+}
+
+body.dark-mode .btn-outline-purple:hover {
+    background: #a78bfa;
+    color: #1a1a2e;
+}
+
+body.dark-mode .btn-outline-purple:disabled {
+    color: #a78bfa;
+    background: transparent;
+}
+
 .quick-action-item {
     border-bottom: 1px solid var(--border-color);
     color: var(--text-primary);

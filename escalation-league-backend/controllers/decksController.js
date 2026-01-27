@@ -1,10 +1,20 @@
 const redis = require('../utils/redisClient');
+const db = require('../models/db');
 const { fetchMoxfieldDeck, fetchArchidektDeck } = require('../services/deckFetchers');
 const { fetchDeckDataIfStale, getCachedPriceCheck, cachePriceCheckResults } = require('../services/deckService');
 const { getDeckFromDatabase, saveDeckToDatabase } = require('../services/databaseService');
 const { calculateDeckPrices } = require('../services/priceService');
 const logger = require('../utils/logger');
-const { handleError, badRequest, notFound } = require('../utils/errorUtils');
+const { handleError, badRequest, notFound, forbidden } = require('../utils/errorUtils');
+
+/**
+ * Convert a Date object to MySQL datetime format (YYYY-MM-DD HH:MM:SS)
+ * @param {Date} date - The date to convert
+ * @returns {string} - MySQL formatted datetime string
+ */
+const toMySQLDatetime = (date) => {
+    return date.toISOString().slice(0, 19).replace('T', ' ');
+};
 
 // Helper function: Validate the decklist URL
 const validateDecklistUrl = (decklistUrl) => {
@@ -143,7 +153,103 @@ const priceCheckDeck = async (req, res) => {
     }
 };
 
+/**
+ * Sync a single deck from its platform (Moxfield/Archidekt)
+ * Users can only sync their own decks, admins can sync any deck
+ */
+const syncDeck = async (req, res) => {
+    try {
+        const { deckId } = req.params;
+        const userId = req.user?.id;
+        const isAdmin = req.user?.role === 'admin';
+
+        logger.info('Deck sync requested', { deckId, userId, isAdmin });
+
+        if (!deckId) {
+            throw badRequest('Deck ID is required');
+        }
+
+        // Get deck from database
+        const dbDeck = await getDeckFromDatabase(deckId);
+        if (!dbDeck) {
+            throw notFound('Deck');
+        }
+
+        // Check if user owns this deck (unless admin)
+        if (!isAdmin) {
+            const userLeague = await db('user_leagues')
+                .where('deck_id', deckId)
+                .where('user_id', userId)
+                .first();
+
+            if (!userLeague) {
+                throw forbidden('You can only sync your own decks');
+            }
+        }
+
+        const platform = dbDeck.platform;
+        logger.info('Fetching deck from platform', { deckId, platform });
+
+        // Fetch latest data from platform
+        const platformDeckData = platform === 'Moxfield'
+            ? await fetchMoxfieldDeck(deckId)
+            : await fetchArchidektDeck(deckId);
+
+        // Handle updated_at - use current time if not provided or invalid
+        let platformUpdatedAt;
+        if (platformDeckData.updated_at) {
+            const parsedDate = new Date(platformDeckData.updated_at);
+            platformUpdatedAt = isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
+        } else {
+            platformUpdatedAt = new Date();
+        }
+
+        const lastSyncedAtDate = dbDeck.last_synced_at ? new Date(dbDeck.last_synced_at) : null;
+        const wasStale = !lastSyncedAtDate || platformUpdatedAt > lastSyncedAtDate;
+
+        // Always update the database with fresh data
+        const mysqlDatetime = toMySQLDatetime(platformUpdatedAt);
+        await db('decks')
+            .where('id', deckId)
+            .update({
+                name: platformDeckData.name,
+                commanders: JSON.stringify(platformDeckData.commanders),
+                cards: JSON.stringify(platformDeckData.cards),
+                last_synced_at: mysqlDatetime,
+            });
+
+        // Update Redis cache
+        const cacheKey = `deck:${deckId}`;
+        await redis.set(cacheKey, JSON.stringify(platformDeckData), 'EX', 3600);
+
+        // Invalidate price check cache
+        const priceCheckKey = `price-check:${deckId}`;
+        await redis.del(priceCheckKey);
+
+        logger.info('Deck sync completed', {
+            deckId,
+            deckName: platformDeckData.name,
+            wasStale,
+            userId
+        });
+
+        res.status(200).json({
+            message: 'Deck synced successfully',
+            deck: {
+                id: deckId,
+                name: platformDeckData.name,
+                commanders: platformDeckData.commanders,
+                last_synced_at: mysqlDatetime,
+            },
+            wasStale
+        });
+    } catch (error) {
+        handleError(res, error, 'Failed to sync deck');
+    }
+};
+
 module.exports = {
     validateAndCacheDeck,
-    priceCheckDeck
+    priceCheckDeck,
+    syncDeck
 };
