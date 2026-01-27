@@ -66,6 +66,25 @@ export const getTimezone = () => {
 };
 
 /**
+ * Parse a date string and return a Date object
+ * Handles YYYY-MM-DD format as a local date (not UTC)
+ * @param {string|Date} dateString - Date string to parse
+ * @returns {Date} Parsed Date object
+ */
+export const parseDate = (dateString) => {
+    if (dateString instanceof Date) return dateString;
+    if (!dateString) return new Date(NaN);
+
+    // Handle YYYY-MM-DD format - treat as local date, not UTC
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+        const [year, month, day] = dateString.split('-').map(Number);
+        return new Date(year, month - 1, day);
+    }
+
+    return new Date(dateString);
+};
+
+/**
  * Format a date for display (e.g., "Jan 15, 2025")
  * @param {Date|string} date - Date to format
  * @param {Object} [options] - Additional Intl.DateTimeFormat options
@@ -74,7 +93,7 @@ export const getTimezone = () => {
 export const formatDate = (date, options = {}) => {
     if (!date) return '';
 
-    const d = new Date(date);
+    const d = parseDate(date);
     if (isNaN(d.getTime())) return '';
 
     const defaultOptions = {
@@ -118,7 +137,7 @@ export const formatDateShort = (date) => {
 export const formatDateTime = (date, options = {}) => {
     if (!date) return '';
 
-    const d = new Date(date);
+    const d = parseDate(date);
     if (isNaN(d.getTime())) return '';
 
     const defaultOptions = {
@@ -141,7 +160,7 @@ export const formatDateTime = (date, options = {}) => {
 export const formatTime = (date) => {
     if (!date) return '';
 
-    const d = new Date(date);
+    const d = parseDate(date);
     if (isNaN(d.getTime())) return '';
 
     return d.toLocaleTimeString('en-US', {
@@ -174,30 +193,11 @@ export const formatDateWithWeekday = (date) => {
 export const formatDateISO = (date) => {
     if (!date) return '';
 
-    const d = new Date(date);
+    const d = parseDate(date);
     if (isNaN(d.getTime())) return '';
 
     // Use en-CA locale which formats as YYYY-MM-DD
     return d.toLocaleDateString('en-CA', { timeZone: getTimezone() });
-};
-
-/**
- * Parse a date string and return a Date object
- * Handles YYYY-MM-DD format as a local date (not UTC)
- * @param {string|Date} dateString - Date string to parse
- * @returns {Date} Parsed Date object
- */
-export const parseDate = (dateString) => {
-    if (dateString instanceof Date) return dateString;
-    if (!dateString) return new Date(NaN);
-
-    // Handle YYYY-MM-DD format - treat as local date
-    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-        const [year, month, day] = dateString.split('-').map(Number);
-        return new Date(year, month - 1, day);
-    }
-
-    return new Date(dateString);
 };
 
 /**
@@ -208,7 +208,7 @@ export const parseDate = (dateString) => {
 export const formatRelativeTime = (date) => {
     if (!date) return '';
 
-    const d = new Date(date);
+    const d = parseDate(date);
     if (isNaN(d.getTime())) return '';
 
     const now = new Date();
