@@ -9,6 +9,7 @@ import { getPods } from '../../api/podsApi';
 import { getLeagueParticipants } from '../../api/userLeaguesApi';
 import { useToast } from '../../context/ToastContext';
 import { useTurnOrder } from '../../hooks';
+import { formatDate } from '../../utils/dateFormatter';
 import ConfirmModal from '../Shared/ConfirmModal';
 import LoadingSpinner from '../Shared/LoadingSpinner';
 import Modal from '../Shared/Modal';
@@ -427,7 +428,7 @@ const EditPodPage = () => {
                                 </div>
                                 <div className="col-md-3 mb-3">
                                     <small className="text-muted d-block mb-1">Date Created</small>
-                                    <span>{new Date(pod.created_at).toLocaleDateString()}</span>
+                                    <span>{formatDate(pod.created_at)}</span>
                                 </div>
                                 <div className="col-md-3 mb-3">
                                     <small className="text-muted d-block mb-1">Players</small>

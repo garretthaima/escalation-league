@@ -5,6 +5,7 @@ import { getLeagueParticipants, getUserLeagueStats } from '../../../api/userLeag
 import { getMetagameAnalysis } from '../../../api/metagameApi';
 import { usePermissions } from '../../../context/PermissionsProvider';
 import { calculateTotalSeasonBudget, calculateWeeksFromDates } from '../../../utils/budgetCalculations';
+import { formatDate } from '../../../utils/dateFormatter';
 import CollapsibleSection from '../../Shared/CollapsibleSection';
 import LoadingSpinner from '../../Shared/LoadingSpinner';
 import { DiscordPromptBanner } from '../../Shared';
@@ -127,15 +128,6 @@ const LeagueDashboard = () => {
     if (!league) {
         return null;
     }
-
-    const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            timeZone: 'UTC'
-        });
-    };
 
     return (
         <div className="container mt-4 league-dashboard">

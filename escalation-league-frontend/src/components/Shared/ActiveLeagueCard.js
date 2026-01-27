@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Link } from 'react-router-dom';
 import { calculateTotalSeasonBudget, calculateWeeksFromDates } from '../../utils/budgetCalculations';
+import { formatDate } from '../../utils/dateFormatter';
 import './ActiveLeagueCard.css';
 
 /**
@@ -33,14 +34,6 @@ const ActiveLeagueCard = ({ league, playerCount }) => {
     const totalWeeks = league.number_of_weeks || calculateWeeksFromDates(league.start_date, league.end_date);
     const totalSeasonBudget = calculateTotalSeasonBudget(totalWeeks, league.weekly_budget);
 
-    const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            timeZone: 'UTC'
-        });
-    };
-
     return (
         <div className="card active-league-card h-100">
             <div className="card-body">
@@ -62,8 +55,8 @@ const ActiveLeagueCard = ({ league, playerCount }) => {
                 {/* Progress Bar */}
                 <div className="mb-3">
                     <div className="d-flex justify-content-between text-sm mb-1">
-                        <span className="text-muted">{formatDate(league.start_date)}</span>
-                        <span className="text-muted">{formatDate(league.end_date)}</span>
+                        <span className="text-muted">{formatDate(league.start_date, { year: undefined })}</span>
+                        <span className="text-muted">{formatDate(league.end_date, { year: undefined })}</span>
                     </div>
                     <div className="progress active-league-progress">
                         <div

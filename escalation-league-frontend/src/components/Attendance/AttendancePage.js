@@ -5,6 +5,7 @@ import { useToast } from '../../context/ToastContext';
 import { useWebSocket } from '../../context/WebSocketProvider';
 import LoadingSpinner from '../Shared/LoadingSpinner';
 import { DiscordIcon } from '../Shared';
+import { formatDateWithWeekday, formatDate } from '../../utils/dateFormatter';
 import './AttendancePage.css';
 
 const AttendancePage = () => {
@@ -173,12 +174,7 @@ const AttendancePage = () => {
                 <div className="card-header d-flex justify-content-between align-items-center">
                     <span>
                         <i className="fas fa-calendar-day me-2"></i>
-                        {session?.name || (session?.session_date ? new Date(session.session_date).toLocaleDateString('en-US', {
-                            weekday: 'long',
-                            month: 'long',
-                            day: 'numeric',
-                            timeZone: 'UTC'
-                        }) : 'Game Night')}
+                        {session?.name || (session?.session_date ? formatDateWithWeekday(session.session_date) : 'Game Night')}
                     </span>
                     <div>
                         {hasActivePoll && (
@@ -196,12 +192,7 @@ const AttendancePage = () => {
                 <div className="card-body">
                     <div className="row">
                         <div className="col-md-4">
-                            <strong>Date:</strong> {session?.session_date ? new Date(session.session_date).toLocaleDateString('en-US', {
-                                weekday: 'short',
-                                month: 'short',
-                                day: 'numeric',
-                                timeZone: 'UTC'
-                            }) : ''}
+                            <strong>Date:</strong> {session?.session_date ? formatDate(session.session_date, { weekday: 'short' }) : ''}
                         </div>
                         <div className="col-md-4">
                             <strong>League:</strong> {activeLeague?.league_name || activeLeague?.name}

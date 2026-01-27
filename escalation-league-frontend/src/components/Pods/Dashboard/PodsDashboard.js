@@ -12,6 +12,7 @@ import GameCard from './GameCard';
 import ConfirmationCard from './ConfirmationCard';
 import CreateGameModal from './CreateGameModal';
 import DeclareResultModal from './DeclareResultModal';
+import { formatDate } from '../../../utils/dateFormatter';
 
 const PodsDashboard = () => {
     const { permissions, loading: permissionsLoading, activeLeague } = usePermissions();
@@ -396,7 +397,7 @@ const PodsDashboard = () => {
                                     <div>
                                         <strong>Pod #{pod.id}</strong>
                                         <span className="text-muted ms-2">
-                                            {new Date(pod.created_at).toLocaleDateString()}
+                                            {formatDate(pod.created_at)}
                                         </span>
                                     </div>
                                     <div>

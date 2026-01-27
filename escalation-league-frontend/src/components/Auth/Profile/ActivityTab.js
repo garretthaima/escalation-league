@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { getMyActivityLogs } from '../../../api/activityLogsApi';
 import LoadingSpinner from '../../Shared/LoadingSpinner';
+import { formatDate, formatRelativeTime } from '../../../utils/dateFormatter';
 
 const ActivityTab = () => {
     const [logs, setLogs] = useState([]);
@@ -37,27 +38,9 @@ const ActivityTab = () => {
         fetchLogs();
     }, [fetchLogs]);
 
-    const formatDate = (dateString) => {
+    const formatActivityDate = (dateString) => {
         if (!dateString) return '-';
-        const date = new Date(dateString);
-        const now = new Date();
-        const diffMs = now - date;
-        const diffMins = Math.floor(diffMs / 60000);
-        const diffHours = Math.floor(diffMs / 3600000);
-        const diffDays = Math.floor(diffMs / 86400000);
-
-        // Relative time for recent activity
-        if (diffMins < 1) return 'Just now';
-        if (diffMins < 60) return `${diffMins}m ago`;
-        if (diffHours < 24) return `${diffHours}h ago`;
-        if (diffDays < 7) return `${diffDays}d ago`;
-
-        // Full date for older activity
-        return date.toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
-        });
+        return formatRelativeTime(dateString) || formatDate(dateString);
     };
 
     const getActionConfig = (action) => {
@@ -190,7 +173,7 @@ const ActivityTab = () => {
                                                                 color: 'var(--text-secondary)'
                                                             }}
                                                         >
-                                                            {formatDate(log.timestamp)}
+                                                            {formatActivityDate(log.timestamp)}
                                                         </span>
                                                     </div>
                                                     {log.metadata && Object.keys(log.metadata).length > 0 && (

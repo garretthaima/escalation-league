@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import CommanderDisplay from './CommanderDisplay';
+import { formatDateLong } from '../../../utils/dateFormatter';
 
 const OverviewTab = ({ user, currentLeague }) => {
     return (
@@ -222,11 +223,7 @@ const OverviewTab = ({ user, currentLeague }) => {
                             </div>
                             <div className="account-info-value">
                                 {user.last_login
-                                    ? new Date(user.last_login).toLocaleDateString('en-US', {
-                                        month: 'long',
-                                        day: 'numeric',
-                                        year: 'numeric'
-                                    })
+                                    ? formatDateLong(user.last_login)
                                     : 'Never'}
                             </div>
                         </div>

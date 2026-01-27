@@ -1,5 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import { formatDate } from '../../utils/dateFormatter';
 import './RecentWinners.css';
 
 /**
@@ -40,10 +41,7 @@ const RecentWinners = ({ games, loading }) => {
                     {games.map(game => {
                         const winner = game.participants?.find(p => p.result === 'win');
                         const isDraw = game.participants?.some(p => p.result === 'draw');
-                        const gameDate = new Date(game.created_at).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric'
-                        });
+                        const gameDate = formatDate(game.created_at, { year: undefined });
 
                         return (
                             <div key={game.id} className="list-group-item recent-winner-item">

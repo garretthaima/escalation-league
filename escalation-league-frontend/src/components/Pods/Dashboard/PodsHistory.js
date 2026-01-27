@@ -4,6 +4,7 @@ import { getPods } from '../../../api/podsApi';
 import { getUserProfile } from '../../../api/usersApi';
 import { usePermissions } from '../../../context/PermissionsProvider';
 import LoadingSpinner from '../../Shared/LoadingSpinner';
+import { formatDate } from '../../../utils/dateFormatter';
 
 /**
  * Full completed games page with filtering and export
@@ -92,7 +93,7 @@ const PodsHistory = () => {
 
             return [
                 game.id,
-                new Date(game.created_at).toLocaleDateString(),
+                formatDate(game.created_at),
                 winnerName,
                 participants
             ];
@@ -257,7 +258,7 @@ const PodsHistory = () => {
                                             style={{ cursor: window.innerWidth < 768 ? 'pointer' : 'default' }}
                                         >
                                             <td>#{game.id}</td>
-                                            <td>{new Date(game.created_at).toLocaleDateString()}</td>
+                                            <td>{formatDate(game.created_at)}</td>
                                             <td>
                                                 {isDraw ? (
                                                     <span className="text-muted">Draw</span>
@@ -353,7 +354,7 @@ const PodsHistory = () => {
                                         <div className="d-flex justify-content-between align-items-start mb-2">
                                             <h6 className="card-title mb-0">Pod #{game.id}</h6>
                                             <span className="badge bg-secondary">
-                                                {new Date(game.created_at).toLocaleDateString()}
+                                                {formatDate(game.created_at)}
                                             </span>
                                         </div>
                                         <div className="mb-3">

@@ -17,8 +17,8 @@ describe('ConfirmModal', () => {
 
     describe('rendering', () => {
         it('should not render when show is false', () => {
-            const { container } = render(<ConfirmModal {...defaultProps} show={false} />);
-            expect(container.firstChild).toBeNull();
+            render(<ConfirmModal {...defaultProps} show={false} />);
+            expect(screen.queryByText('Confirm Action')).not.toBeInTheDocument();
         });
 
         it('should render when show is true', () => {
@@ -70,60 +70,67 @@ describe('ConfirmModal', () => {
 
     describe('type/button styling', () => {
         it('should use danger button class by default', () => {
-            const { container } = render(<ConfirmModal {...defaultProps} />);
-            expect(container.querySelector('.btn-danger')).toBeInTheDocument();
+            render(<ConfirmModal {...defaultProps} />);
+            expect(screen.getByRole('button', { name: 'Confirm' })).toHaveClass('btn-danger');
         });
 
         it('should use danger button class for danger type', () => {
-            const { container } = render(<ConfirmModal {...defaultProps} type="danger" />);
-            expect(container.querySelector('.btn-danger')).toBeInTheDocument();
+            render(<ConfirmModal {...defaultProps} type="danger" />);
+            expect(screen.getByRole('button', { name: 'Confirm' })).toHaveClass('btn-danger');
         });
 
         it('should use warning button class for warning type', () => {
-            const { container } = render(<ConfirmModal {...defaultProps} type="warning" />);
-            expect(container.querySelector('.btn-warning')).toBeInTheDocument();
+            render(<ConfirmModal {...defaultProps} type="warning" />);
+            expect(screen.getByRole('button', { name: 'Confirm' })).toHaveClass('btn-warning');
         });
 
         it('should use primary button class for primary type', () => {
-            const { container } = render(<ConfirmModal {...defaultProps} type="primary" />);
-            expect(container.querySelector('.btn-primary')).toBeInTheDocument();
+            render(<ConfirmModal {...defaultProps} type="primary" />);
+            expect(screen.getByRole('button', { name: 'Confirm' })).toHaveClass('btn-primary');
         });
 
         it('should use danger for unknown type', () => {
-            const { container } = render(<ConfirmModal {...defaultProps} type="unknown" />);
-            expect(container.querySelector('.btn-danger')).toBeInTheDocument();
+            render(<ConfirmModal {...defaultProps} type="unknown" />);
+            expect(screen.getByRole('button', { name: 'Confirm' })).toHaveClass('btn-danger');
         });
 
         it('should have secondary button for cancel', () => {
-            const { container } = render(<ConfirmModal {...defaultProps} />);
-            expect(container.querySelector('.btn-secondary')).toBeInTheDocument();
+            render(<ConfirmModal {...defaultProps} />);
+            expect(screen.getByRole('button', { name: 'Cancel' })).toHaveClass('btn-secondary');
         });
     });
 
     describe('close functionality', () => {
         it('should call onCancel when close button is clicked', () => {
-            const { container } = render(<ConfirmModal {...defaultProps} />);
-            const closeButton = container.querySelector('.confirm-modal-close');
+            render(<ConfirmModal {...defaultProps} />);
+            const closeButton = screen.getByLabelText('Close');
             fireEvent.click(closeButton);
             expect(defaultProps.onCancel).toHaveBeenCalledTimes(1);
         });
 
         it('should call onCancel when backdrop is clicked', () => {
-            const { container } = render(<ConfirmModal {...defaultProps} />);
-            const backdrop = container.querySelector('.confirm-modal-backdrop');
+            render(<ConfirmModal {...defaultProps} />);
+            const backdrop = document.querySelector('.modal-backdrop');
             fireEvent.click(backdrop);
             expect(defaultProps.onCancel).toHaveBeenCalledTimes(1);
         });
     });
 
     describe('structure', () => {
-        it('should have proper modal structure', () => {
-            const { container } = render(<ConfirmModal {...defaultProps} />);
-            expect(container.querySelector('.confirm-modal')).toBeInTheDocument();
-            expect(container.querySelector('.confirm-modal-backdrop')).toBeInTheDocument();
-            expect(container.querySelector('.confirm-modal-header')).toBeInTheDocument();
-            expect(container.querySelector('.confirm-modal-body')).toBeInTheDocument();
-            expect(container.querySelector('.confirm-modal-footer')).toBeInTheDocument();
+        it('should have proper Bootstrap modal structure', () => {
+            render(<ConfirmModal {...defaultProps} />);
+            expect(document.querySelector('.modal')).toBeInTheDocument();
+            expect(document.querySelector('.modal-backdrop')).toBeInTheDocument();
+            expect(document.querySelector('.modal-dialog')).toBeInTheDocument();
+            expect(document.querySelector('.modal-content')).toBeInTheDocument();
+            expect(document.querySelector('.modal-header')).toBeInTheDocument();
+            expect(document.querySelector('.modal-body')).toBeInTheDocument();
+            expect(document.querySelector('.modal-footer')).toBeInTheDocument();
+        });
+
+        it('should render modal title in header', () => {
+            render(<ConfirmModal {...defaultProps} />);
+            expect(document.querySelector('.modal-title')).toHaveTextContent('Confirm Action');
         });
     });
 });
