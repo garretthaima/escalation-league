@@ -35,9 +35,19 @@ describe('tokenUtils', () => {
     };
 
     const mockSecretKey = 'test-secret-key-12345';
+    const originalJwtSecret = process.env.JWT_SECRET;
 
     beforeEach(() => {
         jest.clearAllMocks();
+        // Clear JWT_SECRET so tests use mocked getSetting
+        delete process.env.JWT_SECRET;
+    });
+
+    afterAll(() => {
+        // Restore original JWT_SECRET
+        if (originalJwtSecret) {
+            process.env.JWT_SECRET = originalJwtSecret;
+        }
     });
 
     describe('parseDuration', () => {

@@ -23,8 +23,12 @@ module.exports = (io) => {
                 return next(new Error('Authentication required'));
             }
 
-            // Get JWT secret from settings
-            const jwtSecret = await getSetting('secret_key');
+            // Get JWT secret (prefer env var over database)
+            const jwtSecret = process.env.JWT_SECRET || await getSetting('secret_key');
+            if (!jwtSecret) {
+                logger.error('JWT secret key not configured');
+                return next(new Error('Server configuration error'));
+            }
 
             // Verify token
             const decoded = jwt.verify(token, jwtSecret);
