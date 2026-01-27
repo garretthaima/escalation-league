@@ -1,11 +1,79 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import CommanderDisplay from './CommanderDisplay';
 import UpdateCommanderModal from '../../Leagues/UpdateCommanderModal';
+import { syncDeck } from '../../../api/decksApi';
+
+const SYNC_COOLDOWN_SECONDS = 60;
 
 const LeagueTab = ({ currentLeague, onCommanderUpdated }) => {
     const [showCommanderModal, setShowCommanderModal] = useState(false);
+    const [isSyncing, setIsSyncing] = useState(false);
+    const [syncMessage, setSyncMessage] = useState(null);
+    const [cooldownRemaining, setCooldownRemaining] = useState(0);
+    const syncingRef = useRef(false);
+    const cooldownTimerRef = useRef(null);
+
+    // Cleanup cooldown timer on unmount
+    useEffect(() => {
+        return () => {
+            if (cooldownTimerRef.current) {
+                clearInterval(cooldownTimerRef.current);
+            }
+        };
+    }, []);
+
+    const startCooldown = useCallback(() => {
+        setCooldownRemaining(SYNC_COOLDOWN_SECONDS);
+        cooldownTimerRef.current = setInterval(() => {
+            setCooldownRemaining(prev => {
+                if (prev <= 1) {
+                    clearInterval(cooldownTimerRef.current);
+                    cooldownTimerRef.current = null;
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+    }, []);
+
+    const handleSyncDeck = async () => {
+        // Use ref for immediate check to prevent race conditions
+        if (!currentLeague?.deck_id || syncingRef.current || cooldownRemaining > 0) return;
+
+        syncingRef.current = true;
+        setIsSyncing(true);
+        setSyncMessage(null);
+
+        try {
+            const result = await syncDeck(currentLeague.deck_id);
+            setSyncMessage({
+                type: 'success',
+                text: result.wasStale
+                    ? `Deck updated: ${result.deck.name}`
+                    : 'Deck is already up to date'
+            });
+            // Refresh profile data to show updated commander info
+            if (result.wasStale && onCommanderUpdated) {
+                onCommanderUpdated();
+            }
+            // Start cooldown after successful sync
+            startCooldown();
+        } catch (error) {
+            setSyncMessage({
+                type: 'error',
+                text: error.response?.data?.error || 'Failed to sync deck'
+            });
+            // Also start cooldown on error to prevent spamming retries
+            startCooldown();
+        } finally {
+            syncingRef.current = false;
+            setIsSyncing(false);
+            // Clear message after 5 seconds
+            setTimeout(() => setSyncMessage(null), 5000);
+        }
+    };
     if (!currentLeague) {
         return (
             <div className="profile-card">
@@ -197,16 +265,35 @@ const LeagueTab = ({ currentLeague, onCommanderUpdated }) => {
                                             )}
                                         </div>
                                     )}
-                                    {currentLeague.decklistUrl && (
-                                        <a
-                                            href={currentLeague.decklistUrl}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="btn btn-sm btn-purple"
-                                        >
-                                            <i className="fas fa-external-link-alt me-1"></i>
-                                            View Decklist
-                                        </a>
+                                    <div className="d-flex flex-wrap gap-2 mt-2">
+                                        {currentLeague.decklistUrl && (
+                                            <a
+                                                href={currentLeague.decklistUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="btn btn-sm btn-purple"
+                                            >
+                                                <i className="fas fa-external-link-alt me-1"></i>
+                                                View Decklist
+                                            </a>
+                                        )}
+                                        {currentLeague.deck_id && (
+                                            <button
+                                                onClick={handleSyncDeck}
+                                                disabled={isSyncing || cooldownRemaining > 0}
+                                                className="btn btn-sm btn-outline-purple"
+                                                title={cooldownRemaining > 0 ? `Wait ${cooldownRemaining}s before syncing again` : 'Refresh deck data from Moxfield/Archidekt'}
+                                            >
+                                                <i className={`fas fa-sync-alt me-1 ${isSyncing ? 'fa-spin' : ''}`}></i>
+                                                {isSyncing ? 'Syncing...' : cooldownRemaining > 0 ? `Wait ${cooldownRemaining}s` : 'Sync Deck'}
+                                            </button>
+                                        )}
+                                    </div>
+                                    {syncMessage && (
+                                        <div className={`mt-2 small ${syncMessage.type === 'success' ? 'text-success' : 'text-danger'}`}>
+                                            <i className={`fas ${syncMessage.type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} me-1`}></i>
+                                            {syncMessage.text}
+                                        </div>
                                     )}
                                 </div>
                             </div>
@@ -297,6 +384,7 @@ LeagueTab.propTypes = {
         current_commander: PropTypes.string,
         commander_partner: PropTypes.string,
         decklistUrl: PropTypes.string,
+        deck_id: PropTypes.string,
     }),
     onCommanderUpdated: PropTypes.func,
 };

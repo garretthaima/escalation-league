@@ -7,9 +7,11 @@ const {
     ANALYSIS_KEYWORDS,
     BASIC_LAND_NAMES,
     isBasicLand,
+    isLand,
     getColorName,
     getPrimaryType
 } = require('../services/cardAnalysisService');
+const { triggerLazySyncIfNeeded, forceSyncLeagueDecks } = require('../services/deckService');
 
 /**
  * Get metagame statistics for the active league
@@ -18,6 +20,12 @@ const {
 const getMetagameStats = async (req, res) => {
     try {
         const { leagueId } = req.params;
+
+        // Trigger lazy deck sync in background if enough time has passed
+        // This doesn't block the response - sync happens asynchronously
+        triggerLazySyncIfNeeded(leagueId).catch(err => {
+            logger.error('Failed to trigger lazy sync', { leagueId, error: err.message });
+        });
 
         // Get all decks for users in the specified league
         const decksInLeague = await db('user_leagues as ul')
@@ -209,14 +217,17 @@ const getMetagameStats = async (req, res) => {
                             }
                         }
 
-                        // Mana curve analysis
-                        const cmc = fullCard.cmc !== undefined ? fullCard.cmc : 0;
-                        const cmcKey = cmc >= 7 ? '7+' : String(cmc);
-                        cmcCounts[cmcKey] = (cmcCounts[cmcKey] || 0) + 1;
+                        // Mana curve analysis - exclude ALL lands (not just basic)
+                        // Lands have CMC 0 and skew the curve
+                        if (!isLand(fullCard)) {
+                            const cmc = fullCard.cmc !== undefined ? fullCard.cmc : 0;
+                            const cmcKey = cmc >= 7 ? '7+' : String(cmc);
+                            cmcCounts[cmcKey] = (cmcCounts[cmcKey] || 0) + 1;
 
-                        // Track per-deck CMC
-                        deckTotalCmc += cmc;
-                        deckCardCount++;
+                            // Track per-deck CMC
+                            deckTotalCmc += cmc;
+                            deckCardCount++;
+                        }
 
                         // Count colors if available
                         if (fullCard.colors && Array.isArray(fullCard.colors)) {
@@ -247,8 +258,8 @@ const getMetagameStats = async (req, res) => {
                             deckBoardWipes++;
                         }
 
-                        // Detect ramp cards
-                        if (rampKeywords.some(kw => cardText.includes(kw) || cardName.toLowerCase().includes(kw))) {
+                        // Detect ramp cards (exclude lands - they have "tap: add" but aren't ramp)
+                        if (!isLand(fullCard) && rampKeywords.some(kw => cardText.includes(kw) || cardName.toLowerCase().includes(kw))) {
                             rampCards++;
                             deckRamp++;
                         }
@@ -683,6 +694,7 @@ const getCardStats = async (req, res) => {
             .where('ul.league_id', leagueId)
             .whereRaw('JSON_SEARCH(d.cards, "one", ?) IS NOT NULL', [cardName])
             .select(
+                'u.id as user_id',
                 'u.firstname',
                 'u.lastname',
                 'd.name as deck_name',
@@ -886,6 +898,9 @@ const getCategoryCards = async (req, res) => {
                 // Skip basic lands
                 if (isBasicLand(fullCard)) continue;
 
+                // Skip all lands for ramp category - lands produce mana but aren't "ramp" cards
+                if (category === 'ramp' && isLand(fullCard)) continue;
+
                 // Check if card matches category
                 const cardText = (fullCard.oracle_text || '').toLowerCase();
                 const cardMatchesCategory = keywords.some(kw =>
@@ -1061,10 +1076,32 @@ const getCommanderMatchups = async (req, res) => {
     }
 };
 
+/**
+ * Manually trigger deck sync for a league
+ * Admin-only endpoint for forcing a refresh
+ */
+const syncLeagueDecks = async (req, res) => {
+    try {
+        const { leagueId } = req.params;
+
+        logger.info('Manual deck sync requested', { leagueId, userId: req.user?.id });
+
+        const result = await forceSyncLeagueDecks(leagueId);
+
+        res.status(200).json({
+            message: 'Deck sync completed',
+            ...result
+        });
+    } catch (err) {
+        handleError(res, err, 'Failed to sync league decks');
+    }
+};
+
 module.exports = {
     getMetagameStats,
     getCardStats,
     getTurnOrderStats,
     getCategoryCards,
-    getCommanderMatchups
+    getCommanderMatchups,
+    syncLeagueDecks
 };

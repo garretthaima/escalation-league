@@ -26,8 +26,16 @@
 }
 
 .metagame-dashboard .table-hover tbody tr:hover {
-    background-color: var(--bg-secondary);
+    background-color: rgba(167, 139, 250, 0.08);
     cursor: pointer;
+}
+
+body.dark-mode .metagame-dashboard .table-hover tbody tr:hover {
+    background-color: rgba(167, 139, 250, 0.12);
+}
+
+.metagame-dashboard .table-hover tbody tr {
+    transition: background-color 0.15s ease;
 }
 
 .metagame-dashboard .badge {
@@ -69,35 +77,95 @@ body.dark-mode .mana-curve-chart strong {
 
 /* Card preview popup */
 .card-preview-popup {
-    animation: fadeIn 0.15s ease-in;
+    animation: cardFadeIn 0.2s ease-out;
     transition: left 0.1s ease-out, top 0.1s ease-out;
+    background: var(--bg-primary);
+    border-radius: 12px;
+    padding: 8px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1);
 }
 
-@keyframes fadeIn {
+body.dark-mode .card-preview-popup {
+    background: rgba(20, 20, 35, 0.95);
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(12px);
+}
+
+@keyframes cardFadeIn {
     from {
         opacity: 0;
-        transform: scale(0.95);
+        transform: scale(0.92) translateY(8px);
     }
 
     to {
         opacity: 1;
-        transform: scale(1);
+        transform: scale(1) translateY(0);
     }
 }
 
-/* Mobile: show card preview below table on tap */
+/* Mobile close button for card preview */
+.card-preview-close {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    border-radius: 50%;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+}
+
+.card-preview-close:active {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Mobile: show card preview at bottom of screen */
 @media (max-width: 768px) {
     .card-preview-popup {
-        position: relative !important;
-        right: auto !important;
+        position: fixed !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
         top: auto !important;
         transform: none !important;
-        margin-top: 1rem;
-        text-align: center;
+        margin: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        border-radius: 16px 16px 0 0 !important;
+        padding: 12px !important;
+        padding-top: 40px !important;
+        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4) !important;
+        z-index: 1200 !important;
+        pointer-events: auto !important;
+    }
+
+    .card-preview-popup .card-preview-content {
+        flex-direction: row;
+        justify-content: center;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .card-preview-popup .card-preview-images {
+        flex-shrink: 0;
     }
 
     .card-preview-popup img {
-        max-width: 200px !important;
+        max-width: 140px !important;
+        max-height: 200px !important;
+    }
+
+    .card-preview-popup .card-deck-info {
+        max-height: 180px;
+        min-width: 150px;
+        max-width: 180px;
     }
 }
 
@@ -162,12 +230,19 @@ body.dark-mode .mana-curve-chart strong {
 /* Card preview image */
 .metagame-dashboard .card-preview-img {
     max-width: 250px;
-    border: 2px solid #fff;
+    border-radius: 10px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s ease;
+}
+
+.metagame-dashboard .card-preview-img:hover {
+    transform: scale(1.02);
 }
 
 .metagame-dashboard .card-preview-img-sm {
     max-width: 200px;
-    border: 2px solid #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
 /* Beta badge */
@@ -219,4 +294,181 @@ body.dark-mode .mana-curve-chart strong {
 
 .mana-curve-label {
     color: #6c757d;
+}
+
+/* Card preview with deck info - horizontal layout */
+.metagame-dashboard .card-preview-content {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+}
+
+.metagame-dashboard .card-preview-images {
+    display: flex;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.metagame-dashboard .card-deck-info {
+    background: linear-gradient(135deg, rgba(45, 27, 78, 0.95) 0%, rgba(30, 20, 50, 0.95) 100%);
+    border-radius: 10px;
+    padding: 10px 14px;
+    min-width: 180px;
+    max-width: 200px;
+    max-height: 340px;
+    overflow-y: auto;
+    text-align: left;
+    border: 1px solid rgba(167, 139, 250, 0.2);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    scrollbar-width: thin;
+    scrollbar-color: rgba(167, 139, 250, 0.4) transparent;
+}
+
+.metagame-dashboard .card-deck-info::-webkit-scrollbar {
+    width: 5px;
+}
+
+.metagame-dashboard .card-deck-info::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.metagame-dashboard .card-deck-info::-webkit-scrollbar-thumb {
+    background: rgba(167, 139, 250, 0.4);
+    border-radius: 3px;
+}
+
+.metagame-dashboard .card-deck-info::-webkit-scrollbar-thumb:hover {
+    background: rgba(167, 139, 250, 0.6);
+}
+
+body.dark-mode .metagame-dashboard .card-deck-info {
+    background: linear-gradient(135deg, rgba(30, 25, 45, 0.98) 0%, rgba(20, 15, 35, 0.98) 100%);
+    border-color: rgba(167, 139, 250, 0.15);
+}
+
+/* Mobile: stack vertically */
+@media (max-width: 768px) {
+    .metagame-dashboard .card-preview-content {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .metagame-dashboard .card-deck-info {
+        max-width: 250px;
+        max-height: 200px;
+    }
+}
+
+.metagame-dashboard .deck-info-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--brand-gold, #d4af37);
+    font-size: 0.7rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+}
+
+.metagame-dashboard .deck-info-label::before {
+    content: '';
+    display: inline-block;
+    width: 4px;
+    height: 4px;
+    background: var(--brand-gold, #d4af37);
+    border-radius: 50%;
+}
+
+.metagame-dashboard .deck-info-entry {
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    transition: background 0.15s ease;
+}
+
+.metagame-dashboard .deck-info-entry:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.metagame-dashboard .deck-info-entry:first-of-type {
+    padding-top: 0;
+}
+
+.metagame-dashboard .deck-info-name {
+    display: block;
+    color: #fff;
+    font-size: 0.82rem;
+    font-weight: 500;
+    line-height: 1.3;
+}
+
+.metagame-dashboard .deck-info-player {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.72rem;
+    margin-top: 2px;
+    transition: color 0.15s ease;
+}
+
+.metagame-dashboard .deck-info-player::before {
+    content: '\f007';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    font-size: 0.6rem;
+    opacity: 0.7;
+}
+
+.metagame-dashboard .deck-info-player.clickable {
+    cursor: pointer;
+    color: #a78bfa;
+}
+
+.metagame-dashboard .deck-info-player.clickable:hover {
+    color: #c4b5fd;
+    text-decoration: none;
+}
+
+.metagame-dashboard .deck-info-player.clickable::before {
+    color: #a78bfa;
+}
+
+/* Sticky popup indicator */
+.metagame-dashboard .card-preview-popup.sticky {
+    box-shadow: 0 0 0 2px var(--brand-purple, #6f42c1), 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
+.metagame-dashboard .card-preview-popup.sticky .card-deck-info {
+    border-color: rgba(167, 139, 250, 0.4);
+}
+
+.metagame-dashboard .deck-info-loading {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.78rem;
+    font-style: italic;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.metagame-dashboard .deck-info-loading::before {
+    content: '';
+    width: 12px;
+    height: 12px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-top-color: var(--brand-purple, #6f42c1);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.metagame-dashboard .deck-info-empty {
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.78rem;
+    font-style: italic;
 }

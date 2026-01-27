@@ -1,7 +1,6 @@
 const express = require('express');
-const { validateAndCacheDeck, priceCheckDeck } = require('../controllers/decksController');
+const { validateAndCacheDeck, priceCheckDeck, syncDeck } = require('../controllers/decksController');
 const authenticateToken = require('../middlewares/authentication');
-const authorizePermission = require('../middlewares/authorizePermission');
 
 const router = express.Router();
 
@@ -16,6 +15,13 @@ router.post(
     '/price-check',
     authenticateToken, // Ensure the user is authenticated
     priceCheckDeck
+);
+
+// Route to sync a single deck from its platform
+router.post(
+    '/:deckId/sync',
+    authenticateToken, // Ensure the user is authenticated
+    syncDeck
 );
 
 module.exports = router;

@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getActiveLeague } from '../../api/leaguesApi';
-import { getMetagameAnalysis, getTurnOrderStats, getCategoryCards } from '../../api/metagameApi';
+import { getMetagameAnalysis, getTurnOrderStats, getCategoryCards, getCardStats } from '../../api/metagameApi';
 import ColorDistributionChart from './ColorDistributionChart';
 import ManaCurveChart from './ManaCurveChart';
 import LoadingSpinner from '../Shared/LoadingSpinner';
@@ -20,6 +20,14 @@ const MetagameDashboard = () => {
     const [itemsPerPage, setItemsPerPage] = useState(25);
     // Category drill-down modal state
     const [categoryModal, setCategoryModal] = useState({ show: false, category: null, cards: [], loading: false });
+    // Card deck info cache and loading state
+    const [cardDeckInfo, setCardDeckInfo] = useState({});
+    const [cardDeckLoading, setCardDeckLoading] = useState(null);
+    const cardDeckCache = useRef({});
+    // Sticky hover state - popup becomes interactive after delay
+    const [isHoverSticky, setIsHoverSticky] = useState(false);
+    const stickyHoverTimer = useRef(null);
+    const STICKY_HOVER_DELAY = 500; // ms before popup becomes clickable
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -55,6 +63,76 @@ const MetagameDashboard = () => {
             setLoading(false);
         }
     };
+
+    // Fetch deck info for a card when hovering
+    const fetchCardDeckInfo = useCallback(async (cardName) => {
+        if (!activeLeague || !cardName) return;
+
+        // Check cache first
+        if (cardDeckCache.current[cardName]) {
+            setCardDeckInfo(prev => ({ ...prev, [cardName]: cardDeckCache.current[cardName] }));
+            return;
+        }
+
+        setCardDeckLoading(cardName);
+        try {
+            const data = await getCardStats(activeLeague.id, cardName);
+            // Parse commanders and extract display name for each deck
+            const deckInfos = (data.decks || []).map(deck => {
+                let commanderName = deck.deck_name || 'Unknown Deck';
+                try {
+                    const commanders = typeof deck.commanders === 'string'
+                        ? JSON.parse(deck.commanders)
+                        : deck.commanders;
+                    if (Array.isArray(commanders) && commanders.length > 0) {
+                        commanderName = commanders.map(c => c.name || c).join(' / ');
+                    }
+                } catch (e) {
+                    // Keep deck_name as fallback
+                }
+                return {
+                    commander: commanderName,
+                    player: `${deck.firstname || ''} ${deck.lastname || ''}`.trim(),
+                    userId: deck.user_id
+                };
+            });
+            cardDeckCache.current[cardName] = deckInfos;
+            setCardDeckInfo(prev => ({ ...prev, [cardName]: deckInfos }));
+        } catch (err) {
+            console.error('Error fetching card deck info:', err);
+            cardDeckCache.current[cardName] = [];
+            setCardDeckInfo(prev => ({ ...prev, [cardName]: [] }));
+        } finally {
+            setCardDeckLoading(null);
+        }
+    }, [activeLeague]);
+
+    // Start sticky hover timer when mouse enters card row
+    const startStickyTimer = useCallback(() => {
+        if (stickyHoverTimer.current) {
+            clearTimeout(stickyHoverTimer.current);
+        }
+        stickyHoverTimer.current = setTimeout(() => {
+            setIsHoverSticky(true);
+        }, STICKY_HOVER_DELAY);
+    }, []);
+
+    // Clear sticky hover when mouse leaves
+    const clearStickyHover = useCallback(() => {
+        if (stickyHoverTimer.current) {
+            clearTimeout(stickyHoverTimer.current);
+            stickyHoverTimer.current = null;
+        }
+        setIsHoverSticky(false);
+        setHoveredCard(null);
+    }, []);
+
+    // Handle click on player name to navigate to profile
+    const handlePlayerClick = useCallback((userId) => {
+        if (userId && activeLeague?.id) {
+            navigate(`/leagues/${activeLeague.id}/profile/${userId}`);
+        }
+    }, [navigate, activeLeague]);
 
     // Handle category click to show drill-down modal
     const handleCategoryClick = async (category, displayName) => {
@@ -374,13 +452,19 @@ const MetagameDashboard = () => {
                                                                 onMouseEnter={(e) => {
                                                                     setHoveredCard(card);
                                                                     setMousePosition({ x: e.clientX, y: e.clientY });
+                                                                    fetchCardDeckInfo(card.name);
+                                                                    startStickyTimer();
                                                                 }}
                                                                 onMouseMove={(e) => {
-                                                                    if (hoveredCard) {
+                                                                    if (hoveredCard && !isHoverSticky) {
                                                                         setMousePosition({ x: e.clientX, y: e.clientY });
                                                                     }
                                                                 }}
-                                                                onMouseLeave={() => setHoveredCard(null)}
+                                                                onMouseLeave={() => {
+                                                                    if (!isHoverSticky) {
+                                                                        clearStickyHover();
+                                                                    }
+                                                                }}
                                                                 onClick={() => setHoveredCard(hoveredCard?.name === card.name ? null : card)}
                                                                 className={card.image_uri ? 'table-row-clickable' : 'table-row-default'}
                                                             >
@@ -398,35 +482,75 @@ const MetagameDashboard = () => {
                                             {/* Card preview on hover */}
                                             {hoveredCard && (hoveredCard.image_uri || (hoveredCard.image_uris && hoveredCard.image_uris.length > 0)) && (
                                                 <div
-                                                    className="card-preview-popup"
+                                                    className={`card-preview-popup ${isHoverSticky ? 'sticky' : ''}`}
                                                     style={{
                                                         position: 'fixed',
                                                         left: `${mousePosition.x + 20}px`,
                                                         top: `${mousePosition.y - 150}px`,
                                                         zIndex: 1050,
-                                                        pointerEvents: 'none',
-                                                        display: 'flex',
-                                                        gap: '10px'
+                                                        pointerEvents: isHoverSticky ? 'auto' : 'none',
+                                                    }}
+                                                    onMouseLeave={() => {
+                                                        if (isHoverSticky) {
+                                                            clearStickyHover();
+                                                        }
                                                     }}
                                                 >
-                                                    {hoveredCard.image_uris && hoveredCard.image_uris.length > 1 ? (
-                                                        // Multi-faced card: show both faces
-                                                        hoveredCard.image_uris.map((uri, idx) => (
-                                                            <img
-                                                                key={idx}
-                                                                src={uri}
-                                                                alt={`${hoveredCard.name} - Face ${idx + 1}`}
-                                                                className="img-fluid rounded shadow-lg card-preview-img-sm"
-                                                            />
-                                                        ))
-                                                    ) : (
-                                                        // Single-faced card
-                                                        <img
-                                                            src={hoveredCard.image_uri}
-                                                            alt={hoveredCard.name}
-                                                            className="img-fluid rounded shadow-lg card-preview-img"
-                                                        />
-                                                    )}
+                                                    {/* Mobile close button */}
+                                                    <button
+                                                        className="card-preview-close d-md-none"
+                                                        onClick={() => clearStickyHover()}
+                                                        aria-label="Close"
+                                                    >
+                                                        <i className="fas fa-times"></i>
+                                                    </button>
+                                                    <div className="card-preview-content">
+                                                        <div className="card-preview-images">
+                                                            {hoveredCard.image_uris && hoveredCard.image_uris.length > 1 ? (
+                                                                // Multi-faced card: show both faces
+                                                                hoveredCard.image_uris.map((uri, idx) => (
+                                                                    <img
+                                                                        key={idx}
+                                                                        src={uri}
+                                                                        alt={`${hoveredCard.name} - Face ${idx + 1}`}
+                                                                        className="img-fluid rounded shadow-lg card-preview-img-sm"
+                                                                    />
+                                                                ))
+                                                            ) : (
+                                                                // Single-faced card
+                                                                <img
+                                                                    src={hoveredCard.image_uri}
+                                                                    alt={hoveredCard.name}
+                                                                    className="img-fluid rounded shadow-lg card-preview-img"
+                                                                />
+                                                            )}
+                                                        </div>
+                                                        {/* Deck info section - now to the right */}
+                                                        <div className="card-deck-info">
+                                                            {cardDeckLoading === hoveredCard.name ? (
+                                                                <span className="deck-info-loading">Loading...</span>
+                                                            ) : cardDeckInfo[hoveredCard.name]?.length > 0 ? (
+                                                                <>
+                                                                    <span className="deck-info-label">In {cardDeckInfo[hoveredCard.name].length} deck{cardDeckInfo[hoveredCard.name].length !== 1 ? 's' : ''}</span>
+                                                                    {cardDeckInfo[hoveredCard.name].map((deck, idx) => (
+                                                                        <div key={idx} className="deck-info-entry">
+                                                                            <span className="deck-info-name">{deck.commander}</span>
+                                                                            {deck.player && (
+                                                                                <span
+                                                                                    className={`deck-info-player ${isHoverSticky && deck.userId ? 'clickable' : ''}`}
+                                                                                    onClick={() => isHoverSticky && deck.userId && handlePlayerClick(deck.userId)}
+                                                                                >
+                                                                                    {deck.player}
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                    ))}
+                                                                </>
+                                                            ) : cardDeckInfo[hoveredCard.name] ? (
+                                                                <span className="deck-info-empty">Not in any deck</span>
+                                                            ) : null}
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             )}
                                         </div>
@@ -816,14 +940,33 @@ const MetagameDashboard = () => {
                                                                 if (card.imageUri || (card.imageUris && card.imageUris.length > 0)) {
                                                                     setHoveredCard(card);
                                                                     setMousePosition({ x: e.clientX, y: e.clientY });
+                                                                    fetchCardDeckInfo(card.name);
+                                                                    startStickyTimer();
                                                                 }
                                                             }}
                                                             onMouseMove={(e) => {
-                                                                if (hoveredCard) {
+                                                                if (hoveredCard && !isHoverSticky) {
                                                                     setMousePosition({ x: e.clientX, y: e.clientY });
                                                                 }
                                                             }}
-                                                            onMouseLeave={() => setHoveredCard(null)}
+                                                            onMouseLeave={() => {
+                                                                if (!isHoverSticky) {
+                                                                    clearStickyHover();
+                                                                }
+                                                            }}
+                                                            onClick={() => {
+                                                                // Mobile: tap to toggle card preview
+                                                                if (card.imageUri || (card.imageUris && card.imageUris.length > 0)) {
+                                                                    if (hoveredCard?.name === card.name) {
+                                                                        // Tap same card - close preview
+                                                                        clearStickyHover();
+                                                                    } else {
+                                                                        // Tap different card - switch to it
+                                                                        setHoveredCard(card);
+                                                                        fetchCardDeckInfo(card.name);
+                                                                    }
+                                                                }
+                                                            }}
                                                             className={(card.imageUri || card.imageUris) ? 'table-row-clickable' : 'table-row-default'}
                                                         >
                                                             <td>{idx + 1}</td>
@@ -841,35 +984,75 @@ const MetagameDashboard = () => {
                                         {/* Card preview on hover */}
                                         {hoveredCard && (hoveredCard.imageUri || (hoveredCard.imageUris && hoveredCard.imageUris.length > 0)) && (
                                             <div
-                                                className="card-preview-popup"
+                                                className={`card-preview-popup ${isHoverSticky ? 'sticky' : ''}`}
                                                 style={{
                                                     position: 'fixed',
                                                     left: `${mousePosition.x + 20}px`,
                                                     top: `${mousePosition.y - 150}px`,
                                                     zIndex: 1100,
-                                                    pointerEvents: 'none',
-                                                    display: 'flex',
-                                                    gap: '10px'
+                                                    pointerEvents: isHoverSticky ? 'auto' : 'none',
+                                                }}
+                                                onMouseLeave={() => {
+                                                    if (isHoverSticky) {
+                                                        clearStickyHover();
+                                                    }
                                                 }}
                                             >
-                                                {hoveredCard.imageUris && hoveredCard.imageUris.length > 1 ? (
-                                                    // Multi-faced card: show both faces
-                                                    hoveredCard.imageUris.map((uri, idx) => (
-                                                        <img
-                                                            key={idx}
-                                                            src={uri}
-                                                            alt={`${hoveredCard.name} - Face ${idx + 1}`}
-                                                            className="img-fluid rounded shadow-lg card-preview-img-sm"
-                                                        />
-                                                    ))
-                                                ) : (
-                                                    // Single-faced card
-                                                    <img
-                                                        src={hoveredCard.imageUri}
-                                                        alt={hoveredCard.name}
-                                                        className="img-fluid rounded shadow-lg card-preview-img"
-                                                    />
-                                                )}
+                                                {/* Mobile close button */}
+                                                <button
+                                                    className="card-preview-close d-md-none"
+                                                    onClick={() => clearStickyHover()}
+                                                    aria-label="Close"
+                                                >
+                                                    <i className="fas fa-times"></i>
+                                                </button>
+                                                <div className="card-preview-content">
+                                                    <div className="card-preview-images">
+                                                        {hoveredCard.imageUris && hoveredCard.imageUris.length > 1 ? (
+                                                            // Multi-faced card: show both faces
+                                                            hoveredCard.imageUris.map((uri, idx) => (
+                                                                <img
+                                                                    key={idx}
+                                                                    src={uri}
+                                                                    alt={`${hoveredCard.name} - Face ${idx + 1}`}
+                                                                    className="img-fluid rounded shadow-lg card-preview-img-sm"
+                                                                />
+                                                            ))
+                                                        ) : (
+                                                            // Single-faced card
+                                                            <img
+                                                                src={hoveredCard.imageUri}
+                                                                alt={hoveredCard.name}
+                                                                className="img-fluid rounded shadow-lg card-preview-img"
+                                                            />
+                                                        )}
+                                                    </div>
+                                                    {/* Deck info section - now to the right */}
+                                                    <div className="card-deck-info">
+                                                        {cardDeckLoading === hoveredCard.name ? (
+                                                            <span className="deck-info-loading">Loading...</span>
+                                                        ) : cardDeckInfo[hoveredCard.name]?.length > 0 ? (
+                                                            <>
+                                                                <span className="deck-info-label">In {cardDeckInfo[hoveredCard.name].length} deck{cardDeckInfo[hoveredCard.name].length !== 1 ? 's' : ''}</span>
+                                                                {cardDeckInfo[hoveredCard.name].map((deck, idx) => (
+                                                                    <div key={idx} className="deck-info-entry">
+                                                                        <span className="deck-info-name">{deck.commander}</span>
+                                                                        {deck.player && (
+                                                                            <span
+                                                                                className={`deck-info-player ${isHoverSticky && deck.userId ? 'clickable' : ''}`}
+                                                                                onClick={() => isHoverSticky && deck.userId && handlePlayerClick(deck.userId)}
+                                                                            >
+                                                                                {deck.player}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                ))}
+                                                            </>
+                                                        ) : cardDeckInfo[hoveredCard.name] ? (
+                                                            <span className="deck-info-empty">Not in any deck</span>
+                                                        ) : null}
+                                                    </div>
+                                                </div>
                                             </div>
                                         )}
                                     </div>

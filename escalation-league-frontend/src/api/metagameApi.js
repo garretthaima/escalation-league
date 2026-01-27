@@ -39,3 +39,11 @@ export const getCommanderMatchups = async (leagueId) => {
     const response = await axiosInstance.get(`/leagues/${leagueId}/metagame/commander-matchups`);
     return response.data;
 };
+
+/**
+ * Sync all decks in a league (admin only)
+ */
+export const syncLeagueDecks = async (leagueId) => {
+    const response = await axiosInstance.post(`/leagues/${leagueId}/metagame/sync-decks`);
+    return response.data;
+};
