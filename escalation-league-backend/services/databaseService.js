@@ -7,13 +7,12 @@ const getDeckFromDatabase = async (deckId) => {
         .first();
 };
 
-module.exports = { getDeckFromDatabase };
 const saveDeckToDatabase = async (deckData) => {
     const { id, decklist_url, platform, name, commanders, cards } = deckData;
-    
+
     // Check if deck already exists
     const existingDeck = await db('decks').where('id', id).first();
-    
+
     if (existingDeck) {
         // Update existing deck
         return db('decks')
