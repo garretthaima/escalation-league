@@ -41,6 +41,9 @@ const authenticateToken = async (req, res, next) => {
         id: user.id,
         role_id: userData.role_id
       };
+      // Prevent caching of authenticated responses by proxies (e.g., Cloudflare)
+      res.set('Cache-Control', 'private, no-store, no-cache, must-revalidate');
+      res.set('Vary', 'Authorization');
       return next();
     }
 
@@ -71,6 +74,10 @@ const authenticateToken = async (req, res, next) => {
       id: user.id,
       role_id: dbUser.role_id
     };
+
+    // Prevent caching of authenticated responses by proxies (e.g., Cloudflare)
+    res.set('Cache-Control', 'private, no-store, no-cache, must-revalidate');
+    res.set('Vary', 'Authorization');
 
     next();
   } catch (err) {
