@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import { updateUserProfile, getDiscordAuthUrl, getDiscordStatus, unlinkDiscord } from '../../../api/usersApi';
 import { useToast } from '../../../context/ToastContext';
+import { DiscordIcon, GoogleIcon, ConfirmModal } from '../../Shared';
 
 const SettingsTab = ({ user, handlePictureUpdate }) => {
     const stockImages = [
@@ -20,6 +21,7 @@ const SettingsTab = ({ user, handlePictureUpdate }) => {
 
     const [discordStatus, setDiscordStatus] = useState(null);
     const [discordLoading, setDiscordLoading] = useState(true);
+    const [showUnlinkModal, setShowUnlinkModal] = useState(false);
     const [searchParams, setSearchParams] = useSearchParams();
     const { showToast } = useToast();
 
@@ -98,12 +100,10 @@ const SettingsTab = ({ user, handlePictureUpdate }) => {
     };
 
     const handleUnlinkDiscord = async () => {
-        if (!window.confirm('Are you sure you want to unlink your Discord account?')) {
-            return;
-        }
         try {
             await unlinkDiscord();
             setDiscordStatus({ linked: false });
+            setShowUnlinkModal(false);
             showToast('Discord account unlinked successfully!', 'success');
         } catch (err) {
             console.error('Error unlinking Discord:', err);
@@ -237,7 +237,7 @@ const SettingsTab = ({ user, handlePictureUpdate }) => {
                                 <div className="connected-account">
                                     <div className="connected-account-info">
                                         <div className="connected-account-icon discord">
-                                            <i className="fab fa-discord"></i>
+                                            <DiscordIcon />
                                         </div>
                                         <div>
                                             <div className="connected-account-name">Discord</div>
@@ -259,7 +259,7 @@ const SettingsTab = ({ user, handlePictureUpdate }) => {
                                         discordStatus?.linked ? (
                                             <button
                                                 className="profile-btn profile-btn-danger"
-                                                onClick={handleUnlinkDiscord}
+                                                onClick={() => setShowUnlinkModal(true)}
                                             >
                                                 Unlink
                                             </button>
@@ -268,7 +268,7 @@ const SettingsTab = ({ user, handlePictureUpdate }) => {
                                                 className="profile-btn profile-btn-discord"
                                                 onClick={handleLinkDiscord}
                                             >
-                                                <i className="fab fa-discord"></i>
+                                                <DiscordIcon />
                                                 Link
                                             </button>
                                         )
@@ -281,7 +281,7 @@ const SettingsTab = ({ user, handlePictureUpdate }) => {
                                 <div className="connected-account">
                                     <div className="connected-account-info">
                                         <div className="connected-account-icon google">
-                                            <i className="fab fa-google"></i>
+                                            <GoogleIcon />
                                         </div>
                                         <div>
                                             <div className="connected-account-name">Google</div>
@@ -315,6 +315,18 @@ const SettingsTab = ({ user, handlePictureUpdate }) => {
                     </div>
                 </div>
             </div>
+
+            {/* Unlink Discord Confirmation Modal */}
+            <ConfirmModal
+                show={showUnlinkModal}
+                title="Unlink Discord Account"
+                message="Are you sure you want to unlink your Discord account? You will no longer receive game notifications or be able to check in via Discord reactions."
+                onConfirm={handleUnlinkDiscord}
+                onCancel={() => setShowUnlinkModal(false)}
+                confirmText="Unlink"
+                cancelText="Cancel"
+                type="danger"
+            />
         </div>
     );
 };

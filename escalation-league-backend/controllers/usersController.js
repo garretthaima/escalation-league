@@ -31,7 +31,8 @@ const getUserProfile = async (req, res) => {
         'deck_archetype',
         'last_login',
         'is_active',
-        'role_id'
+        'role_id',
+        'discord_id'
       )
       .where({ id: req.user.id, is_deleted: false })
       .first();

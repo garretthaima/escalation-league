@@ -4,6 +4,7 @@ import { usePermissions } from '../../context/PermissionsProvider';
 import { useToast } from '../../context/ToastContext';
 import { useWebSocket } from '../../context/WebSocketProvider';
 import LoadingSpinner from '../Shared/LoadingSpinner';
+import { DiscordIcon } from '../Shared';
 import './AttendancePage.css';
 
 const AttendancePage = () => {
@@ -159,7 +160,7 @@ const AttendancePage = () => {
             {/* Active Poll Banner */}
             {hasActivePoll && (
                 <div className="alert alert-info d-flex align-items-center mb-4">
-                    <i className="fab fa-discord fa-lg me-3"></i>
+                    <DiscordIcon className="me-3" style={{ fontSize: '1.25rem' }} />
                     <div>
                         <strong>Discord Poll Active!</strong>
                         <span className="ms-2">RSVP via Discord or check in below.</span>
@@ -182,7 +183,7 @@ const AttendancePage = () => {
                     <div>
                         {hasActivePoll && (
                             <span className="badge bg-info me-2">
-                                <i className="fab fa-discord me-1"></i>
+                                <DiscordIcon className="me-1" />
                                 Poll Open
                             </span>
                         )}

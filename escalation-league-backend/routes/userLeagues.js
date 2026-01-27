@@ -18,6 +18,7 @@ const {
 const authenticateToken = require('../middlewares/authentication');
 const authorizePermission = require('../middlewares/authorizePermission');
 const { cacheMiddleware, CACHE_TTL } = require('../middlewares/cacheMiddleware');
+const requireDiscord = require('../middlewares/requireDiscord');
 
 // User-League Endpoints
 
@@ -25,6 +26,7 @@ const { cacheMiddleware, CACHE_TTL } = require('../middlewares/cacheMiddleware')
 router.post(
     '/signup-request',
     authenticateToken,
+    requireDiscord('discord_required_for_league_signup'), // Optional Discord requirement
     requestSignupForLeague
 );
 
@@ -47,6 +49,7 @@ router.get(
 router.post(
     '/signup',
     authenticateToken,
+    requireDiscord('discord_required_for_league_signup'), // Optional Discord requirement
     signUpForLeague
 );
 

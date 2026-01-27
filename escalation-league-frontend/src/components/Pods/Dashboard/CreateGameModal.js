@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import { getLeagueParticipants } from '../../../api/userLeaguesApi';
 import { createPod } from '../../../api/podsApi';
@@ -15,6 +16,7 @@ const CreateGameModal = ({ show, onHide, leagueId, userId, onGameCreated }) => {
     const [selectedPlayers, setSelectedPlayers] = useState([]);
     const [creating, setCreating] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [discordRequired, setDiscordRequired] = useState(false);
     const { showToast } = useToast();
 
     // Use the turn order hook
@@ -62,6 +64,7 @@ const CreateGameModal = ({ show, onHide, leagueId, userId, onGameCreated }) => {
             // Reset state when modal closes
             setSelectedPlayers([]);
             setTurnOrder([]);
+            setDiscordRequired(false);
         }
     }, [show, leagueId, userId, showToast, setTurnOrder]);
 
@@ -119,7 +122,13 @@ const CreateGameModal = ({ show, onHide, leagueId, userId, onGameCreated }) => {
             if (onGameCreated) onGameCreated();
         } catch (err) {
             console.error('Error creating game:', err);
-            showToast(err.response?.data?.error || 'Failed to create game.', 'error');
+
+            // Check for Discord required error
+            if (err.response?.data?.code === 'DISCORD_REQUIRED') {
+                setDiscordRequired(true);
+            } else {
+                showToast(err.response?.data?.error || 'Failed to create game.', 'error');
+            }
         } finally {
             setCreating(false);
         }
@@ -157,7 +166,24 @@ const CreateGameModal = ({ show, onHide, leagueId, userId, onGameCreated }) => {
                             />
                         </div>
                         <div className="modal-body">
-                            {loading ? (
+                            {discordRequired ? (
+                                <div className="text-center py-4">
+                                    <i className="fab fa-discord fa-3x mb-3" style={{ color: '#5865F2' }}></i>
+                                    <h5>Discord Account Required</h5>
+                                    <p className="text-muted mb-3">
+                                        Please link your Discord account to create games.
+                                        This enables game notifications and attendance tracking.
+                                    </p>
+                                    <Link
+                                        to="/profile?tab=settings"
+                                        className="btn btn-primary"
+                                        onClick={onHide}
+                                    >
+                                        <i className="fab fa-discord me-2"></i>
+                                        Link Discord
+                                    </Link>
+                                </div>
+                            ) : loading ? (
                                 <div className="text-center py-4">
                                     <LoadingSpinner size="md" />
                                 </div>

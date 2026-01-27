@@ -23,3 +23,6 @@ export { default as Modal } from './Modal';
 export { default as LoadingButton } from './LoadingButton';
 export { default as EmptyState } from './EmptyState';
 export { default as StatusBadge } from './StatusBadge';
+export { default as DiscordPromptBanner } from './DiscordPromptBanner';
+export { default as DiscordIcon } from './DiscordIcon';
+export { default as GoogleIcon } from './GoogleIcon';

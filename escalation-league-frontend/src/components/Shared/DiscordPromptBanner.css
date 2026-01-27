@@ -1,0 +1,136 @@
+.discord-prompt-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(135deg, #5865F2 0%, #4752C4 100%);
+    border-radius: 10px;
+    padding: 12px 16px;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(88, 101, 242, 0.3);
+}
+
+.discord-prompt-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    flex-wrap: wrap;
+}
+
+.discord-prompt-icon {
+    font-size: 1.5rem;
+    opacity: 0.9;
+    color: #fff;
+}
+
+.discord-prompt-icon i {
+    color: #fff !important;
+}
+
+.discord-prompt-text {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 150px;
+}
+
+.discord-prompt-text strong {
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.discord-prompt-description {
+    font-size: 0.8rem;
+    opacity: 0.85;
+    margin-top: 2px;
+}
+
+.discord-prompt-link-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.discord-prompt-link-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    color: #fff;
+    text-decoration: none;
+    transform: translateY(-1px);
+}
+
+.discord-prompt-dismiss {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    padding: 8px;
+    cursor: pointer;
+    transition: color 0.2s ease;
+    font-size: 1rem;
+    line-height: 1;
+    margin-left: 8px;
+}
+
+.discord-prompt-dismiss:hover {
+    color: #fff;
+}
+
+/* Dark mode - just subtle adjustments */
+body.dark-mode .discord-prompt-banner {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 576px) {
+    .discord-prompt-banner {
+        padding: 10px 12px;
+    }
+
+    .discord-prompt-content {
+        gap: 8px;
+    }
+
+    .discord-prompt-icon {
+        font-size: 1.25rem;
+    }
+
+    .discord-prompt-text strong {
+        font-size: 0.85rem;
+    }
+
+    .discord-prompt-description {
+        font-size: 0.75rem;
+    }
+
+    .discord-prompt-link-btn {
+        padding: 6px 12px;
+        font-size: 0.8rem;
+    }
+}
+
+/* Extra small screens - stack vertically */
+@media (max-width: 400px) {
+    .discord-prompt-content {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .discord-prompt-icon {
+        display: none;
+    }
+
+    .discord-prompt-link-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
