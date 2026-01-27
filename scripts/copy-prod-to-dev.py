@@ -7,6 +7,7 @@ Usage: ./scripts/copy-prod-to-dev.py [--dry-run]
 import os
 import sys
 import subprocess
+import secrets
 from datetime import datetime
 from pathlib import Path
 
@@ -180,29 +181,46 @@ def main():
         dry_run
     )
 
-    # Step 5: Update dev-specific settings
+    # Step 5: Update dev-specific settings and generate new secret key
+    # Generate a new random secret key for dev (64 bytes = 128 hex chars)
+    new_secret_key = secrets.token_hex(64)
+
     if dry_run:
         print(f"{Colors.BLUE}[DRY RUN] Step 5: Would update dev-specific settings:{Colors.NC}")
         print(f"{Colors.BLUE}  - frontend_url -> https://dev.escalationleague.com{Colors.NC}")
         print(f"{Colors.BLUE}  - max_token_expiration -> 876000h{Colors.NC}")
-        print(f"{Colors.BLUE}  - port -> 3000{Colors.NC}")
+        print(f"{Colors.BLUE}  - secret_key -> (new random key){Colors.NC}")
         print()
     else:
         print(f"{Colors.GREEN}Step 5: Updating dev-specific settings...{Colors.NC}")
-        sql = """
+        sql = f"""
         UPDATE settings SET value = 'https://dev.escalationleague.com' WHERE key_name = 'frontend_url';
         UPDATE settings SET value = '876000h' WHERE key_name = 'token_expiration';
         UPDATE settings SET value = '876000h' WHERE key_name = 'max_token_expiration';
-        SELECT key_name, value, description FROM settings WHERE key_name IN ('frontend_url', 'token_expiration', 'max_token_expiration', 'google_client_id', 'secret_key') ORDER BY key_name;
+        UPDATE settings SET value = '{new_secret_key}' WHERE key_name = 'secret_key';
+        SELECT key_name, CASE WHEN key_name = 'secret_key' THEN CONCAT(LEFT(value, 8), '...') ELSE value END as value FROM settings WHERE key_name IN ('frontend_url', 'token_expiration', 'max_token_expiration', 'secret_key') ORDER BY key_name;
         """
         cmd = f"docker exec {dev_container} mysql -u root -p{dev_db_root_password} {dev_db_name} -e \"{sql}\""
         subprocess.run(cmd, shell=True)
-        print(f"{Colors.GREEN}Settings updated{Colors.NC}")
+        print(f"{Colors.GREEN}Settings updated (new secret_key generated){Colors.NC}")
         print()
 
-    # Step 6: Cleanup
+    # Step 6: Clear refresh tokens (invalidates all prod sessions on dev)
+    if dry_run:
+        print(f"{Colors.BLUE}[DRY RUN] Step 6: Would clear refresh_tokens table{Colors.NC}")
+        print(f"{Colors.BLUE}  This invalidates all sessions copied from prod{Colors.NC}")
+        print()
+    else:
+        print(f"{Colors.GREEN}Step 6: Clearing refresh_tokens table...{Colors.NC}")
+        sql = "DELETE FROM refresh_tokens; SELECT ROW_COUNT() as 'Tokens cleared';"
+        cmd = f"docker exec {dev_container} mysql -u root -p{dev_db_root_password} {dev_db_name} -e \"{sql}\""
+        subprocess.run(cmd, shell=True)
+        print(f"{Colors.GREEN}All refresh tokens cleared{Colors.NC}")
+        print()
+
+    # Step 7: Cleanup
     if not dry_run:
-        print(f"{Colors.GREEN}Step 6: Cleaning up...{Colors.NC}")
+        print(f"{Colors.GREEN}Step 7: Cleaning up...{Colors.NC}")
         print(f"{Colors.YELLOW}Keeping backup file: {backup_file}{Colors.NC}")
         print(f"{Colors.YELLOW}  To restore: docker exec -i {dev_container} mysql -u root -p{dev_db_root_password} {dev_db_name} < {backup_file}{Colors.NC}")
         if os.path.exists(dump_file):
