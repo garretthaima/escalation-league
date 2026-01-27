@@ -34,8 +34,11 @@ const generateToken = async (user, options = {}) => {
             ...customClaims, // Include any additional claims dynamically
         };
 
-        // Sign and return the token
-        const secretKey = await getSetting('secret_key');
+        // JWT_SECRET must be set in environment
+        const secretKey = process.env.JWT_SECRET;
+        if (!secretKey) {
+            throw new Error('JWT_SECRET environment variable is not set');
+        }
         return jwt.sign(payload, secretKey, { expiresIn: validatedExpiration });
     } catch (error) {
         console.error('Error generating token:', error.message);
@@ -85,8 +88,11 @@ const generateAccessToken = async (user, options = {}) => {
             ...customClaims,
         };
 
-        // Sign and return the token
-        const secretKey = await getSetting('secret_key');
+        // JWT_SECRET must be set in environment
+        const secretKey = process.env.JWT_SECRET;
+        if (!secretKey) {
+            throw new Error('JWT_SECRET environment variable is not set');
+        }
         return jwt.sign(payload, secretKey, { expiresIn: accessExpiration });
     } catch (error) {
         console.error('Error generating access token:', error.message);

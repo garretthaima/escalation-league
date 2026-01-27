@@ -35,9 +35,21 @@ describe('tokenUtils', () => {
     };
 
     const mockSecretKey = 'test-secret-key-12345';
+    const originalJwtSecret = process.env.JWT_SECRET;
 
     beforeEach(() => {
         jest.clearAllMocks();
+        // Set JWT_SECRET for tests (now required)
+        process.env.JWT_SECRET = mockSecretKey;
+    });
+
+    afterAll(() => {
+        // Restore original JWT_SECRET
+        if (originalJwtSecret) {
+            process.env.JWT_SECRET = originalJwtSecret;
+        } else {
+            delete process.env.JWT_SECRET;
+        }
     });
 
     describe('parseDuration', () => {
@@ -178,13 +190,13 @@ describe('tokenUtils', () => {
             expect(token).toBeTruthy();
         });
 
-        it('should throw error when secret key is not available', async () => {
-            getSetting.mockImplementation((key) => {
-                if (key === 'secret_key') return Promise.resolve(null);
-                return Promise.resolve('15m');
-            });
+        it('should throw error when JWT_SECRET env var is not set', async () => {
+            delete process.env.JWT_SECRET;
 
             await expect(generateAccessToken(mockUser)).rejects.toThrow('Failed to generate access token');
+
+            // Restore for other tests
+            process.env.JWT_SECRET = mockSecretKey;
         });
     });
 
@@ -253,15 +265,13 @@ describe('tokenUtils', () => {
             expect(decoded).toBeTruthy();
         });
 
-        it('should throw error when secret key is not available', async () => {
-            getSetting.mockImplementation((key) => {
-                if (key === 'secret_key') return Promise.resolve(null);
-                if (key === 'token_expiration') return Promise.resolve('1h');
-                if (key === 'max_token_expiration') return Promise.resolve('12h');
-                return Promise.resolve(null);
-            });
+        it('should throw error when JWT_SECRET env var is not set', async () => {
+            delete process.env.JWT_SECRET;
 
             await expect(generateToken(mockUser)).rejects.toThrow('Failed to generate token');
+
+            // Restore for other tests
+            process.env.JWT_SECRET = mockSecretKey;
         });
     });
 });
