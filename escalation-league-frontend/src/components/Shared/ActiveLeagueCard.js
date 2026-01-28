@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Link } from 'react-router-dom';
 import { calculateTotalSeasonBudget, calculateWeeksFromDates } from '../../utils/budgetCalculations';
-import { formatDate } from '../../utils/dateFormatter';
+import { formatDate, parseDate } from '../../utils/dateFormatter';
 import './ActiveLeagueCard.css';
 
 /**
@@ -22,8 +22,8 @@ const ActiveLeagueCard = ({ league, playerCount }) => {
     }
 
     // Calculate days remaining
-    const endDate = new Date(league.end_date);
-    const startDate = new Date(league.start_date);
+    const endDate = parseDate(league.end_date);
+    const startDate = parseDate(league.start_date);
     const today = new Date();
     const daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
     const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));

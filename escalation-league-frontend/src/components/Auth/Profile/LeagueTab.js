@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 import CommanderDisplay from './CommanderDisplay';
 import UpdateCommanderModal from '../../Leagues/UpdateCommanderModal';
 import { syncDeck } from '../../../api/decksApi';
-import { formatDate } from '../../../utils/dateFormatter';
+import { formatDate, parseDate } from '../../../utils/dateFormatter';
 
 const SYNC_COOLDOWN_SECONDS = 60;
 
@@ -100,7 +100,7 @@ const LeagueTab = ({ currentLeague, onCommanderUpdated }) => {
 
     // Calculate days remaining
     const today = new Date();
-    const endDate = new Date(currentLeague.end_date);
+    const endDate = parseDate(currentLeague.end_date);
     const daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
 
     return (

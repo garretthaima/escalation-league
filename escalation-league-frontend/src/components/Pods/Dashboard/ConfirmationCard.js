@@ -1,5 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import { parseDate } from '../../../utils/dateFormatter';
 import '../../Shared/Shared.css';
 import './ConfirmationCard.css';
 
@@ -14,7 +15,7 @@ const ConfirmationCard = ({ pod, userId, onConfirm }) => {
     const winner = participants.find(p => p.result === 'win');
     const declarer = winner || participants
         .filter(p => p.confirmed === 1 && p.confirmation_time)
-        .sort((a, b) => new Date(a.confirmation_time) - new Date(b.confirmation_time))[0];
+        .sort((a, b) => parseDate(a.confirmation_time) - parseDate(b.confirmation_time))[0];
     const isDraw = !winner && declarer?.result === 'draw';
     const isWin = !!winner;
 

@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Link } from 'react-router-dom';
+import { parseDate } from '../../utils/dateFormatter';
 import './LeagueInfoBanner.css';
 
 /**
@@ -18,7 +19,7 @@ const LeagueInfoBanner = ({ league, playerCount }) => {
     }
 
     // Calculate days remaining
-    const endDate = new Date(league.end_date);
+    const endDate = parseDate(league.end_date);
     const today = new Date();
     const daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
 

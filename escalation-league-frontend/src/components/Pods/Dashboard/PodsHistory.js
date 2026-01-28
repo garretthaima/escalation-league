@@ -4,7 +4,7 @@ import { getPods } from '../../../api/podsApi';
 import { getUserProfile } from '../../../api/usersApi';
 import { usePermissions } from '../../../context/PermissionsProvider';
 import LoadingSpinner from '../../Shared/LoadingSpinner';
-import { formatDate } from '../../../utils/dateFormatter';
+import { formatDate, parseDate } from '../../../utils/dateFormatter';
 
 /**
  * Full completed games page with filtering and export
@@ -71,9 +71,9 @@ const PodsHistory = () => {
         }
 
         if (dateFilter) {
-            const filterDate = new Date(dateFilter).toDateString();
+            const filterDate = parseDate(dateFilter).toDateString();
             filtered = filtered.filter(game =>
-                new Date(game.created_at).toDateString() === filterDate
+                parseDate(game.created_at).toDateString() === filterDate
             );
         }
 

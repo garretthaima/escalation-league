@@ -65,6 +65,15 @@ jest.mock('../../../utils/dateFormatter', () => ({
         if (diffHour < 24) return `${diffHour}h ago`;
         return `${diffDay}d ago`;
     },
+    parseDate: (dateString) => {
+        if (dateString instanceof Date) return dateString;
+        if (!dateString) return new Date(NaN);
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+            const [year, month, day] = dateString.split('-').map(Number);
+            return new Date(year, month - 1, day);
+        }
+        return new Date(dateString);
+    },
     initTimezone: jest.fn().mockResolvedValue('America/Chicago'),
     setTimezoneLoader: jest.fn(),
     getTimezone: () => 'America/Chicago',
