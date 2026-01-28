@@ -36,3 +36,15 @@ export const overridePod = async (podId) => {
     const response = await axiosInstance.post(`/pods/${podId}/override`);
     return response.data;
 };
+
+// Get life tracker state for a pod
+export const getLifeTrackerState = async (podId) => {
+    const response = await axiosInstance.get(`/pods/${podId}/life-tracker`);
+    return response.data;
+};
+
+// Update life tracker state for a pod
+export const updateLifeTrackerState = async (podId, state) => {
+    const response = await axiosInstance.put(`/pods/${podId}/life-tracker`, { state });
+    return response.data;
+};

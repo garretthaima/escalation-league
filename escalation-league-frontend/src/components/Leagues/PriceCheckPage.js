@@ -14,13 +14,14 @@ const PriceCheckPage = () => {
 
     useEffect(() => {
         const fetchDeckId = async () => {
-            if (!activeLeague?.league_id) {
+            const leagueId = activeLeague?.id || activeLeague?.league_id;
+            if (!leagueId) {
                 setError('No active league found.');
                 return;
             }
 
             try {
-                const participantDetails = await getLeagueParticipantsDetails(activeLeague.league_id, user?.id);
+                const participantDetails = await getLeagueParticipantsDetails(leagueId, user?.id);
                 if (participantDetails?.deck_id) {
                     setDeckId(participantDetails.deck_id);
                 } else {

@@ -6,6 +6,8 @@ const {
     logPodResult,
     getPods, // New consolidated endpoint
     overridePod,
+    getLifeTrackerState,
+    updateLifeTrackerState,
 } = require('../controllers/podsController');
 const authenticateToken = require('../middlewares/authentication');
 const authorizePermission = require('../middlewares/authorizePermission');
@@ -48,6 +50,19 @@ router.post(
     gameLimiter, // Apply game-specific rate limiting
     authenticateToken,
     overridePod
+);
+
+// Life Tracker Endpoints
+router.get(
+    '/:podId/life-tracker',
+    authenticateToken,
+    getLifeTrackerState
+);
+
+router.put(
+    '/:podId/life-tracker',
+    authenticateToken,
+    updateLifeTrackerState
 );
 
 module.exports = router;

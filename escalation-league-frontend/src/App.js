@@ -24,6 +24,7 @@ import { BudgetDashboard } from './components/Budget';
 import { MetagameDashboard } from './components/Metagame';
 import { TournamentDashboard } from './components/Tournament';
 import { AttendancePage, PodSuggestionsPage } from './components/Attendance';
+import LifeTracker from './components/LifeTracker/LifeTracker';
 import { logoutUser } from './api/authApi';
 
 const App = () => {
@@ -68,6 +69,7 @@ const App = () => {
                             <Route path="/" element={<HomePage />} />
                             <Route path="/signin" element={<SignIn />} />
                             <Route path="/rules" element={<Rules />} />
+                            <Route path="/life-tracker/:podId?" element={<LifeTracker />} />
                             <Route path="/awards" element={<Awards />} />
                             <Route path="/contact" element={<Contact />} />
                             {/* <Route path="/privacy" element={<PrivacyPolicy />} /> Add Privacy Policy Route */}

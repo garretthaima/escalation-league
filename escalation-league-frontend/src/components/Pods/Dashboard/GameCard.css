@@ -1,0 +1,108 @@
+/* GameCard.css - Styles for the Commander pod game card component */
+
+/* Declare button styling - override Bootstrap defaults */
+.btn-declare {
+    background: var(--brand-gold) !important;
+    background-color: var(--brand-gold) !important;
+    border: none !important;
+    color: #1a1a2e !important;
+    font-weight: 600;
+    opacity: 1 !important;
+}
+
+.btn-declare:hover,
+.btn-declare:focus,
+.btn-declare:active {
+    background: var(--brand-gold-light) !important;
+    background-color: var(--brand-gold-light) !important;
+    color: #1a1a2e !important;
+    opacity: 1 !important;
+}
+
+.btn-declare:disabled {
+    background: var(--brand-gold) !important;
+    opacity: 0.65 !important;
+}
+
+/* Life tracker button styling */
+.btn-life-tracker {
+    background: linear-gradient(135deg, #e74c3c, #c0392b) !important;
+    border: none !important;
+    color: #fff !important;
+    font-weight: 600;
+}
+
+.btn-life-tracker:hover,
+.btn-life-tracker:focus,
+.btn-life-tracker:active {
+    background: linear-gradient(135deg, #c0392b, #a93226) !important;
+    color: #fff !important;
+}
+
+/* Pod 2x2 grid layout */
+.pod-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+/* Empty participant slot */
+.pod-slot-empty {
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    opacity: 0.3;
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+/* Base participant slot */
+.pod-slot {
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    border: 2px solid transparent;
+    text-align: center;
+}
+
+/* Highlighted slot for current user */
+.pod-slot-current-user {
+    background: rgba(74, 47, 112, 0.2);
+    border-color: var(--brand-purple);
+}
+
+/* Participant name container */
+.pod-participant-name {
+    font-weight: 500;
+    font-size: 0.85rem;
+}
+
+.pod-participant-name-highlighted {
+    font-weight: 600;
+}
+
+.pod-participant-name-first {
+    color: var(--brand-gold);
+}
+
+/* Turn order badge */
+.pod-turn-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    color: #fff;
+    font-size: 0.7rem;
+    margin-right: 6px;
+}
+
+.pod-turn-badge-first {
+    background: var(--brand-gold);
+}
+
+.pod-turn-badge-default {
+    background: var(--brand-purple);
+}

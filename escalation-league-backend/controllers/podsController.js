@@ -567,10 +567,105 @@ const overridePod = async (req, res) => {
     }
 };
 
+/**
+ * Get life tracker state for a pod
+ * Returns saved state if exists, or null for initialization
+ */
+const getLifeTrackerState = async (req, res) => {
+    const podId = parseInt(req.params.podId, 10);
+    const userId = req.user.id;
+
+    try {
+        // Verify pod exists
+        const pod = await db('game_pods').where({ id: podId }).first();
+        if (!pod) {
+            return res.status(404).json({ error: 'Pod not found.' });
+        }
+
+        // Verify user is participant in the pod
+        const participant = await db('game_players')
+            .where({ pod_id: podId, player_id: userId })
+            .whereNull('deleted_at')
+            .first();
+
+        if (!participant) {
+            return res.status(403).json({ error: 'You are not a participant in this pod.' });
+        }
+
+        // Fetch saved state
+        const savedState = await db('pod_life_tracker')
+            .where({ pod_id: podId })
+            .first();
+
+        // Return the state (or null if none saved)
+        res.status(200).json({
+            state: savedState ? JSON.parse(savedState.state) : null,
+            podId
+        });
+    } catch (err) {
+        handleError(res, err, 'Failed to fetch life tracker state');
+    }
+};
+
+/**
+ * Update life tracker state for a pod
+ * Creates or updates the saved state
+ */
+const updateLifeTrackerState = async (req, res) => {
+    const podId = parseInt(req.params.podId, 10);
+    const { state } = req.body;
+    const userId = req.user.id;
+
+    try {
+        // Verify pod exists
+        const pod = await db('game_pods').where({ id: podId }).first();
+        if (!pod) {
+            return res.status(404).json({ error: 'Pod not found.' });
+        }
+
+        // Verify user is participant in the pod
+        const participant = await db('game_players')
+            .where({ pod_id: podId, player_id: userId })
+            .whereNull('deleted_at')
+            .first();
+
+        if (!participant) {
+            return res.status(403).json({ error: 'You are not a participant in this pod.' });
+        }
+
+        // Upsert the state
+        const existingState = await db('pod_life_tracker')
+            .where({ pod_id: podId })
+            .first();
+
+        if (existingState) {
+            await db('pod_life_tracker')
+                .where({ pod_id: podId })
+                .update({
+                    state: JSON.stringify(state),
+                    updated_at: db.fn.now()
+                });
+        } else {
+            await db('pod_life_tracker').insert({
+                pod_id: podId,
+                state: JSON.stringify(state)
+            });
+        }
+
+        logger.debug('Life tracker state updated', { podId, userId });
+
+        res.status(200).json({ message: 'Life tracker state saved.', podId });
+    } catch (err) {
+        handleError(res, err, 'Failed to update life tracker state');
+    }
+};
+
 module.exports = {
     createPod,
     getPods,
     joinPod,
     logPodResult,
     overridePod,
+    getLifeTrackerState,
+    updateLifeTrackerState,
 };

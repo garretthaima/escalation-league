@@ -13,8 +13,8 @@ const LeagueLeaderboard = () => {
     const [sortConfig, setSortConfig] = useState({ key: 'total_points', direction: 'desc' });
     const [expandedRows, setExpandedRows] = useState(new Set());
 
-    // Derive leagueId from context
-    const leagueId = activeLeague?.league_id;
+    // Derive leagueId from context (API returns 'id' from leagues.*, fallback to league_id for compatibility)
+    const leagueId = activeLeague?.id || activeLeague?.league_id;
 
     const toggleRow = (playerId) => {
         const newExpanded = new Set(expandedRows);

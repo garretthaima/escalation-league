@@ -1,10 +1,13 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import { useNavigate } from 'react-router-dom';
+import './GameCard.css';
 
 /**
  * Reusable game card component for displaying pod information
  */
 const GameCard = ({ pod, userId, onDeclareResult, showActions = true }) => {
+    const navigate = useNavigate();
     const participants = Array.isArray(pod.participants) ? pod.participants : [];
     const sortedParticipants = [...participants].sort((a, b) =>
         (a.turn_order || 999) - (b.turn_order || 999)
@@ -17,9 +20,27 @@ const GameCard = ({ pod, userId, onDeclareResult, showActions = true }) => {
             <div className="card-body d-flex flex-column">
                 <div className="d-flex justify-content-between align-items-start mb-3">
                     <h6 className="card-title mb-0">Pod #{pod.id}</h6>
-                    <span className="badge bg-primary">
-                        {participants.length} players
-                    </span>
+                    {showActions && isParticipant && (
+                        <div className="d-flex gap-2">
+                            <button
+                                className="btn btn-sm btn-life-tracker"
+                                onClick={() => navigate(`/life-tracker/${pod.id}`)}
+                                title="Open Life Tracker"
+                            >
+                                <i className="fas fa-heart me-1"></i>
+                                Life
+                            </button>
+                            {onDeclareResult && (
+                                <button
+                                    className="btn btn-sm btn-declare"
+                                    onClick={() => onDeclareResult(pod.id)}
+                                >
+                                    <i className="fas fa-trophy me-1"></i>
+                                    Declare
+                                </button>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex-grow-1">
@@ -62,17 +83,6 @@ const GameCard = ({ pod, userId, onDeclareResult, showActions = true }) => {
                     )}
                 </div>
 
-                {showActions && isParticipant && onDeclareResult && (
-                    <div className="mt-3 pt-3 border-top">
-                        <button
-                            className="btn btn-success w-100"
-                            onClick={() => onDeclareResult(pod.id)}
-                        >
-                            <i className="fas fa-trophy me-2"></i>
-                            Declare Result
-                        </button>
-                    </div>
-                )}
             </div>
         </div>
     );
