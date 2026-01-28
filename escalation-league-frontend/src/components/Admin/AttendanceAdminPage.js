@@ -19,6 +19,7 @@ import { getLeagueParticipants } from '../../api/userLeaguesApi';
 import { usePermissions } from '../../context/PermissionsProvider';
 import { useToast } from '../../context/ToastContext';
 import { useWebSocket } from '../../context/WebSocketProvider';
+import { formatDate, formatDateWithWeekday } from '../../utils/dateFormatter';
 import LoadingSpinner from '../Shared/LoadingSpinner';
 
 const AttendanceAdminPage = () => {
@@ -218,12 +219,7 @@ const AttendanceAdminPage = () => {
 
     const handleOpenDiscordPollModal = () => {
         const dateStr = session?.session_date
-            ? new Date(session.session_date).toLocaleDateString('en-US', {
-                weekday: 'long',
-                month: 'long',
-                day: 'numeric',
-                timeZone: 'UTC'
-            })
+            ? formatDateWithWeekday(session.session_date)
             : 'Game Night';
         setDiscordPollMessage(`Are you coming to ${dateStr}?`);
         setShowDiscordPollModal(true);
@@ -472,11 +468,7 @@ const AttendanceAdminPage = () => {
                                     >
                                         <div>
                                             <div className="fw-bold">
-                                                {new Date(s.session_date).toLocaleDateString('en-US', {
-                                                    month: 'short',
-                                                    day: 'numeric',
-                                                    timeZone: 'UTC'
-                                                })}
+                                                {formatDate(s.session_date, { month: 'short', day: 'numeric' })}
                                             </div>
                                             <small className={selectedSessionId === s.id ? 'text-white-50' : 'text-muted'}>
                                                 {s.name || 'Game Night'}
@@ -529,12 +521,11 @@ const AttendanceAdminPage = () => {
                                             {session?.name || 'Game Night'}
                                         </h5>
                                         <small className="text-muted">
-                                            {session?.session_date ? new Date(session.session_date).toLocaleDateString('en-US', {
+                                            {session?.session_date ? formatDate(session.session_date, {
                                                 weekday: 'long',
                                                 month: 'long',
                                                 day: 'numeric',
-                                                year: 'numeric',
-                                                timeZone: 'UTC'
+                                                year: 'numeric'
                                             }) : ''}
                                         </small>
                                     </div>

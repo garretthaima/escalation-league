@@ -1,5 +1,14 @@
+const {
+    getTimezoneSync,
+    formatDateForDB,
+    getDayOfWeek,
+    getHourInTimezone,
+    parseDate
+} = require('./dateUtils');
+
 /**
  * Get the Thursday 6pm cutoff time for a given week start date
+ * Uses application timezone for consistent cutoff times
  * @param {Date} weekStart - The start of the week (league start day)
  * @param {number} leagueStartDay - Day of week the league started (0=Sun, 1=Mon, etc.)
  * @returns {Date} Thursday 6pm of that week
@@ -113,15 +122,13 @@ function addCalculatedWeek(league) {
 }
 
 /**
- * Format a date as YYYY-MM-DD in local timezone
+ * Format a date as YYYY-MM-DD in the application timezone
  * @param {Date} date - Date to format
  * @returns {string} Date string in YYYY-MM-DD format
  */
 function formatLocalDate(date) {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    // Use dateUtils for timezone-aware formatting
+    return formatDateForDB(date);
 }
 
 /**
@@ -183,14 +190,15 @@ function getCurrentThursday(startDate) {
 /**
  * Get the session date for a league (the Thursday of the current game week)
  * Returns today's date if it's Thursday, otherwise the next Thursday
+ * Uses application timezone for consistent day-of-week calculation
  * @param {Date|string} startDate - League start date
- * @returns {string} Date string in YYYY-MM-DD format (local timezone)
+ * @returns {string} Date string in YYYY-MM-DD format (application timezone)
  */
 function getGameNightDate(startDate) {
     const now = new Date();
-    const today = now.getDay(); // 0=Sun, 4=Thu
+    const today = getDayOfWeek(now); // Use timezone-aware day calculation
 
-    // If today is Thursday, use today (in local timezone)
+    // If today is Thursday, use today (in application timezone)
     if (today === 4) {
         return formatLocalDate(now);
     }

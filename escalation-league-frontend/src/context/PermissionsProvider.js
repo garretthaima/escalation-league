@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { getUserPermissions, getUserProfile, getUserSetting, updateUserSetting } from '../api/usersApi';
 import { isUserInLeague } from '../api/userLeaguesApi';
+import { initTimezone, setTimezoneLoader } from '../utils/dateFormatter';
+import { getTimezone } from '../api/settingsApi';
 
 const PermissionsContext = createContext();
 
@@ -56,6 +58,10 @@ export const PermissionsProvider = ({ children }) => {
     }, []);
 
     useEffect(() => {
+        // Set up timezone loader and initialize (doesn't need auth)
+        setTimezoneLoader(getTimezone);
+        initTimezone().catch(console.error);
+
         fetchPermissionsAndUser().then((result) => {
             // Resolve any pending refreshUserData promises
             refreshResolvers.current.forEach(resolve => resolve(result));

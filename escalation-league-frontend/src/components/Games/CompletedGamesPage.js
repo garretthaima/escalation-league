@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { getPods } from '../../api/podsApi';
 import { getUserProfile } from '../../api/usersApi';
 import { usePermissions } from '../../context/PermissionsProvider';
+import { formatDate, formatDateTime } from '../../utils/dateFormatter';
 
 const CompletedGamesTab = () => {
     const [completedGames, setCompletedGames] = useState([]);
@@ -68,9 +69,9 @@ const CompletedGamesTab = () => {
 
         // Filter by date
         if (dateFilter) {
-            const filterDate = new Date(dateFilter).toDateString();
+            const filterDate = formatDate(dateFilter);
             filtered = filtered.filter(game =>
-                new Date(game.created_at).toDateString() === filterDate
+                formatDate(game.created_at) === filterDate
             );
         }
 
@@ -99,7 +100,7 @@ const CompletedGamesTab = () => {
 
             return [
                 game.id,
-                new Date(game.created_at).toLocaleDateString(),
+                formatDate(game.created_at),
                 winnerName,
                 game.win_condition?.name || 'None',
                 participants
@@ -134,7 +135,7 @@ const CompletedGamesTab = () => {
                                     <span className="badge ms-2" style={{ backgroundColor: '#2d1b4e', color: 'white' }}>Complete</span>
                                 </h5>
                                 <p><strong>League:</strong> {game.league_name || `League #${game.league_id}`}</p>
-                                <p><strong>Completed:</strong> {new Date(game.created_at).toLocaleString()}</p>
+                                <p><strong>Completed:</strong> {formatDateTime(game.created_at)}</p>
 
                                 {/* Display win condition if available */}
                                 {game.win_condition ? (
@@ -199,7 +200,7 @@ const CompletedGamesTab = () => {
                         return (
                             <tr key={game.id}>
                                 <td>#{game.id}</td>
-                                <td>{new Date(game.created_at).toLocaleDateString()}</td>
+                                <td>{formatDate(game.created_at)}</td>
                                 <td>
                                     {isDraw ? (
                                         <span className="text-muted">Draw</span>

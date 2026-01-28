@@ -11,6 +11,7 @@ import { getLeagueParticipants, updateParticipantStatus } from '../../api/userLe
 import { syncLeagueDecks } from '../../api/metagameApi';
 import { useToast } from '../../context/ToastContext';
 import { useWebSocket } from '../../context/WebSocketProvider';
+import { formatDate } from '../../utils/dateFormatter';
 import EditLeagueModal from './EditLeagueModal';
 
 const LeagueAdminPage = () => {
@@ -214,8 +215,8 @@ const LeagueAdminPage = () => {
                                 <tr key={league.id}>
                                     <td>{league.id}</td>
                                     <td>{league.name}</td>
-                                    <td>{league.start_date ? new Date(league.start_date).toLocaleDateString() : 'N/A'}</td>
-                                    <td>{league.end_date ? new Date(league.end_date).toLocaleDateString() : 'N/A'}</td>
+                                    <td>{league.start_date ? formatDate(league.start_date) : 'N/A'}</td>
+                                    <td>{league.end_date ? formatDate(league.end_date) : 'N/A'}</td>
                                     <td>
                                         {league.is_active ? (
                                             <span className="badge" style={{ backgroundColor: '#495057', color: 'white' }}>

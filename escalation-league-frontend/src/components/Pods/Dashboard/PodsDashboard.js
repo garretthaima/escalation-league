@@ -12,6 +12,7 @@ import GameCard from './GameCard';
 import ConfirmationCard from './ConfirmationCard';
 import CreateGameModal from './CreateGameModal';
 import DeclareResultModal from './DeclareResultModal';
+import { formatDate, parseDate } from '../../../utils/dateFormatter';
 
 const PodsDashboard = () => {
     const { permissions, loading: permissionsLoading, activeLeague } = usePermissions();
@@ -83,7 +84,7 @@ const PodsDashboard = () => {
                 // Only show recent 5 completed games (sorted by newest first)
                 const userCompleted = filterUserPods(completed || []);
                 const sortedCompleted = userCompleted.sort((a, b) =>
-                    new Date(b.created_at) - new Date(a.created_at)
+                    parseDate(b.created_at) - parseDate(a.created_at)
                 );
                 setRecentCompleted(sortedCompleted.slice(0, 5));
 
@@ -396,7 +397,7 @@ const PodsDashboard = () => {
                                     <div>
                                         <strong>Pod #{pod.id}</strong>
                                         <span className="text-muted ms-2">
-                                            {new Date(pod.created_at).toLocaleDateString()}
+                                            {formatDate(pod.created_at)}
                                         </span>
                                     </div>
                                     <div>

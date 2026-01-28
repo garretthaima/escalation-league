@@ -6,6 +6,8 @@
  * - Budget accumulates each week starting from week 2
  */
 
+import { parseDate } from './dateFormatter';
+
 /**
  * Calculate number of weeks from start and end dates
  * @param {string} startDate - League start date
@@ -14,8 +16,8 @@
  */
 export const calculateWeeksFromDates = (startDate, endDate) => {
     if (!startDate || !endDate) return 8; // Default fallback
-    const start = new Date(startDate);
-    const end = new Date(endDate);
+    const start = parseDate(startDate);
+    const end = parseDate(endDate);
     const diffMs = end - start;
     const diffDays = diffMs / (1000 * 60 * 60 * 24);
     return Math.ceil(diffDays / 7);

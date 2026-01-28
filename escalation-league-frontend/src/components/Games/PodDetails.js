@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getPodDetails, deletePod, overrideWinner } from '../../api/podsApi';
 import { useToast } from '../../context/ToastContext';
+import { formatDateTime } from '../../utils/dateFormatter';
 
 const PodDetails = ({ podId, isAdmin, onClose }) => {
     const [pod, setPod] = useState(null);
@@ -57,7 +58,7 @@ const PodDetails = ({ podId, isAdmin, onClose }) => {
             <h3>Pod #{pod.id}</h3>
             <p><strong>League:</strong> {pod.league_id}</p>
             <p><strong>Result:</strong> {pod.result}</p>
-            <p><strong>Created At:</strong> {new Date(pod.created_at).toLocaleString()}</p>
+            <p><strong>Created At:</strong> {formatDateTime(pod.created_at)}</p>
 
             {pod.win_condition && (
                 <div>

@@ -43,6 +43,42 @@ jest.mock('react-dom', () => {
     };
 });
 
+// Mock dateFormatter to avoid axios import issues
+jest.mock('../../../utils/dateFormatter', () => ({
+    formatDate: (date, options = {}) => {
+        const d = new Date(date);
+        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', ...options });
+    },
+    formatDateTime: (date) => new Date(date).toLocaleString('en-US'),
+    formatDateWithWeekday: (date) => new Date(date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }),
+    formatRelativeTime: (date) => {
+        // Return simple relative time for testing
+        const d = new Date(date);
+        const now = new Date();
+        const diffMs = now - d;
+        const diffMin = Math.floor(diffMs / (1000 * 60));
+        const diffHour = Math.floor(diffMs / (1000 * 60 * 60));
+        const diffDay = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+        if (diffMin < 1) return 'Just now';
+        if (diffMin < 60) return `${diffMin}m ago`;
+        if (diffHour < 24) return `${diffHour}h ago`;
+        return `${diffDay}d ago`;
+    },
+    parseDate: (dateString) => {
+        if (dateString instanceof Date) return dateString;
+        if (!dateString) return new Date(NaN);
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+            const [year, month, day] = dateString.split('-').map(Number);
+            return new Date(year, month - 1, day);
+        }
+        return new Date(dateString);
+    },
+    initTimezone: jest.fn().mockResolvedValue('America/Chicago'),
+    setTimezoneLoader: jest.fn(),
+    getTimezone: () => 'America/Chicago',
+}));
+
 // Import mocked modules
 import { getNotifications, getUnreadCount, markAsRead, markAllAsRead } from '../../../api/notificationsApi';
 

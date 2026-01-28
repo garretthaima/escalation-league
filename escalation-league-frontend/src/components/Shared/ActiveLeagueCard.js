@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Link } from 'react-router-dom';
 import { calculateTotalSeasonBudget, calculateWeeksFromDates } from '../../utils/budgetCalculations';
+import { formatDate, parseDate } from '../../utils/dateFormatter';
 import './ActiveLeagueCard.css';
 
 /**
@@ -21,8 +22,8 @@ const ActiveLeagueCard = ({ league, playerCount }) => {
     }
 
     // Calculate days remaining
-    const endDate = new Date(league.end_date);
-    const startDate = new Date(league.start_date);
+    const endDate = parseDate(league.end_date);
+    const startDate = parseDate(league.start_date);
     const today = new Date();
     const daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
     const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
@@ -32,14 +33,6 @@ const ActiveLeagueCard = ({ league, playerCount }) => {
     // Calculate total season budget (use number_of_weeks if available, otherwise calculate from dates)
     const totalWeeks = league.number_of_weeks || calculateWeeksFromDates(league.start_date, league.end_date);
     const totalSeasonBudget = calculateTotalSeasonBudget(totalWeeks, league.weekly_budget);
-
-    const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            timeZone: 'UTC'
-        });
-    };
 
     return (
         <div className="card active-league-card h-100">
@@ -62,8 +55,8 @@ const ActiveLeagueCard = ({ league, playerCount }) => {
                 {/* Progress Bar */}
                 <div className="mb-3">
                     <div className="d-flex justify-content-between text-sm mb-1">
-                        <span className="text-muted">{formatDate(league.start_date)}</span>
-                        <span className="text-muted">{formatDate(league.end_date)}</span>
+                        <span className="text-muted">{formatDate(league.start_date, { year: undefined })}</span>
+                        <span className="text-muted">{formatDate(league.end_date, { year: undefined })}</span>
                     </div>
                     <div className="progress active-league-progress">
                         <div

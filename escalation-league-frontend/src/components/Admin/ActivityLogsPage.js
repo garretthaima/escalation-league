@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { getActivityLogs, getActionTypes } from '../../api/activityLogsApi';
 import { getAllUsers } from '../../api/adminApi';
 import { useToast } from '../../context/ToastContext';
+import { formatDateTime } from '../../utils/dateFormatter';
 import LoadingSpinner from '../Shared/LoadingSpinner';
 import './ActivityLogsPage.css';
 
@@ -103,10 +104,9 @@ const ActivityLogsPage = () => {
         }
     };
 
-    const formatDate = (dateString) => {
+    const formatDateLocal = (dateString) => {
         if (!dateString) return '-';
-        const date = new Date(dateString);
-        return date.toLocaleString();
+        return formatDateTime(dateString);
     };
 
     const formatMetadata = (metadata) => {
@@ -244,7 +244,7 @@ const ActivityLogsPage = () => {
                                         {logs.map(log => (
                                             <tr key={log.id}>
                                                 <td className="text-nowrap">
-                                                    <small>{formatDate(log.timestamp)}</small>
+                                                    <small>{formatDateLocal(log.timestamp)}</small>
                                                 </td>
                                                 <td>
                                                     <div>

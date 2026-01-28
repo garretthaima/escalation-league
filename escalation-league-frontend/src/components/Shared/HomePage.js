@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getActiveLeague, getLeagueStats } from '../../api/leaguesApi';
 import { getPods } from '../../api/podsApi';
 import { usePermissions } from '../../context/PermissionsProvider';
+import { parseDate } from '../../utils/dateFormatter';
 import LeaderboardSection from '../Leagues/Dashboard/LeaderboardSection';
 import LiveStatsBar from './LiveStatsBar';
 import ActiveLeagueCard from './ActiveLeagueCard';
@@ -51,7 +52,7 @@ const HomePage = () => {
 
                     // Get recent completed games (last 3)
                     const sortedCompleted = completedPods.sort((a, b) =>
-                        new Date(b.created_at) - new Date(a.created_at)
+                        parseDate(b.created_at) - parseDate(a.created_at)
                     );
                     setRecentGames(sortedCompleted.slice(0, 3));
 

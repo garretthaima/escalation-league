@@ -16,6 +16,8 @@ const db = knex({
         password: DB_PASSWORD,
         database: DB_NAME,
         port: DB_PORT,
+        // Return DATE/DATETIME as strings to avoid timezone conversion issues
+        dateStrings: ['DATE'],
     },
     pool: { min: 2, max: 10 },
 });

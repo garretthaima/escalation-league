@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { getLeagueParticipantsDetails, getOpponentMatchups, getTurnOrderStats } from '../../../api/userLeaguesApi';
 import { getLeagueDetails } from '../../../api/leaguesApi';
 import { SkeletonProfileHeader, SkeletonCard, SkeletonStatsGrid } from '../../Shared/Skeleton';
+import { formatDate } from '../../../utils/dateFormatter';
 
 const PublicProfile = () => {
     const { userId, leagueId } = useParams();
@@ -90,7 +91,7 @@ const PublicProfile = () => {
                 <div className="card-body">
                     <div className="row">
                         <div className="col-md-8">
-                            <p><strong>Joined:</strong> {new Date(leagueDetails.joined_at).toLocaleDateString()}</p>
+                            <p><strong>Joined:</strong> {formatDate(leagueDetails.joined_at)}</p>
                             <p><strong>Commander:</strong> {leagueDetails.commander || 'Not set'}</p>
                             {leagueDetails.commanderPartner && (
                                 <p><strong>Partner:</strong> {leagueDetails.commanderPartner}</p>
