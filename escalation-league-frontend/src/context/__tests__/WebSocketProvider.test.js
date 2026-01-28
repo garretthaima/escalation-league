@@ -494,7 +494,9 @@ describe('WebSocketProvider', () => {
             consoleSpy.mockRestore();
         });
 
-        it('should redirect to signin after 3 failed auth attempts', async () => {
+        it('should stop reconnection attempts after 3 failed auth attempts', async () => {
+            // WebSocketProvider no longer redirects directly - it relies on axiosConfig
+            // After 3 failed attempts, it just stops reconnecting
             mockLocalStorage._setStore({ token: 'test-token', refreshToken: 'refresh-token' });
             mockPerformTokenRefresh.mockResolvedValue(null); // Token refresh fails
             const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -519,10 +521,8 @@ describe('WebSocketProvider', () => {
                 await errorHandler(new Error('Invalid token'));
             });
 
-            expect(mockLocalStorage.removeItem).toHaveBeenCalledWith('token');
-            expect(mockLocalStorage.removeItem).toHaveBeenCalledWith('refreshToken');
-            expect(mockLocation.href).toBe('/signin');
-            expect(warnSpy).toHaveBeenCalledWith('WebSocket authentication failed - session expired');
+            // Should log warning about stopping reconnection attempts
+            expect(warnSpy).toHaveBeenCalledWith('WebSocket authentication failed - stopping reconnection attempts');
 
             consoleSpy.mockRestore();
             warnSpy.mockRestore();
@@ -1075,10 +1075,12 @@ describe('WebSocketProvider', () => {
         });
 
         it('should reset reconnect attempts on successful connect after error', async () => {
+            // WebSocketProvider no longer redirects - it stops reconnecting after 3 failures
             jest.useFakeTimers();
             mockLocalStorage._setStore({ token: 'test-token' });
             mockPerformTokenRefresh.mockResolvedValue('new-token');
             const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+            const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
 
             render(
                 <WebSocketProvider>
@@ -1103,25 +1105,24 @@ describe('WebSocketProvider', () => {
             // (counter was reset on connect)
             mockPerformTokenRefresh.mockResolvedValue(null);
 
-            // These should not redirect yet
+            // First two failures - no warning yet
             await act(async () => {
                 await errorHandler(new Error('Invalid token'));
             });
-            expect(mockLocation.href).toBe('');
 
             await act(async () => {
                 await errorHandler(new Error('Invalid token'));
             });
-            expect(mockLocation.href).toBe('');
 
-            // Third failure should redirect
+            // Third failure should log warning about stopping reconnection
             await act(async () => {
                 await errorHandler(new Error('Invalid token'));
             });
-            expect(mockLocation.href).toBe('/signin');
+            expect(warnSpy).toHaveBeenCalledWith('WebSocket authentication failed - stopping reconnection attempts');
 
             jest.useRealTimers();
             consoleSpy.mockRestore();
+            warnSpy.mockRestore();
         });
     });
 });

@@ -19,9 +19,8 @@ jest.mock('react-router-dom', () => ({
     Outlet: () => null,
 }));
 
-// Mock APIs
+// Mock APIs - Note: getActiveLeague is no longer used, HomePage uses context instead
 jest.mock('../../../api/leaguesApi', () => ({
-    getActiveLeague: jest.fn(),
     getLeagueStats: jest.fn(),
 }));
 
@@ -29,11 +28,16 @@ jest.mock('../../../api/podsApi', () => ({
     getPods: jest.fn(),
 }));
 
+// Default mock permissions (logged in user with no active league)
+let mockPermissions = {
+    activeLeague: null,
+    user: { id: 1, email: 'test@example.com' },
+    loading: false,
+};
+
 // Mock PermissionsProvider
 jest.mock('../../../context/PermissionsProvider', () => ({
-    usePermissions: () => ({
-        activeLeague: null
-    })
+    usePermissions: () => mockPermissions
 }));
 
 // Mock child components to simplify testing
@@ -77,14 +81,19 @@ jest.mock('../../Leagues/Dashboard/LeaderboardSection', () => {
     };
 });
 
-import { getActiveLeague, getLeagueStats } from '../../../api/leaguesApi';
+import { getLeagueStats } from '../../../api/leaguesApi';
 import { getPods } from '../../../api/podsApi';
 
 describe('HomePage', () => {
     beforeEach(() => {
         jest.clearAllMocks();
-        // Default mocks - no active league
-        getActiveLeague.mockResolvedValue(null);
+        // Reset mock permissions to default (logged in, no league)
+        mockPermissions = {
+            activeLeague: null,
+            user: { id: 1, email: 'test@example.com' },
+            loading: false,
+        };
+        // Default API mocks
         getLeagueStats.mockResolvedValue({ leaderboard: [] });
         getPods.mockResolvedValue([]);
     });
@@ -165,16 +174,23 @@ describe('HomePage', () => {
     });
 
     describe('data fetching', () => {
-        it('should call getActiveLeague on mount', async () => {
+        it('should use activeLeague from context (not call API)', async () => {
+            // HomePage now uses activeLeague from PermissionsProvider context
+            // instead of calling getActiveLeague API directly
             render(<HomePage />);
             await waitFor(() => {
-                expect(getActiveLeague).toHaveBeenCalled();
+                // Component should render without API call
+                expect(screen.getByTestId('active-league-card')).toBeInTheDocument();
             });
         });
 
-        it('should fetch league stats when active league exists', async () => {
+        it('should fetch league stats when active league exists in context', async () => {
             const mockLeague = { id: 1, name: 'Season 5' };
-            getActiveLeague.mockResolvedValue(mockLeague);
+            mockPermissions = {
+                activeLeague: mockLeague,
+                user: { id: 1, email: 'test@example.com' },
+                loading: false,
+            };
             getLeagueStats.mockResolvedValue({ leaderboard: [] });
 
             render(<HomePage />);
@@ -183,9 +199,13 @@ describe('HomePage', () => {
             });
         });
 
-        it('should fetch pods when active league exists', async () => {
+        it('should fetch pods when active league exists in context', async () => {
             const mockLeague = { id: 1, name: 'Season 5' };
-            getActiveLeague.mockResolvedValue(mockLeague);
+            mockPermissions = {
+                activeLeague: mockLeague,
+                user: { id: 1, email: 'test@example.com' },
+                loading: false,
+            };
 
             render(<HomePage />);
             await waitFor(() => {
@@ -194,12 +214,11 @@ describe('HomePage', () => {
             });
         });
 
-        it('should not fetch league data when no active league', async () => {
-            getActiveLeague.mockResolvedValue(null);
-
+        it('should not fetch league data when no active league in context', async () => {
+            // activeLeague is null by default in mock
             render(<HomePage />);
             await waitFor(() => {
-                expect(getActiveLeague).toHaveBeenCalled();
+                expect(screen.getByTestId('active-league-card')).toBeInTheDocument();
             });
             expect(getLeagueStats).not.toHaveBeenCalled();
         });
@@ -219,7 +238,12 @@ describe('HomePage', () => {
         ];
 
         beforeEach(() => {
-            getActiveLeague.mockResolvedValue(mockLeague);
+            // Set activeLeague in context instead of mocking getActiveLeague
+            mockPermissions = {
+                activeLeague: mockLeague,
+                user: { id: 1, email: 'test@example.com' },
+                loading: false,
+            };
             getLeagueStats.mockResolvedValue({ leaderboard: mockLeaderboard });
             getPods.mockImplementation(({ confirmation_status }) => {
                 if (confirmation_status === 'active') return Promise.resolve(mockActivePods);
@@ -268,7 +292,11 @@ describe('HomePage', () => {
 
     describe('empty leaderboard state', () => {
         it('should show no standings message when leaderboard is empty', async () => {
-            getActiveLeague.mockResolvedValue({ id: 1 });
+            mockPermissions = {
+                activeLeague: { id: 1, name: 'Test League' },
+                user: { id: 1, email: 'test@example.com' },
+                loading: false,
+            };
             getLeagueStats.mockResolvedValue({ leaderboard: [] });
 
             render(<HomePage />);
@@ -356,7 +384,11 @@ describe('HomePage', () => {
         });
 
         it('should navigate to /leagues when View Full Leaderboard is clicked', async () => {
-            getActiveLeague.mockResolvedValue({ id: 1 });
+            mockPermissions = {
+                activeLeague: { id: 1, name: 'Test League' },
+                user: { id: 1, email: 'test@example.com' },
+                loading: false,
+            };
             getLeagueStats.mockResolvedValue({
                 leaderboard: [{ user_id: 1, firstname: 'Alice', total_points: 24 }]
             });
@@ -371,9 +403,8 @@ describe('HomePage', () => {
     });
 
     describe('error handling', () => {
-        it('should handle getActiveLeague failure gracefully', async () => {
-            getActiveLeague.mockRejectedValue(new Error('Network error'));
-
+        it('should render with no league when context has no active league', async () => {
+            // Default mock has activeLeague: null
             render(<HomePage />);
             await waitFor(() => {
                 // Should still render without crashing
@@ -382,7 +413,11 @@ describe('HomePage', () => {
         });
 
         it('should handle getLeagueStats failure gracefully', async () => {
-            getActiveLeague.mockResolvedValue({ id: 1 });
+            mockPermissions = {
+                activeLeague: { id: 1, name: 'Test League' },
+                user: { id: 1, email: 'test@example.com' },
+                loading: false,
+            };
             getLeagueStats.mockRejectedValue(new Error('Network error'));
 
             render(<HomePage />);
@@ -393,7 +428,11 @@ describe('HomePage', () => {
         });
 
         it('should handle getPods failure gracefully', async () => {
-            getActiveLeague.mockResolvedValue({ id: 1 });
+            mockPermissions = {
+                activeLeague: { id: 1, name: 'Test League' },
+                user: { id: 1, email: 'test@example.com' },
+                loading: false,
+            };
             getLeagueStats.mockResolvedValue({ leaderboard: [] });
             getPods.mockRejectedValue(new Error('Network error'));
 

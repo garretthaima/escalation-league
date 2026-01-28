@@ -1,4 +1,5 @@
 import axios from 'axios';
+import authEvents from '../utils/authEvents';
 
 // Use env vars, with auto-detect fallback for local dev
 let API_BASE_URL = process.env.REACT_APP_API_URL || process.env.REACT_APP_BACKEND_URL;
@@ -22,7 +23,6 @@ const axiosInstance = axios.create({
 let isRefreshing = false;
 let refreshPromise = null; // Shared promise for concurrent refresh requests
 let failedQueue = [];
-let isRedirecting = false;
 
 // Process queued requests after token refresh
 const processQueue = (error, token = null) => {
@@ -36,19 +36,10 @@ const processQueue = (error, token = null) => {
     failedQueue = [];
 };
 
-// Handle auth failure - clear tokens and redirect
+// Handle auth failure - use centralized authEvents utility
 const handleAuthFailure = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('refreshToken');
-
-    if (!isRedirecting) {
-        isRedirecting = true;
-        console.warn('Session expired. Redirecting to sign-in...');
-        setTimeout(() => {
-            window.location.href = '/signin';
-        }, 100);
-    }
-
+    console.warn('Session expired. Redirecting to sign-in...');
+    authEvents.forceLogout();
     return Promise.reject(new Error('Session expired'));
 };
 

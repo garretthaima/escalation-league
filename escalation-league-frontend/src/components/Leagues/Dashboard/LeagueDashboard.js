@@ -44,7 +44,7 @@ const LeagueDashboard = () => {
                     return;
                 }
 
-                const leagueId = contextLeague.league_id;
+                const leagueId = contextLeague.id;
 
                 // Fetch essential data in parallel (fast endpoints)
                 const [leagueDetails, userStatsData, leaderboardData, participantsData] = await Promise.all([

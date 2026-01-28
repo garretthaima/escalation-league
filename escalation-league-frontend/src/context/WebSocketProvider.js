@@ -98,13 +98,11 @@ export const WebSocketProvider = ({ children }) => {
                     return;
                 }
 
-                // Token refresh failed
+                // Token refresh failed - let axiosConfig handle redirect
+                // Just disconnect socket and stop retrying
                 reconnectAttempts.current++;
                 if (reconnectAttempts.current >= 3) {
-                    console.warn('WebSocket authentication failed - session expired');
-                    localStorage.removeItem('token');
-                    localStorage.removeItem('refreshToken');
-                    window.location.href = '/signin';
+                    console.warn('WebSocket authentication failed - stopping reconnection attempts');
                 }
             }
         });
@@ -136,9 +134,20 @@ export const WebSocketProvider = ({ children }) => {
             }
         };
 
+        const handleTokenRefreshFailed = () => {
+            // Disconnect socket cleanly on auth failure
+            // Let axiosConfig handle the redirect
+            if (socketRef.current) {
+                socketRef.current.disconnect();
+            }
+            setConnected(false);
+        };
+
         window.addEventListener('tokenRefreshed', handleTokenRefresh);
+        window.addEventListener('tokenRefreshFailed', handleTokenRefreshFailed);
         return () => {
             window.removeEventListener('tokenRefreshed', handleTokenRefresh);
+            window.removeEventListener('tokenRefreshFailed', handleTokenRefreshFailed);
         };
     }, [connected]);
 

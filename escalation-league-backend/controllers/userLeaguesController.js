@@ -5,6 +5,7 @@ const logger = require('../utils/logger');
 const { getOpponentMatchups } = require('../services/gameService');
 const { notifyAdmins, notificationTypes } = require('../services/notificationService');
 const { logLeagueSignup, logLeagueLeft } = require('../services/activityLogService');
+const { addCalculatedWeek } = require('../utils/leagueUtils');
 
 
 // Sign up for a league
@@ -172,27 +173,28 @@ const getLeagueParticipants = async (req, res) => {
             )
             .where('ul.league_id', league_id);
 
-        // Fetch commander names from Scryfall DB for all participants
-        const participantsWithCommanders = await Promise.all(
-            participants.map(async (p) => {
-                let commanderName = null;
-                if (p.current_commander) {
-                    try {
-                        const commanderData = await scryfallDb('cards')
-                            .select('name')
-                            .where('id', p.current_commander)
-                            .first();
-                        commanderName = commanderData ? commanderData.name : null;
-                    } catch (lookupErr) {
-                        logger.warn('Commander lookup failed', { user: p.firstname, error: lookupErr.message });
-                    }
-                }
-                return {
-                    ...p,
-                    current_commander: commanderName
-                };
-            })
-        );
+        // Batch fetch all commander names from Scryfall DB (avoid N+1 queries)
+        const commanderIds = participants
+            .map(p => p.current_commander)
+            .filter(Boolean);
+
+        const commandersMap = new Map();
+        if (commanderIds.length > 0) {
+            try {
+                const commanders = await scryfallDb('cards')
+                    .select('id', 'name')
+                    .whereIn('id', commanderIds);
+                commanders.forEach(c => commandersMap.set(c.id, c.name));
+            } catch (lookupErr) {
+                logger.warn('Commander batch lookup failed', { error: lookupErr.message });
+            }
+        }
+
+        // Map commander names to participants
+        const participantsWithCommanders = participants.map(p => ({
+            ...p,
+            current_commander: p.current_commander ? commandersMap.get(p.current_commander) || null : null
+        }));
 
         res.status(200).json(participantsWithCommanders);
     } catch (err) {
@@ -435,9 +437,10 @@ const isUserInLeague = async (req, res) => {
         logger.debug('Checking league membership', { userId });
 
         // Check if the user is in any league (only active memberships)
+        // Return full league data to avoid duplicate API calls on frontend
         const userLeague = await db('user_leagues')
             .join('leagues', 'user_leagues.league_id', 'leagues.id')
-            .select('leagues.id as league_id', 'leagues.name as league_name', 'user_leagues.joined_at')
+            .select('leagues.*', 'user_leagues.joined_at')
             .where('user_leagues.user_id', userId)
             .where('user_leagues.is_active', 1)
             .first();
@@ -448,7 +451,10 @@ const isUserInLeague = async (req, res) => {
             return res.status(200).json({ inLeague: false, league: null });
         }
 
-        res.status(200).json({ inLeague: true, league: userLeague });
+        // Add calculated current_week like getActiveLeague does
+        const leagueWithWeek = addCalculatedWeek(userLeague);
+
+        res.status(200).json({ inLeague: true, league: leagueWithWeek });
     } catch (err) {
         logger.error('Error checking user league membership', { error: err.message });
         res.status(500).json({ error: 'Failed to check user league membership.' });
