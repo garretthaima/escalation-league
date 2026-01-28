@@ -194,6 +194,24 @@ const UserRoleManagementPage = () => {
         setPermissionSort('name');
     };
 
+    // Get permissions inherited from selected parent role
+    const getParentRolePermissions = () => {
+        if (!newRoleParentId || !matrixData?.matrix) return new Set();
+
+        const parentRoleData = matrixData.matrix.find(m => m.role.id === parseInt(newRoleParentId));
+        if (!parentRoleData) return new Set();
+
+        const inheritedPermissions = new Set();
+        Object.entries(parentRoleData.permissions).forEach(([permId, permData]) => {
+            if (permData.hasPermission) {
+                inheritedPermissions.add(parseInt(permId));
+            }
+        });
+        return inheritedPermissions;
+    };
+
+    const parentRolePermissions = getParentRolePermissions();
+
     // Filter and sort permissions for create role modal
     const getFilteredSortedPermissions = () => {
         if (!matrixData?.permissions) return [];
@@ -205,8 +223,8 @@ const UserRoleManagementPage = () => {
 
         if (permissionSort === 'selected') {
             filtered = [...filtered].sort((a, b) => {
-                const aSelected = newRolePermissions.has(a.id);
-                const bSelected = newRolePermissions.has(b.id);
+                const aSelected = newRolePermissions.has(a.id) || parentRolePermissions.has(a.id);
+                const bSelected = newRolePermissions.has(b.id) || parentRolePermissions.has(b.id);
                 if (aSelected && !bSelected) return -1;
                 if (!aSelected && bSelected) return 1;
                 return a.name.localeCompare(b.name);
@@ -1021,11 +1039,13 @@ const UserRoleManagementPage = () => {
                                         disabled={creatingRole}
                                     >
                                         <option value="">-- No Parent (Standalone Role) --</option>
-                                        {matrixData.roles.map(role => (
-                                            <option key={role.id} value={role.id}>
-                                                {role.name}
-                                            </option>
-                                        ))}
+                                        {matrixData.roles
+                                            .filter(role => role.name !== 'super_admin')
+                                            .map(role => (
+                                                <option key={role.id} value={role.id}>
+                                                    {role.name}
+                                                </option>
+                                            ))}
                                     </select>
                                     <small className="text-muted">
                                         If set, this role will inherit permissions from the parent role
@@ -1037,6 +1057,9 @@ const UserRoleManagementPage = () => {
                                         Direct Permissions
                                         {newRolePermissions.size > 0 && (
                                             <span className="badge bg-primary ms-2">{newRolePermissions.size} selected</span>
+                                        )}
+                                        {parentRolePermissions.size > 0 && (
+                                            <span className="badge bg-info ms-2">{parentRolePermissions.size} inherited</span>
                                         )}
                                     </label>
                                     <div className="d-flex gap-2 mb-2">
@@ -1062,26 +1085,37 @@ const UserRoleManagementPage = () => {
                                         </select>
                                     </div>
                                     <div className="permission-list border rounded p-2">
-                                        {getFilteredSortedPermissions().map(permission => (
-                                            <div key={permission.id} className="form-check permission-item">
-                                                <input
-                                                    type="checkbox"
-                                                    className="form-check-input"
-                                                    id={`new-perm-${permission.id}`}
-                                                    checked={newRolePermissions.has(permission.id)}
-                                                    onChange={() => handleToggleNewRolePermission(permission.id)}
-                                                    disabled={creatingRole}
-                                                />
-                                                <label
-                                                    className="form-check-label"
-                                                    htmlFor={`new-perm-${permission.id}`}
+                                        {getFilteredSortedPermissions().map(permission => {
+                                            const isInheritedFromParent = parentRolePermissions.has(permission.id);
+                                            const isDirectlySelected = newRolePermissions.has(permission.id);
+
+                                            return (
+                                                <div
+                                                    key={permission.id}
+                                                    className={`form-check permission-item ${isInheritedFromParent ? 'inherited' : ''}`}
                                                 >
-                                                    <strong>{permission.name}</strong>
-                                                    <br />
-                                                    <small className="text-muted">{permission.description}</small>
-                                                </label>
-                                            </div>
-                                        ))}
+                                                    <input
+                                                        type="checkbox"
+                                                        className="form-check-input"
+                                                        id={`new-perm-${permission.id}`}
+                                                        checked={isDirectlySelected || isInheritedFromParent}
+                                                        onChange={() => handleToggleNewRolePermission(permission.id)}
+                                                        disabled={creatingRole || isInheritedFromParent}
+                                                    />
+                                                    <label
+                                                        className="form-check-label"
+                                                        htmlFor={`new-perm-${permission.id}`}
+                                                    >
+                                                        <strong>{permission.name}</strong>
+                                                        {isInheritedFromParent && (
+                                                            <span className="badge bg-info ms-2">Inherited</span>
+                                                        )}
+                                                        <br />
+                                                        <small className="text-muted">{permission.description}</small>
+                                                    </label>
+                                                </div>
+                                            );
+                                        })}
                                         {getFilteredSortedPermissions().length === 0 && (
                                             <p className="text-muted text-center mb-0 py-2">
                                                 No permissions match "{permissionSearch}"
