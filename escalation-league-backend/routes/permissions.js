@@ -7,6 +7,7 @@ const {
     getRolePermissions,
     getPermissionMatrix,
     updateRolePermissions,
+    updateRoleHierarchy,
     createRole,
     deleteRole
 } = require('../controllers/permissionsController');
@@ -82,6 +83,14 @@ router.put(
     authenticateToken,
     requireSuperAdmin,
     updateRolePermissions
+);
+
+// Update role hierarchy (change or remove parent role)
+router.put(
+    '/roles/:roleId/hierarchy',
+    authenticateToken,
+    requireSuperAdmin,
+    updateRoleHierarchy
 );
 
 // Create a new role
