@@ -158,29 +158,25 @@ const giveAward = async (req, res) => {
     }
 
     try {
-        // Validate award exists
-        const award = await db('awards').where({ id: awardId }).first();
+        // Parallelize validation queries (avoid sequential DB calls)
+        const [award, user, league, existing] = await Promise.all([
+            db('awards').where({ id: awardId }).first(),
+            db('users').where({ id: userId }).first(),
+            db('leagues').where({ id: leagueId }).first(),
+            db('user_awards')
+                .where({ user_id: userId, award_id: awardId, league_id: leagueId })
+                .first()
+        ]);
+
         if (!award) {
             return res.status(404).json({ error: 'Award not found.' });
         }
-
-        // Validate user exists
-        const user = await db('users').where({ id: userId }).first();
         if (!user) {
             return res.status(404).json({ error: 'User not found.' });
         }
-
-        // Validate league exists
-        const league = await db('leagues').where({ id: leagueId }).first();
         if (!league) {
             return res.status(404).json({ error: 'League not found.' });
         }
-
-        // Check if user already has this award for this league
-        const existing = await db('user_awards')
-            .where({ user_id: userId, award_id: awardId, league_id: leagueId })
-            .first();
-
         if (existing) {
             return res.status(409).json({ error: 'User already has this award for this league.' });
         }
