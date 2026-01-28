@@ -397,6 +397,10 @@ body.dark-mode .permission-item {
     border-bottom-color: rgba(255, 255, 255, 0.1);
 }
 
+body.dark-mode .permission-list.border {
+    border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
 body.dark-mode .permission-item:hover {
     background-color: rgba(74, 47, 112, 0.3);
 }
