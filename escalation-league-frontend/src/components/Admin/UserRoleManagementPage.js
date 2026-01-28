@@ -42,6 +42,8 @@ const UserRoleManagementPage = () => {
     const [newRoleParentId, setNewRoleParentId] = useState('');
     const [newRolePermissions, setNewRolePermissions] = useState(new Set());
     const [creatingRole, setCreatingRole] = useState(false);
+    const [permissionSearch, setPermissionSearch] = useState('');
+    const [permissionSort, setPermissionSort] = useState('name'); // 'name' or 'selected'
 
     // Delete role state
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -177,6 +179,8 @@ const UserRoleManagementPage = () => {
         setNewRoleDescription('');
         setNewRoleParentId('');
         setNewRolePermissions(new Set());
+        setPermissionSearch('');
+        setPermissionSort('name');
         setShowCreateRoleModal(true);
     };
 
@@ -186,6 +190,32 @@ const UserRoleManagementPage = () => {
         setNewRoleDescription('');
         setNewRoleParentId('');
         setNewRolePermissions(new Set());
+        setPermissionSearch('');
+        setPermissionSort('name');
+    };
+
+    // Filter and sort permissions for create role modal
+    const getFilteredSortedPermissions = () => {
+        if (!matrixData?.permissions) return [];
+
+        let filtered = matrixData.permissions.filter(p =>
+            p.name.toLowerCase().includes(permissionSearch.toLowerCase()) ||
+            p.description?.toLowerCase().includes(permissionSearch.toLowerCase())
+        );
+
+        if (permissionSort === 'selected') {
+            filtered = [...filtered].sort((a, b) => {
+                const aSelected = newRolePermissions.has(a.id);
+                const bSelected = newRolePermissions.has(b.id);
+                if (aSelected && !bSelected) return -1;
+                if (!aSelected && bSelected) return 1;
+                return a.name.localeCompare(b.name);
+            });
+        } else {
+            filtered = [...filtered].sort((a, b) => a.name.localeCompare(b.name));
+        }
+
+        return filtered;
     };
 
     const handleToggleNewRolePermission = (permissionId) => {
@@ -1005,9 +1035,34 @@ const UserRoleManagementPage = () => {
                                 <div className="mb-3">
                                     <label className="form-label">
                                         Direct Permissions
+                                        {newRolePermissions.size > 0 && (
+                                            <span className="badge bg-primary ms-2">{newRolePermissions.size} selected</span>
+                                        )}
                                     </label>
+                                    <div className="d-flex gap-2 mb-2">
+                                        <div className="flex-grow-1">
+                                            <input
+                                                type="text"
+                                                className="form-control form-control-sm"
+                                                placeholder="Search permissions..."
+                                                value={permissionSearch}
+                                                onChange={(e) => setPermissionSearch(e.target.value)}
+                                                disabled={creatingRole}
+                                            />
+                                        </div>
+                                        <select
+                                            className="form-select form-select-sm"
+                                            style={{ width: 'auto' }}
+                                            value={permissionSort}
+                                            onChange={(e) => setPermissionSort(e.target.value)}
+                                            disabled={creatingRole}
+                                        >
+                                            <option value="name">Sort by Name</option>
+                                            <option value="selected">Selected First</option>
+                                        </select>
+                                    </div>
                                     <div className="permission-list border rounded p-2">
-                                        {matrixData.permissions.map(permission => (
+                                        {getFilteredSortedPermissions().map(permission => (
                                             <div key={permission.id} className="form-check permission-item">
                                                 <input
                                                     type="checkbox"
@@ -1027,6 +1082,11 @@ const UserRoleManagementPage = () => {
                                                 </label>
                                             </div>
                                         ))}
+                                        {getFilteredSortedPermissions().length === 0 && (
+                                            <p className="text-muted text-center mb-0 py-2">
+                                                No permissions match "{permissionSearch}"
+                                            </p>
+                                        )}
                                     </div>
                                 </div>
                             </div>
