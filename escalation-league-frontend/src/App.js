@@ -21,6 +21,7 @@ import { ToastProvider } from './context/ToastContext';
 import { WebSocketProvider } from './context/WebSocketProvider';
 import { AttendancePage, PodSuggestionsPage } from './components/Attendance';
 import { GlobalLeaderboard } from './components/Leaderboard';
+import LifeTracker from './components/LifeTracker/LifeTracker';
 import { logoutUser } from './api/authApi';
 import { initializeAuth } from './api/axiosConfig';
 
@@ -104,6 +105,7 @@ const App = () => {
                             <Route path="/forgot-password" element={<ForgotPassword />} />
                             <Route path="/reset-password" element={<ResetPassword />} />
                             <Route path="/rules" element={<Rules />} />
+                            <Route path="/life-tracker/:podId?" element={<LifeTracker />} />
                             <Route path="/awards" element={<Awards />} />
                             <Route path="/contact" element={<Contact />} />
                             <Route path="/leaderboard" element={<GlobalLeaderboard />} />

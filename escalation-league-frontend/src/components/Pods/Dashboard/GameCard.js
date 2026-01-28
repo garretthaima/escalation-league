@@ -1,11 +1,13 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import { useNavigate } from 'react-router-dom';
 import './GameCard.css';
 
 /**
  * Commander pod-style game card - 2x2 grid layout like a real table
  */
 const GameCard = ({ pod, userId, onDeclareResult, showActions = true }) => {
+    const navigate = useNavigate();
     const participants = Array.isArray(pod.participants) ? pod.participants : [];
     const sortedParticipants = [...participants].sort((a, b) =>
         (a.turn_order || 999) - (b.turn_order || 999)
@@ -28,14 +30,26 @@ const GameCard = ({ pod, userId, onDeclareResult, showActions = true }) => {
                 {/* Header row */}
                 <div className="d-flex justify-content-between align-items-center mb-3">
                     <h6 className="card-title mb-0">Pod #{pod.id}</h6>
-                    {showActions && isParticipant && onDeclareResult && (
-                        <button
-                            className="btn btn-sm btn-declare"
-                            onClick={() => onDeclareResult(pod.id)}
-                        >
-                            <i className="fas fa-trophy me-1"></i>
-                            Declare
-                        </button>
+                    {showActions && isParticipant && (
+                        <div className="d-flex gap-2">
+                            <button
+                                className="btn btn-sm btn-life-tracker"
+                                onClick={() => navigate(`/life-tracker/${pod.id}`)}
+                                title="Open Life Tracker"
+                            >
+                                <i className="fas fa-heart me-1"></i>
+                                Life
+                            </button>
+                            {onDeclareResult && (
+                                <button
+                                    className="btn btn-sm btn-declare"
+                                    onClick={() => onDeclareResult(pod.id)}
+                                >
+                                    <i className="fas fa-trophy me-1"></i>
+                                    Declare
+                                </button>
+                            )}
+                        </div>
                     )}
                 </div>
 
@@ -91,6 +105,10 @@ const GameCard = ({ pod, userId, onDeclareResult, showActions = true }) => {
                         );
                     })}
                 </div>
+<<<<<<< HEAD
+=======
+
+>>>>>>> 5a53368... WIP: Life tracker integration with pod system (#164)
             </div>
         </div>
     );
