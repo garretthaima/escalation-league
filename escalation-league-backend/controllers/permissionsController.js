@@ -341,8 +341,8 @@ const updateRolePermissions = async (req, res) => {
             await trx('activity_logs').insert({
                 user_id: req.user.id,
                 action: 'role_permissions_updated',
-                description: `Updated permissions for role '${role.name}'. Added: ${added.length}, Removed: ${removed.length}`,
-                details: JSON.stringify({
+                metadata: JSON.stringify({
+                    description: `Updated permissions for role '${role.name}'. Added: ${added.length}, Removed: ${removed.length}`,
                     roleId: parseInt(roleId),
                     roleName: role.name,
                     added,
@@ -451,11 +451,11 @@ const createRole = async (req, res) => {
             await trx('activity_logs').insert({
                 user_id: req.user.id,
                 action: 'role_created',
-                description: `Created new role '${name}'`,
-                details: JSON.stringify({
+                metadata: JSON.stringify({
+                    description: `Created new role '${name}'`,
                     roleId,
                     name,
-                    description,
+                    roleDescription: description,
                     permissionIds,
                     parentRoleId
                 })
@@ -532,8 +532,8 @@ const deleteRole = async (req, res) => {
             await trx('activity_logs').insert({
                 user_id: req.user.id,
                 action: 'role_deleted',
-                description: `Deleted role '${role.name}'`,
-                details: JSON.stringify({
+                metadata: JSON.stringify({
+                    description: `Deleted role '${role.name}'`,
                     roleId: parseInt(roleId),
                     roleName: role.name,
                     roleDescription: role.description
