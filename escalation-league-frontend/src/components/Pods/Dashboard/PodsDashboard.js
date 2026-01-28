@@ -19,8 +19,8 @@ const PodsDashboard = () => {
     const { showToast } = useToast();
     const { socket, connected, joinLeague, leaveLeague } = useWebSocket();
 
-    // Derive leagueId from context
-    const leagueId = activeLeague?.league_id;
+    // Derive leagueId from context (API returns 'id' from leagues.*, fallback to league_id for compatibility)
+    const leagueId = activeLeague?.id || activeLeague?.league_id;
 
     // State
     const [loading, setLoading] = useState(true);

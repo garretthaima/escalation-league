@@ -75,7 +75,7 @@ const SignIn = () => {
                 const { activeLeague } = await refreshUserData();
 
                 // Redirect to league page if user is in a league, otherwise home
-                if (activeLeague?.league_id) {
+                if (activeLeague?.id || activeLeague?.league_id) {
                     navigate('/leagues');
                 } else {
                     navigate('/');
@@ -104,7 +104,7 @@ const SignIn = () => {
             const { activeLeague } = await refreshUserData();
 
             // Redirect to league page if user is in a league, otherwise home
-            if (activeLeague?.league_id) {
+            if (activeLeague?.id || activeLeague?.league_id) {
                 navigate('/leagues');
             } else {
                 navigate('/');

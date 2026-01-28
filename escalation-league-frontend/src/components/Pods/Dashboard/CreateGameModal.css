@@ -7,8 +7,42 @@
 
 /* Player list scroll container */
 .create-game-modal-player-list {
-    max-height: 350px;
-    overflow-y: auto;
+    max-height: 350px !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch; /* Enable momentum scrolling on iOS */
+    overscroll-behavior: contain; /* Prevent scroll chaining */
+}
+
+/* Mobile-specific modal scrolling fixes */
+@media (max-width: 767.98px) {
+    /* Make modal scrollable on mobile */
+    .modal {
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Constrain modal height and enable body scroll */
+    .modal-dialog.modal-lg {
+        max-height: 90vh;
+        margin: 1rem auto;
+    }
+
+    .modal-dialog.modal-lg .modal-content {
+        max-height: 90vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .modal-dialog.modal-lg .modal-body {
+        flex: 1;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        max-height: calc(90vh - 130px); /* Account for header + footer */
+    }
+
+    .create-game-modal-player-list {
+        max-height: 180px; /* Smaller on mobile to fit both columns */
+    }
 }
 
 /* Selected player item */

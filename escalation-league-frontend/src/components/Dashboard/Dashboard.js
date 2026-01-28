@@ -33,7 +33,7 @@ const Dashboard = () => {
     const [showResultModal, setShowResultModal] = useState(false);
     const [selectedPodId, setSelectedPodId] = useState(null);
 
-    const leagueId = activeLeague?.league_id;
+    const leagueId = activeLeague?.id || activeLeague?.league_id;
 
     // Fetch dashboard data
     useEffect(() => {
