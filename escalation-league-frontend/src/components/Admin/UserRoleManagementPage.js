@@ -1,11 +1,15 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { getAllUsers, getAllRoles, assignUserRole } from '../../api/adminApi';
 import { getPermissionMatrix, getRoleHierarchy, updateRolePermissions, createRole, deleteRole } from '../../api/permissionsApi';
 import { useToast } from '../../context/ToastContext';
 import LoadingSpinner from '../Shared/LoadingSpinner';
 import './UserRoleManagementPage.css';
 
+const VALID_TABS = ['users', 'matrix', 'hierarchy', 'roles'];
+
 const UserRoleManagementPage = () => {
+    const [searchParams, setSearchParams] = useSearchParams();
     const [users, setUsers] = useState([]);
     const [roles, setRoles] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -17,8 +21,13 @@ const UserRoleManagementPage = () => {
     const [updating, setUpdating] = useState(false);
     const { showToast } = useToast();
 
-    // Permissions dashboard state
-    const [activeTab, setActiveTab] = useState('users');
+    // Get active tab from URL, default to 'users'
+    const tabParam = searchParams.get('tab');
+    const activeTab = VALID_TABS.includes(tabParam) ? tabParam : 'users';
+
+    const setActiveTab = (tab) => {
+        setSearchParams({ tab });
+    };
     const [matrixData, setMatrixData] = useState(null);
     const [hierarchyData, setHierarchyData] = useState(null);
     const [selectedRole, setSelectedRole] = useState(null);
