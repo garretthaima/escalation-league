@@ -28,7 +28,7 @@ import { initializeAuth } from './api/axiosConfig';
 const LeagueAdminPage = lazy(() => import('./components/Admin/LeagueAdminPage'));
 const PodAdminPage = lazy(() => import('./components/Admin/PodAdminPage'));
 const UserRoleManagementPage = lazy(() => import('./components/Admin/UserRoleManagementPage'));
-const AttendanceAdminPage = lazy(() => import('./components/Attendance/AttendanceAdminPage'));
+const AttendanceAdminPage = lazy(() => import('./components/Admin/AttendanceAdminPage'));
 const ActivityLogsPage = lazy(() => import('./components/Admin/ActivityLogsPage'));
 const CreateLeaguePage = lazy(() => import('./components/Admin/CreateLeaguePage'));
 const EditPodPage = lazy(() => import('./components/Admin/EditPodPage'));
