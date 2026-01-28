@@ -27,7 +27,7 @@ const getAllUsers = async (req, res) => {
                 'users.is_active'
             )
             .whereNot('users.id', 1); // Exclude the admin break-glass account
-        res.status(200).json(users);
+        res.status(200).json({ users });
     } catch (err) {
         console.error('Error fetching all users:', err);
         res.status(500).json({ error: 'Failed to fetch users.' });

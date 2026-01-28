@@ -1,6 +1,7 @@
 /* User Role Management Page Styles */
 .user-role-management {
     margin-bottom: 3rem;
+    max-width: 1600px;
 }
 
 /* Card hover effects */
@@ -143,4 +144,287 @@ body.dark-mode .form-control:focus {
 body.dark-mode .badge.bg-light {
     background-color: #4a5568 !important;
     color: #e2e8f0 !important;
+}
+
+/* Permission Matrix Styles */
+.permission-matrix-container {
+    max-height: 70vh;
+    overflow: auto;
+}
+
+.permission-matrix {
+    font-size: 0.85rem;
+}
+
+.permission-matrix .sticky-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--bs-card-bg, #fff);
+}
+
+.permission-matrix .permission-name-header {
+    min-width: 200px;
+    position: sticky;
+    left: 0;
+    z-index: 11;
+    background: var(--bs-card-bg, #fff);
+}
+
+.permission-matrix .role-header {
+    min-width: 120px;
+    text-align: center;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    white-space: nowrap;
+}
+
+.permission-matrix .role-header:hover {
+    background-color: var(--bs-primary-bg-subtle, #cfe2ff);
+}
+
+.permission-matrix .role-header .role-name {
+    display: block;
+    font-weight: 600;
+}
+
+.permission-matrix .role-header .edit-icon {
+    opacity: 0;
+    font-size: 0.75rem;
+    transition: opacity 0.2s;
+}
+
+.permission-matrix .role-header:hover .edit-icon {
+    opacity: 1;
+}
+
+.permission-matrix .permission-name {
+    position: sticky;
+    left: 0;
+    background: var(--bs-card-bg, #fff);
+    font-family: monospace;
+    font-size: 0.8rem;
+    cursor: help;
+}
+
+.permission-matrix .permission-cell {
+    text-align: center;
+    padding: 0.5rem;
+}
+
+.permission-matrix .permission-cell.direct {
+    background-color: rgba(13, 110, 253, 0.1);
+}
+
+.permission-matrix .permission-cell.direct i {
+    color: var(--bs-primary);
+}
+
+.permission-matrix .permission-cell.inherited {
+    background-color: rgba(13, 202, 240, 0.1);
+}
+
+.permission-matrix .permission-cell.inherited i {
+    color: var(--bs-info);
+}
+
+/* Hierarchy Tree */
+.hierarchy-container {
+    padding: 1rem;
+}
+
+.hierarchy-list {
+    list-style: none;
+    padding-left: 0;
+}
+
+.hierarchy-list.root > .hierarchy-item {
+    margin-bottom: 0;
+}
+
+.hierarchy-list .hierarchy-list {
+    padding-left: 2rem;
+    margin-top: 0.5rem;
+    border-left: 2px solid var(--bs-border-color);
+}
+
+.hierarchy-item {
+    margin-bottom: 0.5rem;
+}
+
+.hierarchy-node {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: var(--bs-tertiary-bg, #f8f9fa);
+    border-radius: 0.375rem;
+    border: 1px solid var(--bs-border-color);
+}
+
+.hierarchy-role-name {
+    font-weight: 600;
+    color: var(--bs-primary);
+}
+
+.hierarchy-role-id {
+    font-size: 0.75rem;
+    color: var(--bs-secondary);
+}
+
+/* Role Cards - Brand-aligned styling */
+.role-card {
+    background: var(--bg-primary) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 24px var(--shadow) !important;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    overflow: hidden;
+}
+
+.role-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 32px var(--shadow) !important;
+}
+
+.role-card .card-header {
+    background: var(--bg-secondary) !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    border-radius: 12px 12px 0 0 !important;
+    padding: 0.875rem 1.25rem !important;
+}
+
+.role-card .card-header h6 {
+    color: var(--text-primary);
+    font-weight: 600;
+    margin: 0;
+}
+
+.role-card .card-body {
+    padding: 1.25rem !important;
+}
+
+.role-card .card-body p {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    margin-bottom: 0.75rem;
+}
+
+.role-card .badge {
+    font-size: 0.75rem;
+}
+
+/* Dark mode role cards - purple header */
+body.dark-mode .role-card .card-header {
+    background: var(--brand-purple) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+body.dark-mode .role-card .card-header h6 {
+    color: #ffffff !important;
+}
+
+body.dark-mode .role-card .card-header .badge {
+    background-color: rgba(255, 255, 255, 0.2) !important;
+    color: #ffffff !important;
+}
+
+body.dark-mode .role-card .card-body {
+    background: var(--bg-primary);
+}
+
+body.dark-mode .role-card .card-body p {
+    color: var(--text-secondary);
+}
+
+.role-card .card-footer {
+    background: var(--bg-secondary) !important;
+    border-top: 1px solid var(--border-color) !important;
+    border-radius: 0 0 12px 12px !important;
+    padding: 0.875rem 1.25rem !important;
+}
+
+body.dark-mode .role-card .card-footer {
+    background: var(--bg-secondary) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Permission List in Modal */
+.permission-list {
+    max-height: 50vh;
+    overflow-y: auto;
+}
+
+.permission-item {
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--bs-border-color);
+    transition: background-color 0.2s;
+}
+
+.permission-item:hover {
+    background-color: var(--bs-tertiary-bg, #f8f9fa);
+}
+
+.permission-item.inherited {
+    background-color: rgba(13, 202, 240, 0.05);
+}
+
+.permission-item:last-child {
+    border-bottom: none;
+}
+
+.permission-item .form-check-label {
+    cursor: pointer;
+}
+
+.permission-item .form-check-label strong {
+    font-family: monospace;
+    font-size: 0.9rem;
+}
+
+/* Dark mode adjustments for permissions */
+body.dark-mode .permission-matrix .sticky-header,
+body.dark-mode .permission-matrix .permission-name-header,
+body.dark-mode .permission-matrix .permission-name {
+    background: var(--bg-primary);
+}
+
+body.dark-mode .hierarchy-node {
+    background: var(--bg-secondary);
+}
+
+body.dark-mode .permission-item {
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .permission-item:hover {
+    background-color: rgba(74, 47, 112, 0.3);
+}
+
+body.dark-mode .permission-item.inherited {
+    background-color: rgba(74, 47, 112, 0.15);
+}
+
+/* Responsive adjustments for permissions */
+@media (max-width: 768px) {
+    .permission-matrix {
+        font-size: 0.75rem;
+    }
+
+    .permission-matrix .role-header {
+        min-width: 80px;
+    }
+
+    .permission-matrix .permission-name-header,
+    .permission-matrix .permission-name {
+        min-width: 150px;
+    }
+
+    .permission-matrix .role-header .role-name {
+        font-size: 0.75rem;
+    }
+
+    .permission-matrix .role-header .edit-icon {
+        display: none;
+    }
 }
