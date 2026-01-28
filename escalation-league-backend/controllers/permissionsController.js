@@ -440,10 +440,12 @@ const createRole = async (req, res) => {
             }
 
             // Add to hierarchy if parent specified
+            // Note: In role_hierarchy, parent_role_id is the role that INHERITS FROM child_role_id
+            // So if we want the new role to inherit from parentRoleId, we insert parent_role_id=new_role, child_role_id=parentRoleId
             if (parentRoleId) {
                 await trx('role_hierarchy').insert({
-                    parent_role_id: parentRoleId,
-                    child_role_id: roleId
+                    parent_role_id: roleId,
+                    child_role_id: parseInt(parentRoleId)
                 });
             }
 
@@ -550,6 +552,132 @@ const deleteRole = async (req, res) => {
     }
 };
 
+/**
+ * Update role hierarchy (change or remove parent role)
+ * PUT /admin/permissions/roles/:roleId/hierarchy
+ * Body: { parentRoleId: number | null }
+ */
+const updateRoleHierarchy = async (req, res) => {
+    try {
+        const { roleId } = req.params;
+        const { parentRoleId } = req.body;
+
+        // Get the role
+        const role = await db('roles').where('id', roleId).first();
+        if (!role) {
+            return res.status(404).json({ error: 'Role not found' });
+        }
+
+        // Prevent modifying protected roles
+        const protectedRoles = ['super_admin', 'user'];
+        if (protectedRoles.includes(role.name)) {
+            return res.status(400).json({
+                error: `Cannot modify hierarchy for the '${role.name}' role. This is a protected system role.`
+            });
+        }
+
+        // Validate parent role if provided
+        if (parentRoleId !== null && parentRoleId !== undefined) {
+            const parentRole = await db('roles').where('id', parentRoleId).first();
+            if (!parentRole) {
+                return res.status(400).json({ error: 'Parent role not found' });
+            }
+
+            // Prevent circular references - check if the new parent inherits from this role
+            const wouldCreateCycle = await checkForCycle(roleId, parentRoleId);
+            if (wouldCreateCycle) {
+                return res.status(400).json({
+                    error: 'Cannot set this parent role as it would create a circular hierarchy'
+                });
+            }
+        }
+
+        await db.transaction(async (trx) => {
+            // Get current parent for logging
+            const currentHierarchy = await trx('role_hierarchy')
+                .where('parent_role_id', roleId)
+                .select('child_role_id');
+            const currentParentId = currentHierarchy.length > 0 ? currentHierarchy[0].child_role_id : null;
+
+            // Remove existing hierarchy where this role is the parent (correct direction)
+            await trx('role_hierarchy').where('parent_role_id', roleId).del();
+
+            // Also clean up any backwards entries from the old buggy createRole
+            // (where this role was incorrectly set as the child_role_id)
+            await trx('role_hierarchy').where('child_role_id', roleId).del();
+
+            // Add new hierarchy if parentRoleId is provided
+            if (parentRoleId !== null && parentRoleId !== undefined) {
+                await trx('role_hierarchy').insert({
+                    parent_role_id: parseInt(roleId),
+                    child_role_id: parseInt(parentRoleId)
+                });
+            }
+
+            // Log the action
+            await trx('activity_logs').insert({
+                user_id: req.user.id,
+                action: 'role_hierarchy_updated',
+                metadata: JSON.stringify({
+                    description: `Updated hierarchy for role '${role.name}'`,
+                    roleId: parseInt(roleId),
+                    roleName: role.name,
+                    previousParentId: currentParentId,
+                    newParentId: parentRoleId
+                })
+            });
+        });
+
+        res.json({
+            message: `Role hierarchy updated successfully`,
+            roleId: parseInt(roleId),
+            parentRoleId: parentRoleId
+        });
+    } catch (err) {
+        logger.error('Error updating role hierarchy', err);
+        res.status(500).json({ error: 'Failed to update role hierarchy' });
+    }
+};
+
+/**
+ * Check if setting a parent would create a circular hierarchy
+ *
+ * In role_hierarchy table:
+ * - parent_role_id is the role that INHERITS FROM child_role_id
+ * - So child_role_id is the actual "parent" in inheritance terms
+ *
+ * To check for cycles when making roleId inherit from newParentId:
+ * - We need to check if newParentId already inherits from roleId
+ * - If it does, setting roleId to inherit from newParentId would create a cycle
+ */
+const checkForCycle = async (roleId, newParentId) => {
+    const hierarchy = await db('role_hierarchy')
+        .select('parent_role_id', 'child_role_id');
+
+    // Get all roles that a given role inherits FROM (following the child_role_id chain)
+    const getInheritedFrom = (roleIdToCheck, visited = new Set()) => {
+        if (visited.has(roleIdToCheck)) return [];
+        visited.add(roleIdToCheck);
+
+        // Find entries where this role is the "parent" (the one inheriting)
+        const inheritedFrom = hierarchy
+            .filter(h => h.parent_role_id === roleIdToCheck)
+            .map(h => h.child_role_id);
+
+        let allInherited = [...inheritedFrom];
+        inheritedFrom.forEach(inheritedId => {
+            allInherited = [...allInherited, ...getInheritedFrom(inheritedId, visited)];
+        });
+
+        return [...new Set(allInherited)];
+    };
+
+    // Check if newParentId already inherits from roleId
+    // If it does, making roleId inherit from newParentId would create a cycle
+    const rolesNewParentInheritsFrom = getInheritedFrom(parseInt(newParentId));
+    return rolesNewParentInheritsFrom.includes(parseInt(roleId));
+};
+
 module.exports = {
     getAllPermissions,
     getAllRolesWithDetails,
@@ -557,6 +685,7 @@ module.exports = {
     getRolePermissions,
     getPermissionMatrix,
     updateRolePermissions,
+    updateRoleHierarchy,
     createRole,
     deleteRole
 };

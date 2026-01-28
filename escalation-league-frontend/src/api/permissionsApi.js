@@ -54,6 +54,18 @@ export const updateRolePermissions = async (roleId, permissionIds) => {
 };
 
 /**
+ * Update role hierarchy (change or remove parent role)
+ * @param {number} roleId - Role ID
+ * @param {number|null} parentRoleId - New parent role ID, or null to remove parent
+ */
+export const updateRoleHierarchy = async (roleId, parentRoleId) => {
+    const response = await axiosInstance.put(`/admin/permissions/roles/${roleId}/hierarchy`, {
+        parentRoleId
+    });
+    return response.data;
+};
+
+/**
  * Create a new role
  * @param {string} name - Role name (lowercase, underscores only)
  * @param {string} description - Role description
