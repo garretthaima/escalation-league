@@ -42,20 +42,6 @@ export const getLeagueStats = async (leagueId) => {
     return response.data;
 };
 
-// Search leagues
-export const searchLeagues = async (searchQuery) => {
-    const response = await axiosInstance.get('/leagues/search', {
-        params: { query: searchQuery },
-    });
-    return response.data;
-};
-
-// Invite user to a league
-export const inviteToLeague = async (leagueId, userId) => {
-    const response = await axiosInstance.post(`/leagues/${leagueId}/invite`, { userId });
-    return response.data;
-};
-
 // Fetch all pending signup requests
 export const getSignupRequests = async () => {
     const response = await axiosInstance.get('/leagues/signup-requests');

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getActiveLeague, getLeagueStats } from '../../api/leaguesApi';
+import { getLeagueStats } from '../../api/leaguesApi';
 import { getPods } from '../../api/podsApi';
 import { usePermissions } from '../../context/PermissionsProvider';
 import { parseDate } from '../../utils/dateFormatter';
@@ -36,16 +36,16 @@ const HomePage = () => {
             try {
                 setLoading(true);
 
-                // Fetch active league first
-                const activeLeague = await getActiveLeague().catch(() => null);
-                setLeague(activeLeague);
+                // Use activeLeague from context instead of making duplicate API call
+                // PermissionsProvider already fetches this via isUserInLeague()
+                setLeague(userActiveLeague);
 
-                if (activeLeague?.id) {
+                if (userActiveLeague?.id) {
                     // Fetch league stats and pods in parallel
                     const [leagueStatsData, activePods, completedPods] = await Promise.all([
-                        getLeagueStats(activeLeague.id).then(data => data.leaderboard || []).catch(() => []),
-                        getPods({ confirmation_status: 'active', league_id: activeLeague.id }).catch(() => []),
-                        getPods({ confirmation_status: 'complete', league_id: activeLeague.id }).catch(() => [])
+                        getLeagueStats(userActiveLeague.id).then(data => data.leaderboard || []).catch(() => []),
+                        getPods({ confirmation_status: 'active', league_id: userActiveLeague.id }).catch(() => []),
+                        getPods({ confirmation_status: 'complete', league_id: userActiveLeague.id }).catch(() => [])
                     ]);
 
                     setLeaderboard(leagueStatsData.slice(0, 5)); // Top 5 only
@@ -71,7 +71,7 @@ const HomePage = () => {
         };
 
         fetchLeagueData();
-    }, [isLoggedIn, authLoading]);
+    }, [isLoggedIn, authLoading, userActiveLeague]);
 
     return (
         <div className="homepage">

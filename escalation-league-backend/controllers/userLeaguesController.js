@@ -5,6 +5,7 @@ const logger = require('../utils/logger');
 const { getOpponentMatchups } = require('../services/gameService');
 const { notifyAdmins, notificationTypes } = require('../services/notificationService');
 const { logLeagueSignup, logLeagueLeft } = require('../services/activityLogService');
+const { addCalculatedWeek } = require('../utils/leagueUtils');
 
 
 // Sign up for a league
@@ -435,9 +436,10 @@ const isUserInLeague = async (req, res) => {
         logger.debug('Checking league membership', { userId });
 
         // Check if the user is in any league (only active memberships)
+        // Return full league data to avoid duplicate API calls on frontend
         const userLeague = await db('user_leagues')
             .join('leagues', 'user_leagues.league_id', 'leagues.id')
-            .select('leagues.id as league_id', 'leagues.name as league_name', 'user_leagues.joined_at')
+            .select('leagues.*', 'user_leagues.joined_at')
             .where('user_leagues.user_id', userId)
             .where('user_leagues.is_active', 1)
             .first();
@@ -448,7 +450,10 @@ const isUserInLeague = async (req, res) => {
             return res.status(200).json({ inLeague: false, league: null });
         }
 
-        res.status(200).json({ inLeague: true, league: userLeague });
+        // Add calculated current_week like getActiveLeague does
+        const leagueWithWeek = addCalculatedWeek(userLeague);
+
+        res.status(200).json({ inLeague: true, league: leagueWithWeek });
     } catch (err) {
         logger.error('Error checking user league membership', { error: err.message });
         res.status(500).json({ error: 'Failed to check user league membership.' });

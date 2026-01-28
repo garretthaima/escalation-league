@@ -7,8 +7,6 @@ import {
     getActiveLeague,
     getLeagueDetails,
     getLeagueStats,
-    searchLeagues,
-    inviteToLeague,
     getSignupRequests,
     approveSignupRequest,
     rejectSignupRequest,
@@ -287,106 +285,6 @@ describe('leaguesApi', () => {
             axiosInstance.get.mockRejectedValue(error);
 
             await expect(getLeagueStats(leagueId)).rejects.toThrow('Stats unavailable');
-        });
-    });
-
-    describe('searchLeagues', () => {
-        it('should make a GET request to /leagues/search with query parameter', async () => {
-            const searchQuery = 'competitive';
-            const mockResults = [
-                { id: 1, name: 'Competitive League' },
-                { id: 5, name: 'Super Competitive' },
-            ];
-            const mockResponse = { data: mockResults };
-            axiosInstance.get.mockResolvedValue(mockResponse);
-
-            const result = await searchLeagues(searchQuery);
-
-            expect(axiosInstance.get).toHaveBeenCalledTimes(1);
-            expect(axiosInstance.get).toHaveBeenCalledWith('/leagues/search', {
-                params: { query: searchQuery },
-            });
-            expect(result).toEqual(mockResults);
-        });
-
-        it('should handle empty search query', async () => {
-            const searchQuery = '';
-            const mockResponse = { data: [] };
-            axiosInstance.get.mockResolvedValue(mockResponse);
-
-            const result = await searchLeagues(searchQuery);
-
-            expect(axiosInstance.get).toHaveBeenCalledWith('/leagues/search', {
-                params: { query: '' },
-            });
-            expect(result).toEqual([]);
-        });
-
-        it('should handle search query with special characters', async () => {
-            const searchQuery = 'test & league @2026';
-            const mockResponse = { data: [] };
-            axiosInstance.get.mockResolvedValue(mockResponse);
-
-            const result = await searchLeagues(searchQuery);
-
-            expect(axiosInstance.get).toHaveBeenCalledWith('/leagues/search', {
-                params: { query: searchQuery },
-            });
-            expect(result).toEqual([]);
-        });
-
-        it('should return empty array when no matches found', async () => {
-            const searchQuery = 'nonexistent';
-            const mockResponse = { data: [] };
-            axiosInstance.get.mockResolvedValue(mockResponse);
-
-            const result = await searchLeagues(searchQuery);
-
-            expect(result).toEqual([]);
-        });
-
-        it('should propagate errors from axios', async () => {
-            const searchQuery = 'test';
-            const error = new Error('Search failed');
-            axiosInstance.get.mockRejectedValue(error);
-
-            await expect(searchLeagues(searchQuery)).rejects.toThrow('Search failed');
-        });
-    });
-
-    describe('inviteToLeague', () => {
-        it('should make a POST request to /leagues/:id/invite with userId', async () => {
-            const leagueId = 4;
-            const userId = 25;
-            const mockResponse = { data: { success: true, message: 'Invitation sent' } };
-            axiosInstance.post.mockResolvedValue(mockResponse);
-
-            const result = await inviteToLeague(leagueId, userId);
-
-            expect(axiosInstance.post).toHaveBeenCalledTimes(1);
-            expect(axiosInstance.post).toHaveBeenCalledWith(`/leagues/${leagueId}/invite`, { userId });
-            expect(result).toEqual(mockResponse.data);
-        });
-
-        it('should handle string user id', async () => {
-            const leagueId = 2;
-            const userId = '30';
-            const mockResponse = { data: { success: true } };
-            axiosInstance.post.mockResolvedValue(mockResponse);
-
-            const result = await inviteToLeague(leagueId, userId);
-
-            expect(axiosInstance.post).toHaveBeenCalledWith('/leagues/2/invite', { userId: '30' });
-            expect(result).toEqual(mockResponse.data);
-        });
-
-        it('should propagate errors from axios', async () => {
-            const leagueId = 1;
-            const userId = 1;
-            const error = new Error('User already in league');
-            axiosInstance.post.mockRejectedValue(error);
-
-            await expect(inviteToLeague(leagueId, userId)).rejects.toThrow('User already in league');
         });
     });
 

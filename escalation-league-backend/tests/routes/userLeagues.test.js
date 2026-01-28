@@ -662,8 +662,10 @@ describe('User-League Routes', () => {
             expect(res.status).toBe(200);
             expect(res.body).toHaveProperty('inLeague', true);
             expect(res.body).toHaveProperty('league');
-            expect(res.body.league).toHaveProperty('league_id', leagueId);
-            expect(res.body.league).toHaveProperty('league_name', 'Active League');
+            // isUserInLeague now returns full league data (including calculated week)
+            expect(res.body.league).toHaveProperty('id', leagueId);
+            expect(res.body.league).toHaveProperty('name', 'Active League');
+            expect(res.body.league).toHaveProperty('current_week');
         });
 
         it('should return false when user is not in any league', async () => {

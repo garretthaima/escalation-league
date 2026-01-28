@@ -164,5 +164,3 @@ const calculateDeckPrices = async (deckData, updatedCards = [], removedCards = [
 };
 
 module.exports = { calculateDeckPrices };
-
-module.exports = { calculateDeckPrices };
