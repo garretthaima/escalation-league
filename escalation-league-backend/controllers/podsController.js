@@ -425,28 +425,41 @@ const getPods = async (req, res) => {
 
         const pods = await query;
 
-        // Fetch participants for each pod
-        const podsWithParticipants = await Promise.all(
-            pods.map(async (pod) => {
-                const participants = await db('game_players as gp')
-                    .join('users as u', 'gp.player_id', 'u.id')
-                    .select(
-                        'u.id as player_id',
-                        'u.firstname',
-                        'u.lastname',
-                        'u.email',
-                        'gp.result',
-                        'gp.confirmed',
-                        'gp.turn_order',
-                        'gp.confirmation_time'
-                    )
-                    .where('gp.pod_id', pod.id)
-                    .whereNull('gp.deleted_at')
-                    .orderBy('gp.turn_order', 'asc');
+        // Batch fetch all participants for all pods (avoid N+1 queries)
+        const podIds = pods.map(p => p.id);
+        let allParticipants = [];
 
-                return { ...pod, participants };
-            })
-        );
+        if (podIds.length > 0) {
+            allParticipants = await db('game_players as gp')
+                .join('users as u', 'gp.player_id', 'u.id')
+                .select(
+                    'gp.pod_id',
+                    'u.id as player_id',
+                    'u.firstname',
+                    'u.lastname',
+                    'u.email',
+                    'gp.result',
+                    'gp.confirmed',
+                    'gp.turn_order',
+                    'gp.confirmation_time'
+                )
+                .whereIn('gp.pod_id', podIds)
+                .whereNull('gp.deleted_at')
+                .orderBy('gp.turn_order', 'asc');
+        }
+
+        // Group participants by pod_id
+        const participantsByPod = allParticipants.reduce((acc, p) => {
+            if (!acc[p.pod_id]) acc[p.pod_id] = [];
+            acc[p.pod_id].push(p);
+            return acc;
+        }, {});
+
+        // Map participants to pods
+        const podsWithParticipants = pods.map(pod => ({
+            ...pod,
+            participants: participantsByPod[pod.id] || []
+        }));
 
         // If a specific podId was requested, return only that pod
         if (podId) {

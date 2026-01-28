@@ -203,32 +203,37 @@ const reverseGameStats = async (participants, leagueId) => {
  * @returns {Promise<Array>} Array of ELO changes { playerId, eloChange, eloBefore }
  */
 const applyEloChanges = async (participants, podId, leagueId) => {
-    // Fetch current ELO ratings and prepare player data for calculation
-    const playersWithElo = await Promise.all(
-        participants.map(async (p) => {
-            const user = await db('users')
-                .where({ id: p.player_id })
-                .select('elo_rating', 'wins', 'losses', 'draws')
-                .first();
+    // Batch fetch current ELO ratings (avoid N+1 queries)
+    const playerIds = participants.map(p => p.player_id);
 
-            const userLeague = await db('user_leagues')
-                .where({ user_id: p.player_id, league_id: leagueId })
-                .select('elo_rating')
-                .first();
+    const [users, userLeagues] = await Promise.all([
+        db('users')
+            .whereIn('id', playerIds)
+            .select('id', 'elo_rating', 'wins', 'losses', 'draws'),
+        db('user_leagues')
+            .whereIn('user_id', playerIds)
+            .where('league_id', leagueId)
+            .select('user_id', 'elo_rating')
+    ]);
 
-            // Total games for K-factor calculation
-            const gamesPlayed = (user?.wins || 0) + (user?.losses || 0) + (user?.draws || 0);
+    // Create lookup maps for O(1) access
+    const usersMap = new Map(users.map(u => [u.id, u]));
+    const leagueEloMap = new Map(userLeagues.map(ul => [ul.user_id, ul.elo_rating]));
 
-            return {
-                playerId: p.player_id,
-                currentElo: user?.elo_rating || 1500,
-                currentLeagueElo: userLeague?.elo_rating || 1500,
-                result: p.result,
-                turnOrder: p.turn_order,
-                gamesPlayed
-            };
-        })
-    );
+    // Build player data for ELO calculation
+    const playersWithElo = participants.map(p => {
+        const user = usersMap.get(p.player_id);
+        const gamesPlayed = (user?.wins || 0) + (user?.losses || 0) + (user?.draws || 0);
+
+        return {
+            playerId: p.player_id,
+            currentElo: user?.elo_rating || 1500,
+            currentLeagueElo: leagueEloMap.get(p.player_id) || 1500,
+            result: p.result,
+            turnOrder: p.turn_order,
+            gamesPlayed
+        };
+    });
 
     // Calculate ELO changes using the calculator utility
     const eloChanges = calculateEloChanges(playersWithElo);

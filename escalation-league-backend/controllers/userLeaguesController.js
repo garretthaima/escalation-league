@@ -173,27 +173,28 @@ const getLeagueParticipants = async (req, res) => {
             )
             .where('ul.league_id', league_id);
 
-        // Fetch commander names from Scryfall DB for all participants
-        const participantsWithCommanders = await Promise.all(
-            participants.map(async (p) => {
-                let commanderName = null;
-                if (p.current_commander) {
-                    try {
-                        const commanderData = await scryfallDb('cards')
-                            .select('name')
-                            .where('id', p.current_commander)
-                            .first();
-                        commanderName = commanderData ? commanderData.name : null;
-                    } catch (lookupErr) {
-                        logger.warn('Commander lookup failed', { user: p.firstname, error: lookupErr.message });
-                    }
-                }
-                return {
-                    ...p,
-                    current_commander: commanderName
-                };
-            })
-        );
+        // Batch fetch all commander names from Scryfall DB (avoid N+1 queries)
+        const commanderIds = participants
+            .map(p => p.current_commander)
+            .filter(Boolean);
+
+        const commandersMap = new Map();
+        if (commanderIds.length > 0) {
+            try {
+                const commanders = await scryfallDb('cards')
+                    .select('id', 'name')
+                    .whereIn('id', commanderIds);
+                commanders.forEach(c => commandersMap.set(c.id, c.name));
+            } catch (lookupErr) {
+                logger.warn('Commander batch lookup failed', { error: lookupErr.message });
+            }
+        }
+
+        // Map commander names to participants
+        const participantsWithCommanders = participants.map(p => ({
+            ...p,
+            current_commander: p.current_commander ? commandersMap.get(p.current_commander) || null : null
+        }));
 
         res.status(200).json(participantsWithCommanders);
     } catch (err) {

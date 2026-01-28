@@ -3,6 +3,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
 const helmet = require('helmet');
+const compression = require('compression');
 const path = require('path');
 const logger = require('./utils/logger');
 const requestLogger = require('./middlewares/requestLogger');
@@ -16,6 +17,10 @@ const server = http.createServer(app);
 
 // Trust proxy headers from nginx
 app.set('trust proxy', 1); // Trust first proxy (nginx)
+
+// Response compression middleware (gzip/brotli)
+app.use(compression());
+
 // Middleware to parse JSON request bodies
 app.use(express.json());
 

@@ -65,6 +65,14 @@ jest.mock('../../models/scryfallDb', () => {
     const mockKnex = jest.fn().mockImplementation(() => ({
         select: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
+        whereIn: jest.fn().mockImplementation((field, ids) => {
+            // Return an array of commander objects for batch lookup
+            const commanders = (ids || []).map((id, index) => ({
+                id,
+                name: 'Test Commander'
+            }));
+            return Promise.resolve(commanders);
+        }),
         first: jest.fn().mockResolvedValue({ id: 'test-card', name: 'Test Commander', image_uris: '{"normal":"https://example.com/image.jpg"}' })
     }));
     return mockKnex;
