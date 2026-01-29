@@ -7,9 +7,10 @@
 /* Hero Section */
 .dashboard-hero {
     padding: 1.5rem;
-    background: linear-gradient(135deg, rgba(13, 110, 253, 0.1) 0%, rgba(13, 110, 253, 0.05) 100%);
+    background: linear-gradient(135deg, rgba(45, 27, 78, 0.1) 0%, rgba(45, 27, 78, 0.05) 100%);
     border-radius: 12px;
-    border: 1px solid rgba(13, 110, 253, 0.2);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 24px var(--shadow);
 }
 
 .dashboard-hero h1 {
@@ -20,17 +21,19 @@
 .league-dashboard .card {
     border-radius: 12px;
     overflow: hidden;
+    box-shadow: 0 4px 24px var(--shadow);
+    border: 1px solid var(--border-color);
 }
 
 .league-dashboard .card-header {
-    background: rgba(255, 255, 255, 0.03);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
     padding: 1rem 1.25rem;
     transition: background 0.2s ease;
 }
 
 .league-dashboard .card-header:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--bg-tertiary);
 }
 
 .league-dashboard .card-body {
@@ -54,6 +57,8 @@
 /* Table Styles */
 .league-dashboard .table {
     margin-bottom: 0;
+    border-radius: 8px;
+    overflow: hidden;
 }
 
 .league-dashboard .table th {
@@ -62,11 +67,28 @@
     font-size: 0.875rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: var(--bs-secondary);
+    color: var(--text-secondary);
+}
+
+.league-dashboard .table td,
+.league-dashboard .table th {
+    padding: 0.5rem 0.75rem;
 }
 
 .league-dashboard .table-primary {
-    --bs-table-bg: rgba(13, 110, 253, 0.15) !important;
+    --bs-table-bg: rgba(45, 27, 78, 0.15) !important;
+}
+
+/* Table row hover in dark mode */
+body.dark-mode .league-dashboard .table-hover > tbody > tr:hover {
+    --bs-table-hover-bg: rgba(74, 47, 112, 0.3);
+}
+
+/* Mobile leaderboard row consistency */
+@media (max-width: 575.98px) {
+    .league-dashboard .table td {
+        vertical-align: middle;
+    }
 }
 
 /* Stats Cards */
@@ -122,5 +144,93 @@
 .league-dashboard .btn-outline-primary:hover,
 .league-dashboard .btn-outline-secondary:hover {
     transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 2px 8px var(--shadow);
+}
+
+/* Show all/less button */
+.league-dashboard .btn-link {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 0.85rem;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.league-dashboard .btn-link:hover {
+    color: var(--brand-purple);
+    background: rgba(74, 47, 112, 0.1);
+}
+
+body.dark-mode .league-dashboard .btn-link:hover {
+    background: rgba(74, 47, 112, 0.3);
+}
+
+/* Leaderboard Section Styles */
+.points-badge {
+    background: var(--bg-secondary);
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.leaderboard-expanded-row {
+    background: var(--bg-secondary);
+}
+
+.leaderboard-expanded-cell {
+    padding: 0.75rem 1rem;
+}
+
+/* Leaderboard row - pointer cursor only on mobile */
+.leaderboard-row {
+    cursor: default;
+}
+
+@media (max-width: 575.98px) {
+    .leaderboard-row {
+        cursor: pointer;
+    }
+}
+
+/* Leaderboard table column widths */
+.leaderboard-col-rank {
+    width: 60px;
+}
+
+.leaderboard-col-points {
+    width: 80px;
+}
+
+.leaderboard-col-record {
+    width: 120px;
+}
+
+.leaderboard-col-games {
+    width: 80px;
+}
+
+.leaderboard-col-winrate {
+    width: 80px;
+}
+
+.leaderboard-col-elo {
+    width: 70px;
+}
+
+.leaderboard-col-playoffs {
+    width: 100px;
+}
+
+/* UserStandingCard commander image styles */
+.commander-placeholder {
+    width: 120px;
+    height: 88px;
+}
+
+.commander-partner-image {
+    width: 80px;
+    height: 60px;
+    object-fit: cover;
 }

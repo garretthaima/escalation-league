@@ -60,6 +60,8 @@ services:
       DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET}
       DISCORD_GUILD_ID: ${DISCORD_GUILD_ID}
       DISCORD_ATTENDANCE_CHANNEL_ID: ${DISCORD_ATTENDANCE_CHANNEL_ID}
+      # Cloudflare Turnstile
+      TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY}
     depends_on:
       db-prod:
         condition: service_healthy
@@ -106,6 +108,7 @@ services:
         REACT_APP_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
         REACT_APP_SCRYFALL_USER_AGENT: EscalationLeague-Prod/1.0; garretthaima@gmail.com
         REACT_APP_ENV: production
+        REACT_APP_TURNSTILE_SITE_KEY: ${REACT_APP_TURNSTILE_SITE_KEY}
     container_name: escalation-league-frontend-prod
     networks:
       - default

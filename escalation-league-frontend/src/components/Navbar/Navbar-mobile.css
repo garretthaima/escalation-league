@@ -1,12 +1,24 @@
 /* Mobile navbar - Clean minimal design like Archidekt */
 @media (max-width: 991px) {
 
+    /* Backdrop overlay - tap to close menu */
+    .navbar-backdrop {
+        position: fixed;
+        top: 56px;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1029;
+        -webkit-tap-highlight-color: transparent;
+    }
+
     /* Top navbar bar - fixed height, clean */
     .navbar {
         padding: 0.5rem 1rem !important;
         min-height: 56px !important;
         max-height: 56px !important;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+        box-shadow: 0 2px 4px var(--shadow) !important;
     }
 
     /* Container - space-between for left and right groups */
@@ -124,12 +136,21 @@
         left: 0 !important;
         right: 0 !important;
         bottom: 0 !important;
-        background-color: #2d1b4e !important;
+        background-color: var(--brand-purple) !important;
         z-index: 1050 !important;
         padding: 1rem !important;
         overflow-y: auto !important;
         margin: 0 !important;
         border: none !important;
+        transition: none !important;
+        height: auto !important;
+    }
+
+    /* Override Bootstrap collapse transition */
+    .navbar-collapse.collapsing {
+        display: block !important;
+        height: auto !important;
+        transition: none !important;
     }
 
     .navbar-collapse:not(.show) {
@@ -174,6 +195,9 @@
         border: none !important;
         box-shadow: none !important;
         padding: 0 0 0 1.5rem !important;
+        opacity: 1 !important;
+        transform: none !important;
+        transition: none !important;
     }
 
     .navbar .dropdown-menu.show {

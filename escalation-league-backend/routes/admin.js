@@ -21,6 +21,8 @@ const authorizePermission = require('../middlewares/authorizePermission');
 const podsAdminRoutes = require('./podsAdmin');
 // Import attendanceAdmin routes
 const attendanceAdminRoutes = require('./attendanceAdmin');
+// Import permissions routes
+const permissionsRoutes = require('./permissions');
 
 // Admin Endpoints
 router.get(
@@ -101,5 +103,8 @@ router.use('/pods', podsAdminRoutes);
 
 // Add attendanceAdmin routes as a subroute
 router.use('/attendance', attendanceAdminRoutes);
+
+// Add permissions routes as a subroute
+router.use('/permissions', permissionsRoutes);
 
 module.exports = router;

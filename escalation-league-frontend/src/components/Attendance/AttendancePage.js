@@ -1,8 +1,11 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { getActivePollSession, getTodaySession, checkIn, checkOut } from '../../api/attendanceApi';
-import { usePermissions } from '../context/PermissionsProvider';
-import { useToast } from '../context/ToastContext';
-import { useWebSocket } from '../context/WebSocketProvider';
+import { usePermissions } from '../../context/PermissionsProvider';
+import { useToast } from '../../context/ToastContext';
+import { useWebSocket } from '../../context/WebSocketProvider';
+import LoadingSpinner from '../Shared/LoadingSpinner';
+import { DiscordIcon } from '../Shared';
+import { formatDateWithWeekday, formatDate } from '../../utils/dateFormatter';
 import './AttendancePage.css';
 
 const AttendancePage = () => {
@@ -138,10 +141,8 @@ const AttendancePage = () => {
 
     if (loading) {
         return (
-            <div className="container mt-4 text-center">
-                <div className="spinner-border text-primary" role="status">
-                    <span className="visually-hidden">Loading...</span>
-                </div>
+            <div className="container mt-4 text-center py-5">
+                <LoadingSpinner size="lg" />
             </div>
         );
     }
@@ -160,7 +161,7 @@ const AttendancePage = () => {
             {/* Active Poll Banner */}
             {hasActivePoll && (
                 <div className="alert alert-info d-flex align-items-center mb-4">
-                    <i className="fab fa-discord fa-lg me-3"></i>
+                    <DiscordIcon className="me-3" style={{ fontSize: '1.25rem' }} />
                     <div>
                         <strong>Discord Poll Active!</strong>
                         <span className="ms-2">RSVP via Discord or check in below.</span>
@@ -173,17 +174,12 @@ const AttendancePage = () => {
                 <div className="card-header d-flex justify-content-between align-items-center">
                     <span>
                         <i className="fas fa-calendar-day me-2"></i>
-                        {session?.name || (session?.session_date ? new Date(session.session_date).toLocaleDateString('en-US', {
-                            weekday: 'long',
-                            month: 'long',
-                            day: 'numeric',
-                            timeZone: 'UTC'
-                        }) : 'Game Night')}
+                        {session?.name || (session?.session_date ? formatDateWithWeekday(session.session_date) : 'Game Night')}
                     </span>
                     <div>
                         {hasActivePoll && (
                             <span className="badge bg-info me-2">
-                                <i className="fab fa-discord me-1"></i>
+                                <DiscordIcon className="me-1" />
                                 Poll Open
                             </span>
                         )}
@@ -196,12 +192,7 @@ const AttendancePage = () => {
                 <div className="card-body">
                     <div className="row">
                         <div className="col-md-4">
-                            <strong>Date:</strong> {session?.session_date ? new Date(session.session_date).toLocaleDateString('en-US', {
-                                weekday: 'short',
-                                month: 'short',
-                                day: 'numeric',
-                                timeZone: 'UTC'
-                            }) : ''}
+                            <strong>Date:</strong> {session?.session_date ? formatDate(session.session_date, { weekday: 'short' }) : ''}
                         </div>
                         <div className="col-md-4">
                             <strong>League:</strong> {activeLeague?.league_name || activeLeague?.name}

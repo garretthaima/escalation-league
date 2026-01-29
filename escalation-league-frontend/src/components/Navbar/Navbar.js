@@ -1,16 +1,48 @@
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useCallback, useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { usePermissions } from '../context/PermissionsProvider';
+import { usePermissions } from '../../context/PermissionsProvider';
 import ProfileSection from './ProfileSection';
 import NotificationCenter from './NotificationCenter';
 import navbarLinks from './navbarLinks';
 import './Navbar.css';
 import './Navbar-mobile.css'; // Mobile-specific overrides
 
+const MOBILE_BREAKPOINT = 992;
+
 const Navbar = ({ handleLogout }) => {
     const { permissions, user, darkMode, toggleDarkMode, activeLeague, loading } = usePermissions();
     const location = useLocation();
     const navbarCollapseRef = useRef(null);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isMobile, setIsMobile] = useState(window.innerWidth < MOBILE_BREAKPOINT);
+
+    // Track menu open/close state via Bootstrap events
+    useEffect(() => {
+        const navbarCollapse = navbarCollapseRef.current;
+        if (!navbarCollapse) return;
+
+        const handleShow = () => setIsMenuOpen(true);
+        const handleHide = () => setIsMenuOpen(false);
+
+        navbarCollapse.addEventListener('show.bs.collapse', handleShow);
+        navbarCollapse.addEventListener('hide.bs.collapse', handleHide);
+        navbarCollapse.addEventListener('hidden.bs.collapse', handleHide);
+
+        return () => {
+            navbarCollapse.removeEventListener('show.bs.collapse', handleShow);
+            navbarCollapse.removeEventListener('hide.bs.collapse', handleHide);
+            navbarCollapse.removeEventListener('hidden.bs.collapse', handleHide);
+        };
+    }, []);
+
+    // Track window resize for mobile detection
+    useEffect(() => {
+        const handleResize = () => {
+            setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     // Derive inLeague and leaguePhase from context (activeLeague is the league object or null)
     const inLeague = !!activeLeague;
@@ -21,11 +53,18 @@ const Navbar = ({ handleLogout }) => {
         const navbarCollapse = navbarCollapseRef.current;
         if (!navbarCollapse) return;
 
-        const bsCollapse = window.bootstrap?.Collapse?.getInstance(navbarCollapse);
+        // Try to get existing instance, or create a new one
+        let bsCollapse = window.bootstrap?.Collapse?.getInstance(navbarCollapse);
+        if (!bsCollapse && window.bootstrap?.Collapse) {
+            bsCollapse = new window.bootstrap.Collapse(navbarCollapse, { toggle: false });
+        }
+
         if (bsCollapse) {
             bsCollapse.hide();
         } else if (navbarCollapse.classList.contains('show')) {
+            // Fallback: manually remove show class and update state
             navbarCollapse.classList.remove('show');
+            setIsMenuOpen(false);
         }
     }, []);
 
@@ -54,7 +93,16 @@ const Navbar = ({ handleLogout }) => {
     const sortedLinks = filteredLinks.sort((a, b) => a.order - b.order);
 
     return (
-        <nav className="navbar navbar-expand-lg navbar-dark">
+        <>
+            {/* Backdrop overlay - tap to close menu on mobile */}
+            {isMobile && isMenuOpen && (
+                <div
+                    className="navbar-backdrop"
+                    onClick={collapseNavbar}
+                    aria-hidden="true"
+                />
+            )}
+            <nav className="navbar navbar-expand-lg navbar-dark">
             <div className="container-fluid">
                 <div className="d-flex align-items-center">
                     <a className="navbar-brand d-flex align-items-center" href="/">
@@ -169,6 +217,7 @@ const Navbar = ({ handleLogout }) => {
                 </div>
             </div>
         </nav>
+        </>
     );
 };
 

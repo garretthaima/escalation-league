@@ -149,12 +149,24 @@ const getLeagueMatchupMatrix = async (leagueId) => {
 
     const podIds = pods.map(p => p.id);
 
-    // Get all players who participated in these pods
-    const allPlayers = await db('game_players as gp')
-        .join('users as u', 'gp.player_id', 'u.id')
-        .whereIn('gp.pod_id', podIds)
-        .select('gp.player_id', 'u.firstname', 'u.lastname')
-        .groupBy('gp.player_id', 'u.firstname', 'u.lastname');
+    // Batch fetch all players and their pod participation (avoid N+1)
+    const [allPlayers, allGamePlayers] = await Promise.all([
+        db('game_players as gp')
+            .join('users as u', 'gp.player_id', 'u.id')
+            .whereIn('gp.pod_id', podIds)
+            .select('gp.player_id', 'u.firstname', 'u.lastname')
+            .groupBy('gp.player_id', 'u.firstname', 'u.lastname'),
+        db('game_players')
+            .whereIn('pod_id', podIds)
+            .select('pod_id', 'player_id')
+    ]);
+
+    // Group players by pod for efficient lookup
+    const playersByPod = allGamePlayers.reduce((acc, gp) => {
+        if (!acc[gp.pod_id]) acc[gp.pod_id] = [];
+        acc[gp.pod_id].push(gp.player_id);
+        return acc;
+    }, {});
 
     // Build matchup counts
     const matrix = {};
@@ -164,11 +176,7 @@ const getLeagueMatchupMatrix = async (leagueId) => {
 
     // For each pod, increment matchup count for all pairs
     for (const pod of pods) {
-        const players = await db('game_players')
-            .where('pod_id', pod.id)
-            .select('player_id');
-
-        const playerIds = players.map(p => p.player_id);
+        const playerIds = playersByPod[pod.id] || [];
 
         // For each pair in this pod
         for (let i = 0; i < playerIds.length; i++) {

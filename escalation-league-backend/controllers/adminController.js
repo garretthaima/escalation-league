@@ -9,6 +9,7 @@ const {
     logUserDeactivated,
     logPasswordReset
 } = require('../services/activityLogService');
+const { validatePassword } = require('../utils/passwordValidator');
 
 // Fetch All Users (Admin Only)
 const getAllUsers = async (req, res) => {
@@ -26,7 +27,7 @@ const getAllUsers = async (req, res) => {
                 'users.is_active'
             )
             .whereNot('users.id', 1); // Exclude the admin break-glass account
-        res.status(200).json(users);
+        res.status(200).json({ users });
     } catch (err) {
         console.error('Error fetching all users:', err);
         res.status(500).json({ error: 'Failed to fetch users.' });
@@ -150,6 +151,15 @@ const resetUserPassword = async (req, res) => {
 
     if (!newPassword) {
         return res.status(400).json({ error: 'New password is required.' });
+    }
+
+    // Validate password strength
+    const passwordValidation = validatePassword(newPassword);
+    if (!passwordValidation.isValid) {
+        return res.status(400).json({
+            error: 'Password does not meet requirements',
+            details: passwordValidation.errors
+        });
     }
 
     try {

@@ -1,5 +1,6 @@
 const redis = require('../utils/redisClient');
 const scryfallDb = require('../models/scryfallDb');
+const logger = require('../utils/logger');
 
 const calculateDeckPrices = async (deckData, updatedCards = [], removedCards = []) => {
     const cacheKey = `price-check:${deckData.id}`;
@@ -17,10 +18,10 @@ const calculateDeckPrices = async (deckData, updatedCards = [], removedCards = [
         const cachedCardCount = cachedResults.cardPrices ? cachedResults.cardPrices.length : 0;
 
         if (cachedResults.cardPrices && cachedResults.cardPrices.length > 0 && cachedCardCount === deckCardCount) {
-            console.log(`Returning cached price check results for deck: ${deckData.id} (${cachedCardCount} cards)`);
+            logger.debug('Returning cached price check results', { deckId: deckData.id, cardCount: cachedCardCount });
             return cachedResults;
         } else {
-            console.log(`Cached price check is invalid. Cache: ${cachedCardCount} cards, Deck: ${deckCardCount} cards. Recalculating...`);
+            logger.debug('Cached price check invalid, recalculating', { deckId: deckData.id, cachedCards: cachedCardCount, deckCards: deckCardCount });
             cachedPriceCheck = null; // Invalidate cache so we recalculate below
             cachedResults = { totalPrice: 0, cardPrices: [] };
         }
@@ -29,14 +30,11 @@ const calculateDeckPrices = async (deckData, updatedCards = [], removedCards = [
     // If no cached results and no updatedCards provided, calculate prices for all cards in the deck
     let cardsToPrice = updatedCards;
     if (!cachedPriceCheck && updatedCards.length === 0 && deckData.cards) {
-        console.log('No cached price check found. Calculating prices for all cards in deck.');
-        console.log('deckData.cards type:', typeof deckData.cards);
-        console.log('deckData.cards length:', Array.isArray(deckData.cards) ? deckData.cards.length : 'not an array');
+        logger.debug('No cached price check found, calculating prices for all cards', { deckId: deckData.id });
 
         // Parse cards if it's a JSON string
         if (typeof deckData.cards === 'string') {
             cardsToPrice = JSON.parse(deckData.cards);
-            console.log('Parsed cards from JSON string. Count:', cardsToPrice.length);
         } else if (typeof deckData.cards === 'object' && !Array.isArray(deckData.cards)) {
             // Convert object of cards to array
             cardsToPrice = Object.entries(deckData.cards).map(([name, card]) => ({
@@ -44,7 +42,6 @@ const calculateDeckPrices = async (deckData, updatedCards = [], removedCards = [
                 quantity: card.quantity || 1,
                 ...card
             }));
-            console.log('Converted cards object to array. Count:', cardsToPrice.length);
         } else {
             cardsToPrice = deckData.cards;
         }
@@ -82,7 +79,7 @@ const calculateDeckPrices = async (deckData, updatedCards = [], removedCards = [
                 .orWhereRaw('exclusions.set_type = cards.set_type');
         });
 
-    console.log(`Batch query completed in ${Date.now() - startTime}ms for ${cardNames.length} cards (${allPriceRows.length} rows)`);
+    logger.debug('Batch query completed', { durationMs: Date.now() - startTime, cardCount: cardNames.length, rowCount: allPriceRows.length });
 
     // Group price rows by card name for faster lookup
     const priceRowsByName = {};
@@ -125,7 +122,7 @@ const calculateDeckPrices = async (deckData, updatedCards = [], removedCards = [
                             image_uri: face.image_uris?.normal || null,
                         }));
                     } catch (error) {
-                        console.error('Error parsing card_faces:', error.message);
+                        logger.warn('Error parsing card_faces', { error: error.message });
                         cardFaces = null;
                     }
                 }
@@ -157,7 +154,7 @@ const calculateDeckPrices = async (deckData, updatedCards = [], removedCards = [
     // Recalculate the total price
     const totalPrice = finalCardPrices.reduce((sum, card) => sum + (card.price || 0), 0);
 
-    console.log(`Price check complete for deck ${deckData.id}. Total: $${totalPrice.toFixed(2)}, Cards: ${finalCardPrices.length}`);
+    logger.debug('Price check complete', { deckId: deckData.id, totalPrice: totalPrice.toFixed(2), cardCount: finalCardPrices.length });
 
     // Cache the updated price check results
     const updatedResults = { totalPrice, cardPrices: finalCardPrices };
@@ -165,7 +162,5 @@ const calculateDeckPrices = async (deckData, updatedCards = [], removedCards = [
 
     return updatedResults;
 };
-
-module.exports = { calculateDeckPrices };
 
 module.exports = { calculateDeckPrices };

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import PropTypes from 'prop-types';
 import { updateUserProfile, getDiscordAuthUrl, getDiscordStatus, unlinkDiscord } from '../../../api/usersApi';
+import { useToast } from '../../../context/ToastContext';
+import { DiscordIcon, GoogleIcon, ConfirmModal } from '../../Shared';
 
 const SettingsTab = ({ user, handlePictureUpdate }) => {
-    // Define the stock images
     const stockImages = [
         '/images/profile-pictures/avatar1.png',
         '/images/profile-pictures/avatar2.png',
@@ -12,25 +14,23 @@ const SettingsTab = ({ user, handlePictureUpdate }) => {
         '/images/profile-pictures/avatar5.png',
     ];
 
-    // State to track the selected picture and name fields
-    const [selectedPicture, setSelectedPicture] = useState(user.picture);
-    const [firstname, setFirstname] = useState(user.firstname);
-    const [lastname, setLastname] = useState(user.lastname);
-    const [error, setError] = useState('');
-    const [success, setSuccess] = useState('');
+    const [selectedPicture, setSelectedPicture] = useState(user.picture || stockImages[0]);
+    const [firstname, setFirstname] = useState(user.firstname || '');
+    const [lastname, setLastname] = useState(user.lastname || '');
+    const [saving, setSaving] = useState(false);
 
-    // Discord state
     const [discordStatus, setDiscordStatus] = useState(null);
     const [discordLoading, setDiscordLoading] = useState(true);
+    const [showUnlinkModal, setShowUnlinkModal] = useState(false);
     const [searchParams, setSearchParams] = useSearchParams();
+    const { showToast } = useToast();
 
     // Check for Discord OAuth callback result
     useEffect(() => {
         const discordResult = searchParams.get('discord');
         if (discordResult === 'success') {
-            setSuccess('Discord account linked successfully!');
-            // Clear the URL params
-            setSearchParams({});
+            showToast('Discord account linked successfully!', 'success');
+            setSearchParams({ tab: 'settings' });
         } else if (discordResult === 'error') {
             const message = searchParams.get('message');
             const errorMessages = {
@@ -43,10 +43,10 @@ const SettingsTab = ({ user, handlePictureUpdate }) => {
                 'already_linked': 'This Discord account is already linked to another user',
                 'server_error': 'Server error - please try again later',
             };
-            setError(errorMessages[message] || 'Failed to link Discord account');
-            setSearchParams({});
+            showToast(errorMessages[message] || 'Failed to link Discord account', 'error');
+            setSearchParams({ tab: 'settings' });
         }
-    }, [searchParams, setSearchParams]);
+    }, [searchParams, setSearchParams, showToast]);
 
     // Fetch Discord status on mount
     useEffect(() => {
@@ -63,187 +63,283 @@ const SettingsTab = ({ user, handlePictureUpdate }) => {
         fetchDiscordStatus();
     }, []);
 
-    const handleSavePicture = () => {
-        // Call the function to update the user's profile picture
-        handlePictureUpdate(selectedPicture);
-    };
-
     const handleSaveName = async () => {
+        setSaving(true);
         try {
-            setError('');
-            setSuccess('');
             await updateUserProfile({ firstname, lastname });
-            setSuccess('Name updated successfully!');
-            // Update parent component's user state
-            window.location.reload(); // Reload to reflect changes
+            showToast('Profile updated successfully!', 'success');
+            setTimeout(() => window.location.reload(), 500);
         } catch (err) {
             console.error('Error updating name:', err);
-            setError('Failed to update name.');
+            showToast('Failed to update profile.', 'error');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleSavePicture = async () => {
+        setSaving(true);
+        try {
+            await handlePictureUpdate(selectedPicture);
+            showToast('Profile picture updated!', 'success');
+        } catch (err) {
+            showToast('Failed to update profile picture.', 'error');
+        } finally {
+            setSaving(false);
         }
     };
 
     const handleLinkDiscord = async () => {
         try {
-            setError('');
             const { url } = await getDiscordAuthUrl();
-            // Redirect to Discord OAuth
             window.location.href = url;
         } catch (err) {
             console.error('Error getting Discord auth URL:', err);
-            setError('Failed to start Discord linking process.');
+            showToast('Failed to start Discord linking process.', 'error');
         }
     };
 
     const handleUnlinkDiscord = async () => {
-        if (!window.confirm('Are you sure you want to unlink your Discord account?')) {
-            return;
-        }
         try {
-            setError('');
             await unlinkDiscord();
             setDiscordStatus({ linked: false });
-            setSuccess('Discord account unlinked successfully!');
+            setShowUnlinkModal(false);
+            showToast('Discord account unlinked successfully!', 'success');
         } catch (err) {
             console.error('Error unlinking Discord:', err);
-            setError('Failed to unlink Discord account.');
+            showToast('Failed to unlink Discord account.', 'error');
         }
     };
 
     return (
-        <div>
-            <h4>Account Settings</h4>
-
-            {error && <div className="alert alert-danger">{error}</div>}
-            {success && <div className="alert alert-success">{success}</div>}
-
-            <div className="mb-4">
-                <h5>Personal Information</h5>
-                <div className="mb-3">
-                    <label>First Name:</label>
-                    <input
-                        type="text"
-                        className="form-control"
-                        value={firstname}
-                        onChange={(e) => setFirstname(e.target.value)}
-                    />
-                </div>
-                <div className="mb-3">
-                    <label>Last Name:</label>
-                    <input
-                        type="text"
-                        className="form-control"
-                        value={lastname}
-                        onChange={(e) => setLastname(e.target.value)}
-                    />
-                </div>
-                <button className="btn btn-primary" onClick={handleSaveName}>
-                    <i className="fas fa-save me-2"></i>
-                    Save Name
-                </button>
-            </div>
-
-            <hr />
-
-            <div className="mb-3">
-                <label>Email:</label>
-                <input
-                    type="email"
-                    className="form-control"
-                    defaultValue={user.email}
-                    disabled={user.google_id ? true : false} // Disable if authenticated with Google
-                />
-                {user.google_id && <small className="text-muted">Email cannot be changed for Google accounts</small>}
-            </div>
-
-            <hr />
-
-            <div className="mb-4">
-                <h5>Connected Accounts</h5>
-
-                {/* Discord Integration */}
-                <div className="card mb-3">
-                    <div className="card-body d-flex align-items-center justify-content-between">
-                        <div className="d-flex align-items-center">
-                            <i className="fab fa-discord fa-2x me-3" style={{ color: '#5865F2' }}></i>
-                            <div>
-                                <strong>Discord</strong>
-                                {discordLoading ? (
-                                    <p className="mb-0 text-muted small">Loading...</p>
-                                ) : discordStatus?.linked ? (
-                                    <p className="mb-0 text-success small">
-                                        Connected as {discordStatus.discord_username}
-                                    </p>
-                                ) : (
-                                    <p className="mb-0 text-muted small">
-                                        Link your Discord to check in via reactions
-                                    </p>
-                                )}
-                            </div>
+        <div className="row g-4">
+            {/* Personal Information */}
+            <div className="col-lg-6">
+                <div className="profile-card h-100">
+                    <div className="profile-card-header">
+                        <h5>
+                            <i className="fas fa-user"></i>
+                            Personal Information
+                        </h5>
+                    </div>
+                    <div className="profile-card-body">
+                        <div className="profile-form-group">
+                            <label className="profile-form-label">First Name</label>
+                            <input
+                                type="text"
+                                className="profile-form-input"
+                                value={firstname}
+                                onChange={(e) => setFirstname(e.target.value)}
+                                placeholder="Enter your first name"
+                            />
                         </div>
-                        {!discordLoading && (
-                            discordStatus?.linked ? (
-                                <button
-                                    className="btn btn-outline-danger btn-sm"
-                                    onClick={handleUnlinkDiscord}
-                                >
-                                    Unlink
-                                </button>
+                        <div className="profile-form-group">
+                            <label className="profile-form-label">Last Name</label>
+                            <input
+                                type="text"
+                                className="profile-form-input"
+                                value={lastname}
+                                onChange={(e) => setLastname(e.target.value)}
+                                placeholder="Enter your last name"
+                            />
+                        </div>
+                        <div className="profile-form-group">
+                            <label className="profile-form-label">Email</label>
+                            <input
+                                type="email"
+                                className="profile-form-input"
+                                defaultValue={user.email}
+                                disabled
+                            />
+                            {user.google_id && (
+                                <small className="settings-helper-text">
+                                    Email cannot be changed for Google accounts
+                                </small>
+                            )}
+                        </div>
+                        <button
+                            className="profile-btn profile-btn-primary w-100"
+                            onClick={handleSaveName}
+                            disabled={saving}
+                        >
+                            {saving ? (
+                                <>
+                                    <span className="spinner-border spinner-border-sm me-2"></span>
+                                    Saving...
+                                </>
                             ) : (
-                                <button
-                                    className="btn btn-primary btn-sm"
-                                    onClick={handleLinkDiscord}
-                                    style={{ backgroundColor: '#5865F2', borderColor: '#5865F2' }}
-                                >
-                                    <i className="fab fa-discord me-1"></i>
-                                    Link Discord
-                                </button>
-                            )
-                        )}
+                                <>
+                                    <i className="fas fa-save"></i>
+                                    Save Changes
+                                </>
+                            )}
+                        </button>
                     </div>
                 </div>
+            </div>
 
-                {/* Google - show status only */}
-                <div className="card mb-3">
-                    <div className="card-body d-flex align-items-center justify-content-between">
-                        <div className="d-flex align-items-center">
-                            <i className="fab fa-google fa-2x me-3" style={{ color: '#4285F4' }}></i>
-                            <div>
-                                <strong>Google</strong>
-                                {user.google_id ? (
-                                    <p className="mb-0 text-success small">Connected</p>
-                                ) : (
-                                    <p className="mb-0 text-muted small">Not connected</p>
-                                )}
+            {/* Profile Picture */}
+            <div className="col-lg-6">
+                <div className="profile-card h-100">
+                    <div className="profile-card-header">
+                        <h5>
+                            <i className="fas fa-image"></i>
+                            Profile Picture
+                        </h5>
+                    </div>
+                    <div className="profile-card-body">
+                        <div className="text-center mb-3">
+                            <img
+                                src={selectedPicture || stockImages[0]}
+                                alt="Selected profile"
+                                className="settings-avatar-preview"
+                            />
+                        </div>
+                        <p className="text-center settings-avatar-instruction">
+                            Choose an avatar below
+                        </p>
+                        <div className="avatar-grid">
+                            {stockImages.map((image) => (
+                                <img
+                                    key={image}
+                                    src={image}
+                                    alt="Avatar option"
+                                    className={`avatar-option ${selectedPicture === image ? 'selected' : ''}`}
+                                    onClick={() => setSelectedPicture(image)}
+                                />
+                            ))}
+                        </div>
+                        <button
+                            className="profile-btn profile-btn-secondary w-100"
+                            onClick={handleSavePicture}
+                            disabled={saving || selectedPicture === user.picture}
+                        >
+                            <i className="fas fa-check"></i>
+                            Apply Avatar
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {/* Connected Accounts */}
+            <div className="col-12">
+                <div className="profile-card">
+                    <div className="profile-card-header">
+                        <h5>
+                            <i className="fas fa-link"></i>
+                            Connected Accounts
+                        </h5>
+                    </div>
+                    <div className="profile-card-body">
+                        <div className="row g-3">
+                            {/* Discord */}
+                            <div className="col-md-6">
+                                <div className="connected-account">
+                                    <div className="connected-account-info">
+                                        <div className="connected-account-icon discord">
+                                            <DiscordIcon />
+                                        </div>
+                                        <div>
+                                            <div className="connected-account-name">Discord</div>
+                                            {discordLoading ? (
+                                                <div className="connected-account-status">Loading...</div>
+                                            ) : discordStatus?.linked ? (
+                                                <div className="connected-account-status connected">
+                                                    <i className="fas fa-check-circle me-1"></i>
+                                                    {discordStatus.discord_username}
+                                                </div>
+                                            ) : (
+                                                <div className="connected-account-status">
+                                                    Not connected
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                    {!discordLoading && (
+                                        discordStatus?.linked ? (
+                                            <button
+                                                className="profile-btn profile-btn-danger"
+                                                onClick={() => setShowUnlinkModal(true)}
+                                            >
+                                                Unlink
+                                            </button>
+                                        ) : (
+                                            <button
+                                                className="profile-btn profile-btn-discord"
+                                                onClick={handleLinkDiscord}
+                                            >
+                                                <DiscordIcon />
+                                                Link
+                                            </button>
+                                        )
+                                    )}
+                                </div>
                             </div>
+
+                            {/* Google */}
+                            <div className="col-md-6">
+                                <div className="connected-account">
+                                    <div className="connected-account-info">
+                                        <div className="connected-account-icon google">
+                                            <GoogleIcon />
+                                        </div>
+                                        <div>
+                                            <div className="connected-account-name">Google</div>
+                                            {user.google_id ? (
+                                                <div className="connected-account-status connected">
+                                                    <i className="fas fa-check-circle me-1"></i>
+                                                    Connected
+                                                </div>
+                                            ) : (
+                                                <div className="connected-account-status">
+                                                    Not connected
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                    {user.google_id && (
+                                        <span className="badge settings-badge-primary">
+                                            Primary
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="mt-3 p-3 rounded settings-info-box">
+                            <i className="fas fa-info-circle me-2 settings-info-icon"></i>
+                            <span className="settings-info-text">
+                                Link your Discord account to enable check-in via Discord reactions and receive game notifications.
+                            </span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <hr />
-
-            <div className="mb-3">
-                <label>Select Profile Picture:</label>
-                <div className="d-flex">
-                    {stockImages.map((image) => (
-                        <img
-                            key={image}
-                            src={image}
-                            alt="Profile"
-                            className={`rounded-circle m-2 ${selectedPicture === image ? 'border border-3 border-primary' : ''
-                                }`}
-                            style={{ width: '50px', height: '50px', cursor: 'pointer' }}
-                            onClick={() => setSelectedPicture(image)}
-                        />
-                    ))}
-                </div>
-                <button className="btn btn-secondary mt-2" onClick={handleSavePicture}>
-                    <i className="fas fa-image me-2"></i>
-                    Save Picture
-                </button>
-            </div>
+            {/* Unlink Discord Confirmation Modal */}
+            <ConfirmModal
+                show={showUnlinkModal}
+                title="Unlink Discord Account"
+                message="Are you sure you want to unlink your Discord account? You will no longer receive game notifications or be able to check in via Discord reactions."
+                onConfirm={handleUnlinkDiscord}
+                onCancel={() => setShowUnlinkModal(false)}
+                confirmText="Unlink"
+                cancelText="Cancel"
+                type="danger"
+            />
         </div>
     );
+};
+
+SettingsTab.propTypes = {
+    user: PropTypes.shape({
+        email: PropTypes.string,
+        firstname: PropTypes.string,
+        lastname: PropTypes.string,
+        picture: PropTypes.string,
+        google_id: PropTypes.string,
+    }).isRequired,
+    handlePictureUpdate: PropTypes.func.isRequired,
 };
 
 export default SettingsTab;

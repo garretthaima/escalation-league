@@ -34,6 +34,56 @@ echo "Environment: $ENVIRONMENT"
 echo "Build tag: $BUILD_TAG"
 echo ""
 
+# Run smoke tests before deploying (can skip with SKIP_TESTS=1, or run full suite with FULL_TESTS=1)
+if [ "${SKIP_TESTS:-}" != "1" ]; then
+    echo "Step 0: Running smoke tests..."
+
+    # Backend smoke tests (critical routes only)
+    echo "  Running backend smoke tests..."
+    cd "$PROJECT_ROOT/escalation-league-backend"
+    if [ "${FULL_TESTS:-}" = "1" ]; then
+        echo "    (FULL_TESTS=1: running complete test suite)"
+        if ! TEST_DB_HOST=10.10.60.5 TEST_DB_PORT=3308 npm test -- --watchAll=false --silent 2>/dev/null; then
+            echo "❌ Backend tests failed! Aborting deployment."
+            echo "   To skip tests: SKIP_TESTS=1 make deploy-$ENVIRONMENT"
+            exit 1
+        fi
+    else
+        if ! TEST_DB_HOST=10.10.60.5 TEST_DB_PORT=3308 npm run test:smoke -- --watchAll=false --silent 2>/dev/null; then
+            echo "❌ Backend smoke tests failed! Aborting deployment."
+            echo "   To run full tests: FULL_TESTS=1 make deploy-$ENVIRONMENT"
+            echo "   To skip tests: SKIP_TESTS=1 make deploy-$ENVIRONMENT"
+            exit 1
+        fi
+    fi
+    echo "  ✅ Backend smoke tests passed"
+
+    # Frontend smoke tests (just verify test suite runs)
+    echo "  Running frontend smoke tests..."
+    cd "$PROJECT_ROOT/escalation-league-frontend"
+    if [ "${FULL_TESTS:-}" = "1" ]; then
+        if ! npm test -- --watchAll=false --silent 2>/dev/null; then
+            echo "❌ Frontend tests failed! Aborting deployment."
+            echo "   To skip tests: SKIP_TESTS=1 make deploy-$ENVIRONMENT"
+            exit 1
+        fi
+    else
+        # Run only critical frontend tests: App bootstrap and Navbar (core UI)
+        if ! npm test -- --watchAll=false --silent --testPathPattern="(App\.test|Navbar)" 2>/dev/null; then
+            echo "❌ Frontend smoke tests failed! Aborting deployment."
+            echo "   To run full tests: FULL_TESTS=1 make deploy-$ENVIRONMENT"
+            echo "   To skip tests: SKIP_TESTS=1 make deploy-$ENVIRONMENT"
+            exit 1
+        fi
+    fi
+    echo "  ✅ Frontend smoke tests passed"
+    cd "$PROJECT_ROOT"
+    echo ""
+else
+    echo "⚠️  SKIP_TESTS is set, skipping tests..."
+    echo ""
+fi
+
 # Set compose file based on environment
 if [ "$ENVIRONMENT" = "prod" ]; then
     COMPOSE_FILE="docker/compose/docker-compose.prod.yml"
@@ -47,16 +97,28 @@ else
     FRONTEND_IMAGE="escalation-league-frontend-dev"
 fi
 
-# Step 1: Generate build info and build images
-echo "Step 1: Generating build info..."
+# Step 1: Clean up old Docker resources to save disk space
+echo "Step 1: Cleaning up Docker resources..."
+docker container prune -f > /dev/null 2>&1 || true
+docker image prune -f > /dev/null 2>&1 || true
+# Prune all unused build cache (main source of disk usage)
+docker builder prune -a -f > /dev/null 2>&1 || true
+# Remove old tagged images (keep last 2 tags per image)
+docker images "compose-backend-${ENVIRONMENT}" --format "{{.Tag}}" | grep -v latest | sort -r | tail -n +3 | xargs -I {} docker rmi "compose-backend-${ENVIRONMENT}:{}" 2>/dev/null || true
+docker images "compose-frontend-${ENVIRONMENT}" --format "{{.Tag}}" | grep -v latest | sort -r | tail -n +3 | xargs -I {} docker rmi "compose-frontend-${ENVIRONMENT}:{}" 2>/dev/null || true
+echo "✅ Cleanup complete"
+echo ""
+
+# Step 2: Generate build info and build images
+echo "Step 2: Generating build info..."
 ./scripts/generate-build-info.sh
 
-echo "Step 2: Building images..."
+echo "Step 3: Building images..."
 cd "$PROJECT_ROOT"
 docker-compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" build
 
 # Tag the newly built images
-echo "Step 3: Tagging images with $BUILD_TAG..."
+echo "Step 4: Tagging images with $BUILD_TAG..."
 docker tag compose-backend-${ENVIRONMENT} compose-backend-${ENVIRONMENT}:${BUILD_TAG}
 docker tag compose-frontend-${ENVIRONMENT} compose-frontend-${ENVIRONMENT}:${BUILD_TAG}
 docker tag compose-backend-${ENVIRONMENT} compose-backend-${ENVIRONMENT}:latest
@@ -67,13 +129,28 @@ echo "  - compose-backend-${ENVIRONMENT}:${BUILD_TAG}"
 echo "  - compose-frontend-${ENVIRONMENT}:${BUILD_TAG}"
 echo ""
 
-# Step 4: Deploy
-echo "Step 4: Deploying with new images..."
+# Step 5: Deploy
+echo "Step 5: Deploying with new images..."
 docker-compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --force-recreate
 
-# Step 5: Wait and health check
-echo "Step 5: Waiting for services to be healthy..."
-sleep 20
+# Step 6: Clear API cache (preserves sessions and deck cache)
+echo "Step 6: Clearing API cache..."
+REDIS_CONTAINER="escalation-league-redis-${ENVIRONMENT}"
+# Wait for Redis to be ready
+sleep 2
+# Get all cache:* keys and delete them (preserves sess:* and deck:* keys)
+CACHE_KEYS=$(docker exec "$REDIS_CONTAINER" redis-cli KEYS "cache:*" 2>/dev/null | tr '\n' ' ')
+if [ -n "$CACHE_KEYS" ]; then
+    docker exec "$REDIS_CONTAINER" redis-cli DEL $CACHE_KEYS > /dev/null 2>&1 || true
+    echo "✅ API cache cleared"
+else
+    echo "✅ No API cache to clear"
+fi
+echo ""
+
+# Step 7: Wait and health check
+echo "Step 7: Waiting for services to be healthy..."
+sleep 18
 
 BACKEND_CONTAINER="${BACKEND_IMAGE}"
 FRONTEND_CONTAINER="${FRONTEND_IMAGE}"
@@ -92,9 +169,9 @@ if [ "$FRONTEND_HEALTH" != "healthy" ] && [ "$FRONTEND_HEALTH" != "none" ]; then
     echo "WARNING: Frontend is not healthy!"
 fi
 
-# Step 6: Smoke tests
+# Step 8: Smoke tests
 echo ""
-echo "Step 6: Running smoke tests..."
+echo "Step 8: Running smoke tests..."
 if ./scripts/smoke-test.sh "$ENVIRONMENT"; then
     echo ""
     echo "=== Deployment Successful ==="

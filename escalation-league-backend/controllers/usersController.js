@@ -4,6 +4,7 @@ const redis = require('../utils/redisClient');
 const { updateStats } = require('../utils/statsUtils');
 const logger = require('../utils/logger');
 const { logProfileUpdate, logAccountDeletion, logPasswordChange } = require('../services/activityLogService');
+const { validatePassword } = require('../utils/passwordValidator');
 
 // Fetch User Profile
 const getUserProfile = async (req, res) => {
@@ -20,6 +21,8 @@ const getUserProfile = async (req, res) => {
         'past_commanders',
         'wins',
         'losses',
+        'draws',
+        'elo_rating',
         'winning_streak',
         'losing_streak',
         'opponent_win_percentage',
@@ -28,13 +31,25 @@ const getUserProfile = async (req, res) => {
         'deck_archetype',
         'last_login',
         'is_active',
-        'role_id'
+        'role_id',
+        'discord_id'
       )
       .where({ id: req.user.id, is_deleted: false })
       .first();
 
     if (!user) {
       return res.status(404).json({ error: 'User not found.' });
+    }
+
+    // Calculate global ELO rank (only if user has played games)
+    let eloRank = null;
+    if (user.elo_rating && user.elo_rating !== 1500) {
+      const rankResult = await db('users')
+        .where('is_deleted', false)
+        .where('elo_rating', '>', user.elo_rating)
+        .count('* as higher_count')
+        .first();
+      eloRank = (rankResult?.higher_count || 0) + 1;
     }
 
     // Fetch current league and league-specific stats
@@ -52,6 +67,7 @@ const getUserProfile = async (req, res) => {
         'user_leagues.league_draws',
         'user_leagues.total_points',
         'user_leagues.rank',
+        'user_leagues.elo_rating',
         'user_leagues.current_commander',
         'user_leagues.commander_partner'
       )
@@ -59,21 +75,57 @@ const getUserProfile = async (req, res) => {
       .where('user_leagues.is_active', 1)
       .first();
 
-    // Fetch the decklist_url from Redis using the deck_id
+    // Fetch deck data (decklist_url and commander info) from Redis or database
     let decklistUrl = null;
+    let commanderData = null;
+    let partnerData = null;
+
     if (currentLeague && currentLeague.deck_id) {
+      // Try Redis cache first
       const cachedDeck = await redis.get(`deck:${currentLeague.deck_id}`);
       if (cachedDeck) {
         const deckData = JSON.parse(cachedDeck);
-        decklistUrl = deckData.decklistUrl || null; // Extract decklistUrl from the cached data
+        decklistUrl = deckData.decklist_url || deckData.decklistUrl || null;
+        // Get full commander data from cached deck data
+        if (deckData.commanders && Array.isArray(deckData.commanders)) {
+          commanderData = deckData.commanders[0] || null;
+          partnerData = deckData.commanders[1] || null;
+        }
+      } else {
+        // Fallback: fetch from decks table directly
+        const deck = await db('decks')
+          .select('decklist_url', 'commanders')
+          .where('id', currentLeague.deck_id)
+          .first();
+
+        if (deck) {
+          decklistUrl = deck.decklist_url || null;
+          const commanders = typeof deck.commanders === 'string'
+            ? JSON.parse(deck.commanders)
+            : deck.commanders;
+          if (commanders && Array.isArray(commanders)) {
+            commanderData = commanders[0] || null;
+            partnerData = commanders[1] || null;
+          }
+        }
       }
     }
 
-    // Respond with user details, current league, and decklist URL
+    // Respond with user details, current league, and deck data
     res.status(200).json({
-      user,
+      user: {
+        ...user,
+        elo_rank: eloRank,
+      },
       currentLeague: currentLeague
-        ? { ...currentLeague, decklistUrl } // Include the decklistUrl in the currentLeague object
+        ? {
+            ...currentLeague,
+            decklistUrl,
+            commander_name: commanderData?.name || null,
+            commander_scryfall_id: commanderData?.scryfall_id || null,
+            partner_name: partnerData?.name || null,
+            partner_scryfall_id: partnerData?.scryfall_id || null,
+          }
         : null,
     });
   } catch (err) {
@@ -184,6 +236,15 @@ const changePassword = async (req, res) => {
       return res.status(400).json({ error: 'Old password is incorrect.' });
     }
 
+    // Validate new password strength
+    const passwordValidation = validatePassword(newPassword);
+    if (!passwordValidation.isValid) {
+      return res.status(400).json({
+        error: 'Invalid password',
+        details: passwordValidation.errors
+      });
+    }
+
     // Hash the new password and update it
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     await db('users').where({ id: userId }).update({ password: hashedPassword });
@@ -198,41 +259,10 @@ const changePassword = async (req, res) => {
   }
 };
 
-const getAllUsers = async (req, res) => {
-  if (req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Access denied. Admins only.' });
-  }
-
-  try {
-    const users = await db('users').select('id', 'firstname', 'lastname', 'email', 'role', 'is_active');
-    res.status(200).json({ users });
-  } catch (err) {
-    console.error('Error fetching all users:', err);
-    res.status(500).json({ error: 'Failed to fetch users.' });
-  }
-};
-
-const deactivateUser = async (req, res) => {
-  const { id } = req.params;
-
-  if (req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Access denied. Admins only.' });
-  }
-
-  try {
-    await db('users').where({ id }).update({ is_active: false });
-    res.status(200).json({ message: 'User account deactivated successfully.' });
-  } catch (err) {
-    console.error('Error deactivating user account:', err);
-    res.status(500).json({ error: 'Failed to deactivate user account.' });
-  }
-};
-
-
 const updateUserStats = async (req, res) => {
   const { userId, wins, losses, draws } = req.body;
 
-  console.log('Request body:', req.body); // Log the request body for debugging
+  logger.debug('updateUserStats called', { userId, wins, losses, draws });
 
   if (!userId) {
     return res.status(400).json({ error: 'User ID is required.' });
@@ -250,33 +280,6 @@ const updateUserStats = async (req, res) => {
   } catch (err) {
     console.error('Error updating user stats:', err.message);
     res.status(500).json({ error: 'Failed to update user stats.' });
-  }
-};
-
-const requestRole = async (req, res) => {
-  const { requestedRoleId } = req.body;
-  const userId = req.user.id;
-
-  try {
-    // Check if a pending request already exists
-    const existingRequest = await db('role_requests')
-      .where({ user_id: userId, requested_role_id: requestedRoleId, status: 'pending' })
-      .first();
-
-    if (existingRequest) {
-      return res.status(400).json({ error: 'A pending request already exists.' });
-    }
-
-    // Create a new role request
-    await db('role_requests').insert({
-      user_id: userId,
-      requested_role_id: requestedRoleId,
-    });
-
-    res.status(200).json({ success: true, message: 'Role upgrade request submitted successfully.' });
-  } catch (err) {
-    console.error('Error submitting role request:', err.message);
-    res.status(500).json({ error: 'Failed to submit role request.' });
   }
 };
 
@@ -331,6 +334,51 @@ const getUserSummary = async (req, res) => {
   } catch (err) {
     console.error('Error fetching user basic info:', err.message);
     res.status(500).json({ error: 'Failed to fetch user basic info.' });
+  }
+};
+
+/**
+ * Get global leaderboard - all players ranked by global ELO
+ * Only includes players who have played at least one game (ELO != 1500)
+ */
+const getGlobalLeaderboard = async (req, res) => {
+  try {
+    const leaderboard = await db('users')
+      .select(
+        'id as player_id',
+        'firstname',
+        'lastname',
+        'elo_rating',
+        'wins',
+        'losses',
+        'draws',
+        db.raw('wins + losses + draws AS total_games'),
+        db.raw(`
+          ROUND(
+            (wins / NULLIF(wins + losses + draws, 0)) * 100, 2
+          ) AS win_rate
+        `)
+      )
+      .where('is_deleted', false)
+      .where(function() {
+        // Include users who have played at least one game
+        this.where('wins', '>', 0)
+          .orWhere('losses', '>', 0)
+          .orWhere('draws', '>', 0);
+      })
+      .orderBy('elo_rating', 'desc')
+      .orderBy('wins', 'desc')
+      .orderBy('total_games', 'desc');
+
+    // Add rank to each player
+    leaderboard.forEach((player, index) => {
+      player.rank = index + 1;
+    });
+
+    res.status(200).json({ leaderboard });
+  } catch (err) {
+    console.error('Error fetching global leaderboard:', err);
+    res.status(500).json({ error: 'Failed to fetch global leaderboard.' });
   }
 };
 
@@ -399,11 +447,10 @@ module.exports = {
   updateUserProfile,
   deleteUserAccount,
   changePassword,
-  getAllUsers,
   updateUserStats,
-  requestRole,
   getUserPermissions,
   getUserSummary,
   getUserSetting,
   updateUserSetting,
+  getGlobalLeaderboard,
 };

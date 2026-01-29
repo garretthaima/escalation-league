@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getActiveLeague } from '../../api/leaguesApi';
-import { getMetagameAnalysis, getTurnOrderStats, getCategoryCards } from '../../api/metagameApi';
+import { getMetagameAnalysis, getTurnOrderStats, getCategoryCards, getCardStats } from '../../api/metagameApi';
 import ColorDistributionChart from './ColorDistributionChart';
 import ManaCurveChart from './ManaCurveChart';
+import LoadingSpinner from '../Shared/LoadingSpinner';
 import './MetagameDashboard.css';
 
 const MetagameDashboard = () => {
@@ -19,6 +20,14 @@ const MetagameDashboard = () => {
     const [itemsPerPage, setItemsPerPage] = useState(25);
     // Category drill-down modal state
     const [categoryModal, setCategoryModal] = useState({ show: false, category: null, cards: [], loading: false });
+    // Card deck info cache and loading state
+    const [cardDeckInfo, setCardDeckInfo] = useState({});
+    const [cardDeckLoading, setCardDeckLoading] = useState(null);
+    const cardDeckCache = useRef({});
+    // Sticky hover state - popup becomes interactive after delay
+    const [isHoverSticky, setIsHoverSticky] = useState(false);
+    const stickyHoverTimer = useRef(null);
+    const STICKY_HOVER_DELAY = 500; // ms before popup becomes clickable
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -55,6 +64,76 @@ const MetagameDashboard = () => {
         }
     };
 
+    // Fetch deck info for a card when hovering
+    const fetchCardDeckInfo = useCallback(async (cardName) => {
+        if (!activeLeague || !cardName) return;
+
+        // Check cache first
+        if (cardDeckCache.current[cardName]) {
+            setCardDeckInfo(prev => ({ ...prev, [cardName]: cardDeckCache.current[cardName] }));
+            return;
+        }
+
+        setCardDeckLoading(cardName);
+        try {
+            const data = await getCardStats(activeLeague.id, cardName);
+            // Parse commanders and extract display name for each deck
+            const deckInfos = (data.decks || []).map(deck => {
+                let commanderName = deck.deck_name || 'Unknown Deck';
+                try {
+                    const commanders = typeof deck.commanders === 'string'
+                        ? JSON.parse(deck.commanders)
+                        : deck.commanders;
+                    if (Array.isArray(commanders) && commanders.length > 0) {
+                        commanderName = commanders.map(c => c.name || c).join(' / ');
+                    }
+                } catch (e) {
+                    // Keep deck_name as fallback
+                }
+                return {
+                    commander: commanderName,
+                    player: `${deck.firstname || ''} ${deck.lastname || ''}`.trim(),
+                    userId: deck.user_id
+                };
+            });
+            cardDeckCache.current[cardName] = deckInfos;
+            setCardDeckInfo(prev => ({ ...prev, [cardName]: deckInfos }));
+        } catch (err) {
+            console.error('Error fetching card deck info:', err);
+            cardDeckCache.current[cardName] = [];
+            setCardDeckInfo(prev => ({ ...prev, [cardName]: [] }));
+        } finally {
+            setCardDeckLoading(null);
+        }
+    }, [activeLeague]);
+
+    // Start sticky hover timer when mouse enters card row
+    const startStickyTimer = useCallback(() => {
+        if (stickyHoverTimer.current) {
+            clearTimeout(stickyHoverTimer.current);
+        }
+        stickyHoverTimer.current = setTimeout(() => {
+            setIsHoverSticky(true);
+        }, STICKY_HOVER_DELAY);
+    }, []);
+
+    // Clear sticky hover when mouse leaves
+    const clearStickyHover = useCallback(() => {
+        if (stickyHoverTimer.current) {
+            clearTimeout(stickyHoverTimer.current);
+            stickyHoverTimer.current = null;
+        }
+        setIsHoverSticky(false);
+        setHoveredCard(null);
+    }, []);
+
+    // Handle click on player name to navigate to profile
+    const handlePlayerClick = useCallback((userId) => {
+        if (userId && activeLeague?.id) {
+            navigate(`/leagues/${activeLeague.id}/profile/${userId}`);
+        }
+    }, [navigate, activeLeague]);
+
     // Handle category click to show drill-down modal
     const handleCategoryClick = async (category, displayName) => {
         if (!activeLeague) return;
@@ -71,10 +150,8 @@ const MetagameDashboard = () => {
     if (loading) {
         return (
             <div className="container mt-4">
-                <div className="text-center">
-                    <div className="spinner-border" role="status">
-                        <span className="visually-hidden">Loading...</span>
-                    </div>
+                <div className="text-center py-5">
+                    <LoadingSpinner size="lg" />
                 </div>
             </div>
         );
@@ -115,10 +192,10 @@ const MetagameDashboard = () => {
                 <div className="col-12">
                     <div className="d-flex align-items-center mb-3">
                         <h2 className="mb-0">
-                            <i className="fas fa-chart-pie me-2" style={{ fontSize: '1.5rem' }}></i>
+                            <i className="fas fa-chart-pie me-2 header-icon"></i>
                             Metagame Analysis
                         </h2>
-                        <span className="badge bg-warning text-dark ms-3" style={{ fontSize: '0.9rem' }}>BETA</span>
+                        <span className="badge bg-warning text-dark ms-3 beta-badge">BETA</span>
                     </div>
                     {activeLeague && (
                         <p className="text-muted">
@@ -282,11 +359,10 @@ const MetagameDashboard = () => {
                                                         <img
                                                             src={card.image_uri}
                                                             alt={card.name}
-                                                            className="img-fluid rounded mb-2"
-                                                            style={{ cursor: 'pointer' }}
+                                                            className="img-fluid rounded mb-2 staple-card-img cursor-pointer"
                                                             title={card.name}
                                                         />
-                                                        <div style={{ color: '#f8f9fa', fontSize: '0.875rem' }}>
+                                                        <div className="staple-card-text">
                                                             <strong>{card.count}</strong> - {card.name}
                                                         </div>
                                                     </div>
@@ -357,7 +433,7 @@ const MetagameDashboard = () => {
                                             </div>
                                         </div>
 
-                                        <div style={{ position: 'relative' }}>
+                                        <div className="table-container-relative">
                                             <table className="table table-sm table-hover">
                                                 <thead>
                                                     <tr>
@@ -376,15 +452,21 @@ const MetagameDashboard = () => {
                                                                 onMouseEnter={(e) => {
                                                                     setHoveredCard(card);
                                                                     setMousePosition({ x: e.clientX, y: e.clientY });
+                                                                    fetchCardDeckInfo(card.name);
+                                                                    startStickyTimer();
                                                                 }}
                                                                 onMouseMove={(e) => {
-                                                                    if (hoveredCard) {
+                                                                    if (hoveredCard && !isHoverSticky) {
                                                                         setMousePosition({ x: e.clientX, y: e.clientY });
                                                                     }
                                                                 }}
-                                                                onMouseLeave={() => setHoveredCard(null)}
+                                                                onMouseLeave={() => {
+                                                                    if (!isHoverSticky) {
+                                                                        clearStickyHover();
+                                                                    }
+                                                                }}
                                                                 onClick={() => setHoveredCard(hoveredCard?.name === card.name ? null : card)}
-                                                                style={{ cursor: card.image_uri ? 'pointer' : 'default' }}
+                                                                className={card.image_uri ? 'table-row-clickable' : 'table-row-default'}
                                                             >
                                                                 <td>{((currentPage - 1) * itemsPerPage) + idx + 1}</td>
                                                                 <td>{card.name}</td>
@@ -400,43 +482,75 @@ const MetagameDashboard = () => {
                                             {/* Card preview on hover */}
                                             {hoveredCard && (hoveredCard.image_uri || (hoveredCard.image_uris && hoveredCard.image_uris.length > 0)) && (
                                                 <div
-                                                    className="card-preview-popup"
+                                                    className={`card-preview-popup ${isHoverSticky ? 'sticky' : ''}`}
                                                     style={{
                                                         position: 'fixed',
                                                         left: `${mousePosition.x + 20}px`,
                                                         top: `${mousePosition.y - 150}px`,
                                                         zIndex: 1050,
-                                                        pointerEvents: 'none',
-                                                        display: 'flex',
-                                                        gap: '10px'
+                                                        pointerEvents: isHoverSticky ? 'auto' : 'none',
+                                                    }}
+                                                    onMouseLeave={() => {
+                                                        if (isHoverSticky) {
+                                                            clearStickyHover();
+                                                        }
                                                     }}
                                                 >
-                                                    {hoveredCard.image_uris && hoveredCard.image_uris.length > 1 ? (
-                                                        // Multi-faced card: show both faces
-                                                        hoveredCard.image_uris.map((uri, idx) => (
-                                                            <img
-                                                                key={idx}
-                                                                src={uri}
-                                                                alt={`${hoveredCard.name} - Face ${idx + 1}`}
-                                                                className="img-fluid rounded shadow-lg"
-                                                                style={{
-                                                                    maxWidth: '200px',
-                                                                    border: '2px solid #fff'
-                                                                }}
-                                                            />
-                                                        ))
-                                                    ) : (
-                                                        // Single-faced card
-                                                        <img
-                                                            src={hoveredCard.image_uri}
-                                                            alt={hoveredCard.name}
-                                                            className="img-fluid rounded shadow-lg"
-                                                            style={{
-                                                                maxWidth: '250px',
-                                                                border: '2px solid #fff'
-                                                            }}
-                                                        />
-                                                    )}
+                                                    {/* Mobile close button */}
+                                                    <button
+                                                        className="card-preview-close d-md-none"
+                                                        onClick={() => clearStickyHover()}
+                                                        aria-label="Close"
+                                                    >
+                                                        <i className="fas fa-times"></i>
+                                                    </button>
+                                                    <div className="card-preview-content">
+                                                        <div className="card-preview-images">
+                                                            {hoveredCard.image_uris && hoveredCard.image_uris.length > 1 ? (
+                                                                // Multi-faced card: show both faces
+                                                                hoveredCard.image_uris.map((uri, idx) => (
+                                                                    <img
+                                                                        key={idx}
+                                                                        src={uri}
+                                                                        alt={`${hoveredCard.name} - Face ${idx + 1}`}
+                                                                        className="img-fluid rounded shadow-lg card-preview-img-sm"
+                                                                    />
+                                                                ))
+                                                            ) : (
+                                                                // Single-faced card
+                                                                <img
+                                                                    src={hoveredCard.image_uri}
+                                                                    alt={hoveredCard.name}
+                                                                    className="img-fluid rounded shadow-lg card-preview-img"
+                                                                />
+                                                            )}
+                                                        </div>
+                                                        {/* Deck info section - now to the right */}
+                                                        <div className="card-deck-info">
+                                                            {cardDeckLoading === hoveredCard.name ? (
+                                                                <span className="deck-info-loading">Loading...</span>
+                                                            ) : cardDeckInfo[hoveredCard.name]?.length > 0 ? (
+                                                                <>
+                                                                    <span className="deck-info-label">In {cardDeckInfo[hoveredCard.name].length} deck{cardDeckInfo[hoveredCard.name].length !== 1 ? 's' : ''}</span>
+                                                                    {cardDeckInfo[hoveredCard.name].map((deck, idx) => (
+                                                                        <div key={idx} className="deck-info-entry">
+                                                                            <span className="deck-info-name">{deck.commander}</span>
+                                                                            {deck.player && (
+                                                                                <span
+                                                                                    className={`deck-info-player ${isHoverSticky && deck.userId ? 'clickable' : ''}`}
+                                                                                    onClick={() => isHoverSticky && deck.userId && handlePlayerClick(deck.userId)}
+                                                                                >
+                                                                                    {deck.player}
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                    ))}
+                                                                </>
+                                                            ) : cardDeckInfo[hoveredCard.name] ? (
+                                                                <span className="deck-info-empty">Not in any deck</span>
+                                                            ) : null}
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             )}
                                         </div>
@@ -498,11 +612,8 @@ const MetagameDashboard = () => {
                                 {metagame.resources ? (
                                     <div>
                                         <div
-                                            className="mb-3 p-3 border rounded category-card"
+                                            className="mb-3 p-3 border rounded category-card category-ramp"
                                             onClick={() => handleCategoryClick('ramp', 'Ramp')}
-                                            style={{ cursor: 'pointer', transition: 'background-color 0.2s' }}
-                                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(25, 135, 84, 0.1)'}
-                                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ''}
                                         >
                                             <h6 className="text-success mb-2">
                                                 <i className="fas fa-seedling me-2"></i>Ramp
@@ -513,11 +624,8 @@ const MetagameDashboard = () => {
                                         </div>
 
                                         <div
-                                            className="p-3 border rounded category-card"
+                                            className="p-3 border rounded category-card category-draw"
                                             onClick={() => handleCategoryClick('cardDraw', 'Card Draw')}
-                                            style={{ cursor: 'pointer', transition: 'background-color 0.2s' }}
-                                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(13, 110, 253, 0.1)'}
-                                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ''}
                                         >
                                             <h6 className="text-info mb-2">
                                                 <i className="fas fa-book me-2"></i>Card Draw
@@ -545,11 +653,8 @@ const MetagameDashboard = () => {
                                 {metagame.interaction ? (
                                     <div>
                                         <div
-                                            className="mb-2 p-3 border rounded category-card"
+                                            className="mb-2 p-3 border rounded category-card category-removal"
                                             onClick={() => handleCategoryClick('removal', 'Removal')}
-                                            style={{ cursor: 'pointer', transition: 'background-color 0.2s' }}
-                                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(220, 53, 69, 0.1)'}
-                                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ''}
                                         >
                                             <h6 className="text-danger mb-1">
                                                 <i className="fas fa-skull-crossbones me-2"></i>Removal
@@ -559,11 +664,8 @@ const MetagameDashboard = () => {
                                         </div>
 
                                         <div
-                                            className="mb-2 p-3 border rounded category-card"
+                                            className="mb-2 p-3 border rounded category-card category-counter"
                                             onClick={() => handleCategoryClick('counterspells', 'Counterspells')}
-                                            style={{ cursor: 'pointer', transition: 'background-color 0.2s' }}
-                                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(13, 110, 253, 0.1)'}
-                                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ''}
                                         >
                                             <h6 className="text-primary mb-1">
                                                 <i className="fas fa-ban me-2"></i>Counterspells
@@ -573,11 +675,8 @@ const MetagameDashboard = () => {
                                         </div>
 
                                         <div
-                                            className="p-3 border rounded category-card"
+                                            className="p-3 border rounded category-card category-wipe"
                                             onClick={() => handleCategoryClick('boardWipes', 'Board Wipes')}
-                                            style={{ cursor: 'pointer', transition: 'background-color 0.2s' }}
-                                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 193, 7, 0.1)'}
-                                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ''}
                                         >
                                             <h6 className="text-warning mb-1">
                                                 <i className="fas fa-bomb me-2"></i>Board Wipes
@@ -663,7 +762,7 @@ const MetagameDashboard = () => {
                                                         <small className="text-muted">
                                                             {stat.wins} win{stat.wins !== 1 ? 's' : ''} / {stat.gamesPlayed} game{stat.gamesPlayed !== 1 ? 's' : ''}
                                                         </small>
-                                                        <div className="progress mt-2" style={{ height: '8px' }}>
+                                                        <div className="progress mt-2 progress-sm">
                                                             <div
                                                                 className="progress-bar"
                                                                 style={{
@@ -706,7 +805,7 @@ const MetagameDashboard = () => {
                                                             <span>{kw.keyword}</span>
                                                             <span className="text-muted">{kw.count} ({kw.percentage}% of {kw.baseType || 'creatures'})</span>
                                                         </div>
-                                                        <div className="progress" style={{ height: '8px' }}>
+                                                        <div className="progress progress-sm">
                                                             <div
                                                                 className="progress-bar bg-danger"
                                                                 style={{ width: `${kw.percentage}%` }}
@@ -729,7 +828,7 @@ const MetagameDashboard = () => {
                                                             <span>{kw.keyword}</span>
                                                             <span className="text-muted">{kw.count} ({kw.percentage}% of {kw.baseType || 'creatures'})</span>
                                                         </div>
-                                                        <div className="progress" style={{ height: '8px' }}>
+                                                        <div className="progress progress-sm">
                                                             <div
                                                                 className="progress-bar bg-primary"
                                                                 style={{ width: `${kw.percentage}%` }}
@@ -752,7 +851,7 @@ const MetagameDashboard = () => {
                                                             <span>{kw.keyword}</span>
                                                             <span className="text-muted">{kw.count} ({kw.percentage}% of {kw.baseType || 'cards'})</span>
                                                         </div>
-                                                        <div className="progress" style={{ height: '8px' }}>
+                                                        <div className="progress progress-sm">
                                                             <div
                                                                 className="progress-bar bg-warning"
                                                                 style={{ width: `${kw.percentage}%` }}
@@ -775,7 +874,7 @@ const MetagameDashboard = () => {
                                                             <span>{kw.keyword}</span>
                                                             <span className="text-muted">{kw.count} ({kw.percentage}% of {kw.baseType || 'cards'})</span>
                                                         </div>
-                                                        <div className="progress" style={{ height: '8px' }}>
+                                                        <div className="progress progress-sm">
                                                             <div
                                                                 className="progress-bar bg-success"
                                                                 style={{ width: `${kw.percentage}%` }}
@@ -795,7 +894,7 @@ const MetagameDashboard = () => {
 
             {/* Category Cards Modal */}
             {categoryModal.show && (
-                <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                <div className="modal show d-block modal-backdrop-custom" tabIndex="-1">
                     <div className="modal-dialog modal-lg modal-dialog-scrollable">
                         <div className="modal-content">
                             <div className="modal-header">
@@ -815,16 +914,14 @@ const MetagameDashboard = () => {
                             <div className="modal-body">
                                 {categoryModal.loading ? (
                                     <div className="text-center py-4">
-                                        <div className="spinner-border" role="status">
-                                            <span className="visually-hidden">Loading...</span>
-                                        </div>
+                                        <LoadingSpinner size="md" />
                                     </div>
                                 ) : categoryModal.error ? (
                                     <div className="alert alert-danger">{categoryModal.error}</div>
                                 ) : categoryModal.cards.length === 0 ? (
                                     <p className="text-muted text-center py-4">No cards found in this category</p>
                                 ) : (
-                                    <div style={{ position: 'relative' }}>
+                                    <div className="table-container-relative">
                                         <div className="table-responsive">
                                             <table className="table table-sm table-hover">
                                                 <thead>
@@ -843,15 +940,34 @@ const MetagameDashboard = () => {
                                                                 if (card.imageUri || (card.imageUris && card.imageUris.length > 0)) {
                                                                     setHoveredCard(card);
                                                                     setMousePosition({ x: e.clientX, y: e.clientY });
+                                                                    fetchCardDeckInfo(card.name);
+                                                                    startStickyTimer();
                                                                 }
                                                             }}
                                                             onMouseMove={(e) => {
-                                                                if (hoveredCard) {
+                                                                if (hoveredCard && !isHoverSticky) {
                                                                     setMousePosition({ x: e.clientX, y: e.clientY });
                                                                 }
                                                             }}
-                                                            onMouseLeave={() => setHoveredCard(null)}
-                                                            style={{ cursor: card.imageUri || card.imageUris ? 'pointer' : 'default' }}
+                                                            onMouseLeave={() => {
+                                                                if (!isHoverSticky) {
+                                                                    clearStickyHover();
+                                                                }
+                                                            }}
+                                                            onClick={() => {
+                                                                // Mobile: tap to toggle card preview
+                                                                if (card.imageUri || (card.imageUris && card.imageUris.length > 0)) {
+                                                                    if (hoveredCard?.name === card.name) {
+                                                                        // Tap same card - close preview
+                                                                        clearStickyHover();
+                                                                    } else {
+                                                                        // Tap different card - switch to it
+                                                                        setHoveredCard(card);
+                                                                        fetchCardDeckInfo(card.name);
+                                                                    }
+                                                                }
+                                                            }}
+                                                            className={(card.imageUri || card.imageUris) ? 'table-row-clickable' : 'table-row-default'}
                                                         >
                                                             <td>{idx + 1}</td>
                                                             <td>{card.name}</td>
@@ -868,43 +984,75 @@ const MetagameDashboard = () => {
                                         {/* Card preview on hover */}
                                         {hoveredCard && (hoveredCard.imageUri || (hoveredCard.imageUris && hoveredCard.imageUris.length > 0)) && (
                                             <div
-                                                className="card-preview-popup"
+                                                className={`card-preview-popup ${isHoverSticky ? 'sticky' : ''}`}
                                                 style={{
                                                     position: 'fixed',
                                                     left: `${mousePosition.x + 20}px`,
                                                     top: `${mousePosition.y - 150}px`,
                                                     zIndex: 1100,
-                                                    pointerEvents: 'none',
-                                                    display: 'flex',
-                                                    gap: '10px'
+                                                    pointerEvents: isHoverSticky ? 'auto' : 'none',
+                                                }}
+                                                onMouseLeave={() => {
+                                                    if (isHoverSticky) {
+                                                        clearStickyHover();
+                                                    }
                                                 }}
                                             >
-                                                {hoveredCard.imageUris && hoveredCard.imageUris.length > 1 ? (
-                                                    // Multi-faced card: show both faces
-                                                    hoveredCard.imageUris.map((uri, idx) => (
-                                                        <img
-                                                            key={idx}
-                                                            src={uri}
-                                                            alt={`${hoveredCard.name} - Face ${idx + 1}`}
-                                                            className="img-fluid rounded shadow-lg"
-                                                            style={{
-                                                                maxWidth: '200px',
-                                                                border: '2px solid #fff'
-                                                            }}
-                                                        />
-                                                    ))
-                                                ) : (
-                                                    // Single-faced card
-                                                    <img
-                                                        src={hoveredCard.imageUri}
-                                                        alt={hoveredCard.name}
-                                                        className="img-fluid rounded shadow-lg"
-                                                        style={{
-                                                            maxWidth: '250px',
-                                                            border: '2px solid #fff'
-                                                        }}
-                                                    />
-                                                )}
+                                                {/* Mobile close button */}
+                                                <button
+                                                    className="card-preview-close d-md-none"
+                                                    onClick={() => clearStickyHover()}
+                                                    aria-label="Close"
+                                                >
+                                                    <i className="fas fa-times"></i>
+                                                </button>
+                                                <div className="card-preview-content">
+                                                    <div className="card-preview-images">
+                                                        {hoveredCard.imageUris && hoveredCard.imageUris.length > 1 ? (
+                                                            // Multi-faced card: show both faces
+                                                            hoveredCard.imageUris.map((uri, idx) => (
+                                                                <img
+                                                                    key={idx}
+                                                                    src={uri}
+                                                                    alt={`${hoveredCard.name} - Face ${idx + 1}`}
+                                                                    className="img-fluid rounded shadow-lg card-preview-img-sm"
+                                                                />
+                                                            ))
+                                                        ) : (
+                                                            // Single-faced card
+                                                            <img
+                                                                src={hoveredCard.imageUri}
+                                                                alt={hoveredCard.name}
+                                                                className="img-fluid rounded shadow-lg card-preview-img"
+                                                            />
+                                                        )}
+                                                    </div>
+                                                    {/* Deck info section - now to the right */}
+                                                    <div className="card-deck-info">
+                                                        {cardDeckLoading === hoveredCard.name ? (
+                                                            <span className="deck-info-loading">Loading...</span>
+                                                        ) : cardDeckInfo[hoveredCard.name]?.length > 0 ? (
+                                                            <>
+                                                                <span className="deck-info-label">In {cardDeckInfo[hoveredCard.name].length} deck{cardDeckInfo[hoveredCard.name].length !== 1 ? 's' : ''}</span>
+                                                                {cardDeckInfo[hoveredCard.name].map((deck, idx) => (
+                                                                    <div key={idx} className="deck-info-entry">
+                                                                        <span className="deck-info-name">{deck.commander}</span>
+                                                                        {deck.player && (
+                                                                            <span
+                                                                                className={`deck-info-player ${isHoverSticky && deck.userId ? 'clickable' : ''}`}
+                                                                                onClick={() => isHoverSticky && deck.userId && handlePlayerClick(deck.userId)}
+                                                                            >
+                                                                                {deck.player}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                ))}
+                                                            </>
+                                                        ) : cardDeckInfo[hoveredCard.name] ? (
+                                                            <span className="deck-info-empty">Not in any deck</span>
+                                                        ) : null}
+                                                    </div>
+                                                </div>
                                             </div>
                                         )}
                                     </div>

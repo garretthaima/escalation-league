@@ -16,9 +16,11 @@ import {
     postSessionRecap
 } from '../../api/attendanceApi';
 import { getLeagueParticipants } from '../../api/userLeaguesApi';
-import { usePermissions } from '../context/PermissionsProvider';
-import { useToast } from '../context/ToastContext';
-import { useWebSocket } from '../context/WebSocketProvider';
+import { usePermissions } from '../../context/PermissionsProvider';
+import { useToast } from '../../context/ToastContext';
+import { useWebSocket } from '../../context/WebSocketProvider';
+import { formatDate, formatDateWithWeekday } from '../../utils/dateFormatter';
+import LoadingSpinner from '../Shared/LoadingSpinner';
 
 const AttendanceAdminPage = () => {
     const { activeLeague } = usePermissions();
@@ -217,12 +219,7 @@ const AttendanceAdminPage = () => {
 
     const handleOpenDiscordPollModal = () => {
         const dateStr = session?.session_date
-            ? new Date(session.session_date).toLocaleDateString('en-US', {
-                weekday: 'long',
-                month: 'long',
-                day: 'numeric',
-                timeZone: 'UTC'
-            })
+            ? formatDateWithWeekday(session.session_date)
             : 'Game Night';
         setDiscordPollMessage(`Are you coming to ${dateStr}?`);
         setShowDiscordPollModal(true);
@@ -457,7 +454,7 @@ const AttendanceAdminPage = () => {
                                 <i className="fas fa-plus"></i>
                             </button>
                         </div>
-                        <div className="list-group list-group-flush" style={{ maxHeight: '50vh', overflowY: 'auto' }}>
+                        <div className="list-group list-group-flush scroll-container-lg">
                             {sessions.length === 0 ? (
                                 <div className="list-group-item text-muted text-center py-4">
                                     No sessions yet
@@ -471,11 +468,7 @@ const AttendanceAdminPage = () => {
                                     >
                                         <div>
                                             <div className="fw-bold">
-                                                {new Date(s.session_date).toLocaleDateString('en-US', {
-                                                    month: 'short',
-                                                    day: 'numeric',
-                                                    timeZone: 'UTC'
-                                                })}
+                                                {formatDate(s.session_date, { month: 'short', day: 'numeric' })}
                                             </div>
                                             <small className={selectedSessionId === s.id ? 'text-white-50' : 'text-muted'}>
                                                 {s.name || 'Game Night'}
@@ -512,9 +505,7 @@ const AttendanceAdminPage = () => {
                     ) : loading ? (
                         <div className="card">
                             <div className="card-body text-center py-5">
-                                <div className="spinner-border text-primary" role="status">
-                                    <span className="visually-hidden">Loading...</span>
-                                </div>
+                                <LoadingSpinner size="lg" />
                             </div>
                         </div>
                     ) : (
@@ -530,12 +521,11 @@ const AttendanceAdminPage = () => {
                                             {session?.name || 'Game Night'}
                                         </h5>
                                         <small className="text-muted">
-                                            {session?.session_date ? new Date(session.session_date).toLocaleDateString('en-US', {
+                                            {session?.session_date ? formatDate(session.session_date, {
                                                 weekday: 'long',
                                                 month: 'long',
                                                 day: 'numeric',
-                                                year: 'numeric',
-                                                timeZone: 'UTC'
+                                                year: 'numeric'
                                             }) : ''}
                                         </small>
                                     </div>
@@ -666,10 +656,7 @@ const AttendanceAdminPage = () => {
                                     <div className="card-body">
                                         {loadingPodSuggestions ? (
                                             <div className="text-center py-4">
-                                                <div className="spinner-border text-primary" role="status">
-                                                    <span className="visually-hidden">Loading...</span>
-                                                </div>
-                                                <p className="text-muted mt-2">Calculating optimal pods...</p>
+                                                <LoadingSpinner size="md" showText text="Calculating optimal pods..." />
                                             </div>
                                         ) : !podSuggestions ? (
                                             <div className="text-center py-4">
@@ -871,7 +858,7 @@ const AttendanceAdminPage = () => {
 
             {/* Create Session Modal */}
             {showCreateSessionModal && (
-                <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                <div className="modal show d-block modal-backdrop-custom" tabIndex="-1">
                     <div className="modal-dialog">
                         <div className="modal-content">
                             <div className="modal-header">
@@ -924,7 +911,7 @@ const AttendanceAdminPage = () => {
 
             {/* Discord Poll Modal */}
             {showDiscordPollModal && (
-                <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                <div className="modal show d-block modal-backdrop-custom" tabIndex="-1">
                     <div className="modal-dialog">
                         <div className="modal-content">
                             <div className="modal-header">
@@ -977,7 +964,7 @@ const AttendanceAdminPage = () => {
 
             {/* Matchup Matrix Modal */}
             {showMatchupMatrix && matchupMatrix && (
-                <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                <div className="modal show d-block modal-backdrop-custom" tabIndex="-1">
                     <div className="modal-dialog modal-xl">
                         <div className="modal-content">
                             <div className="modal-header">
@@ -997,7 +984,7 @@ const AttendanceAdminPage = () => {
                                             <tr>
                                                 <th></th>
                                                 {matchupMatrix.players?.map(p => (
-                                                    <th key={p.id} className="text-center" style={{ fontSize: '0.75rem' }}>
+                                                    <th key={p.id} className="text-center text-xs">
                                                         {p.firstname}
                                                     </th>
                                                 ))}
@@ -1006,7 +993,7 @@ const AttendanceAdminPage = () => {
                                         <tbody>
                                             {matchupMatrix.players?.map((p1, i) => (
                                                 <tr key={p1.id}>
-                                                    <th style={{ fontSize: '0.75rem' }}>{p1.firstname}</th>
+                                                    <th className="text-xs">{p1.firstname}</th>
                                                     {matchupMatrix.players?.map((p2, j) => (
                                                         <td
                                                             key={p2.id}

@@ -1,50 +1,84 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense, lazy } from 'react';
 import './App.css';
 import { Route, Routes, Navigate } from 'react-router-dom';
 import SignIn from './components/Auth/SignIn';
+import VerifyEmail from './components/Auth/VerifyEmail';
+import ForgotPassword from './components/Auth/ForgotPassword';
+import ResetPassword from './components/Auth/ResetPassword';
 import Profile from './components/Auth/Profile/Profile';
 import Navbar from './components/Navbar/Navbar';
 import LeagueLayout from './components/Leagues/LeagueLayout';
 import { LeagueDashboard } from './components/Leagues/Dashboard';
 import SignUp from './components/Leagues/SignUp';
 import PastLeagues from './components/Leagues/PastLeagues';
-import PriceCheckPage from './components/Leagues/PriceCheckPage';
 import { PodsDashboard, PodsHistory } from './components/Pods';
-import CreateLeaguePage from './components/Admin/CreateLeaguePage';
 import Rules from './components/Static/Rules';
 import Awards from './components/Static/Awards';
 import NotAuthorized from './components/Auth/NotAuthorized';
 import PublicProfile from './components/Auth/Profile/PublicProfile';
-import { LeagueAdminPage, UserRoleManagementPage, ActivityLogsPage } from './components/Admin';
-import EditPodPage from './components/Admin/EditPodPage';
 import { HomePage, Footer, Contact } from './components/Shared/';
-import { ToastProvider } from './components/context/ToastContext';
-import { WebSocketProvider } from './components/context/WebSocketProvider';
-import { BudgetDashboard } from './components/Budget';
-import { MetagameDashboard } from './components/Metagame';
-import { TournamentDashboard } from './components/Tournament';
+import { ToastProvider } from './context/ToastContext';
+import { WebSocketProvider } from './context/WebSocketProvider';
 import { AttendancePage, PodSuggestionsPage } from './components/Attendance';
+import { GlobalLeaderboard } from './components/Leaderboard';
 import LifeTracker from './components/LifeTracker/LifeTracker';
 import { logoutUser } from './api/authApi';
+import { initializeAuth } from './api/axiosConfig';
+
+// Lazy load admin pages (not needed on initial load)
+const LeagueAdminPage = lazy(() => import('./components/Admin/LeagueAdminPage'));
+const PodAdminPage = lazy(() => import('./components/Admin/PodAdminPage'));
+const UserRoleManagementPage = lazy(() => import('./components/Admin/UserRoleManagementPage'));
+const AttendanceAdminPage = lazy(() => import('./components/Admin/AttendanceAdminPage'));
+const ActivityLogsPage = lazy(() => import('./components/Admin/ActivityLogsPage'));
+const CreateLeaguePage = lazy(() => import('./components/Admin/CreateLeaguePage'));
+const EditPodPage = lazy(() => import('./components/Admin/EditPodPage'));
+const MatchupMatrixPage = lazy(() => import('./components/Attendance/MatchupMatrixPage'));
+
+// Lazy load heavy dashboard pages
+const BudgetDashboard = lazy(() => import('./components/Budget/BudgetDashboard'));
+const MetagameDashboard = lazy(() => import('./components/Metagame/MetagameDashboard'));
+const TournamentDashboard = lazy(() => import('./components/Tournament/TournamentDashboard'));
+const PriceCheckPage = lazy(() => import('./components/Leagues/PriceCheckPage'));
+
+// Loading fallback component
+const PageLoader = () => (
+    <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '50vh' }}>
+        <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Loading...</span>
+        </div>
+    </div>
+);
 
 const App = () => {
     const [user, setUser] = useState(null);
 
+    // Proactively check and refresh token on app initialization
     useEffect(() => {
-        const token = localStorage.getItem('token');
-        if (token) {
-            try {
-                const tokenPayload = JSON.parse(atob(token.split('.')[1])); // Decode JWT payload
-                setUser({
-                    id: tokenPayload.id,
-                    email: tokenPayload.email,
-                    role_id: tokenPayload.role_id,
-                });
-            } catch (err) {
-                console.error('Error decoding token:', err);
-                localStorage.removeItem('token'); // Clear invalid token
+        const initAuth = async () => {
+            const isValid = await initializeAuth();
+
+            if (isValid) {
+                // Token is valid (or was refreshed), decode and set user
+                const token = localStorage.getItem('token');
+                if (token) {
+                    try {
+                        const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+                        setUser({
+                            id: tokenPayload.id,
+                            email: tokenPayload.email,
+                            role_id: tokenPayload.role_id,
+                        });
+                    } catch (err) {
+                        console.error('Error decoding token:', err);
+                        localStorage.removeItem('token');
+                        localStorage.removeItem('refreshToken');
+                    }
+                }
             }
-        }
+        };
+
+        initAuth();
     }, []);
 
     const handleLogout = async () => {
@@ -68,10 +102,14 @@ const App = () => {
                             {/* Public Routes */}
                             <Route path="/" element={<HomePage />} />
                             <Route path="/signin" element={<SignIn />} />
+                            <Route path="/verify-email" element={<VerifyEmail />} />
+                            <Route path="/forgot-password" element={<ForgotPassword />} />
+                            <Route path="/reset-password" element={<ResetPassword />} />
                             <Route path="/rules" element={<Rules />} />
                             <Route path="/life-tracker/:podId?" element={<LifeTracker />} />
                             <Route path="/awards" element={<Awards />} />
                             <Route path="/contact" element={<Contact />} />
+                            <Route path="/leaderboard" element={<GlobalLeaderboard />} />
                             {/* <Route path="/privacy" element={<PrivacyPolicy />} /> Add Privacy Policy Route */}
 
 
@@ -80,12 +118,12 @@ const App = () => {
                             <Route path="/leagues" element={<LeagueDashboard />} />
                             <Route path="/leagues/signup" element={<SignUp />} />
 
-                            {/* Tool pages with shared layout */}
+                            {/* Tool pages with shared layout (lazy loaded) */}
                             <Route path="/leagues" element={<LeagueLayout />}>
-                                <Route path="budget" element={<BudgetDashboard />} />
-                                <Route path="price-check" element={<PriceCheckPage />} />
-                                <Route path="metagame" element={<MetagameDashboard />} />
-                                <Route path="tournament" element={<TournamentDashboard />} />
+                                <Route path="budget" element={<Suspense fallback={<PageLoader />}><BudgetDashboard /></Suspense>} />
+                                <Route path="price-check" element={<Suspense fallback={<PageLoader />}><PriceCheckPage /></Suspense>} />
+                                <Route path="metagame" element={<Suspense fallback={<PageLoader />}><MetagameDashboard /></Suspense>} />
+                                <Route path="tournament" element={<Suspense fallback={<PageLoader />}><TournamentDashboard /></Suspense>} />
                             </Route>
 
                             {/* Legacy routes - redirect to new dashboard */}
@@ -111,12 +149,12 @@ const App = () => {
                             <Route path="/attendance" element={<AttendancePage />} />
                             <Route path="/attendance/suggest-pods/:sessionId" element={<PodSuggestionsPage />} />
 
-                            {/* Admin Section */}
-                            <Route path="/admin/leagues" element={<LeagueAdminPage />} />
-                            <Route path="/admin/pods/:podId" element={<EditPodPage />} />
-                            <Route path="/admin/leagues/create" element={<CreateLeaguePage />} />
-                            <Route path="/admin/users" element={<UserRoleManagementPage />} />
-                            <Route path="/admin/activity-logs" element={<ActivityLogsPage />} />
+                            {/* Admin Section (lazy loaded) - consolidated League Management page */}
+                            <Route path="/admin/leagues" element={<Suspense fallback={<PageLoader />}><LeagueAdminPage /></Suspense>} />
+                            <Route path="/admin/pods/:podId" element={<Suspense fallback={<PageLoader />}><EditPodPage /></Suspense>} />
+                            <Route path="/admin/leagues/create" element={<Suspense fallback={<PageLoader />}><CreateLeaguePage /></Suspense>} />
+                            <Route path="/admin/users" element={<Suspense fallback={<PageLoader />}><UserRoleManagementPage /></Suspense>} />
+                            <Route path="/admin/activity-logs" element={<Suspense fallback={<PageLoader />}><ActivityLogsPage /></Suspense>} />
 
                             {/* Legacy admin routes - redirect to consolidated page */}
                             <Route path="/admin/pods" element={<Navigate to="/admin/leagues#pods" replace />} />

@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
-import { useWebSocket } from '../context/WebSocketProvider';
+import { useWebSocket } from '../../context/WebSocketProvider';
 import { getNotifications, getUnreadCount, markAsRead, markAllAsRead } from '../../api/notificationsApi';
+import { formatRelativeTime } from '../../utils/dateFormatter';
 import './NotificationCenter.css';
 
 const NotificationCenter = () => {
@@ -138,18 +139,7 @@ const NotificationCenter = () => {
     };
 
     const formatTime = (dateString) => {
-        const date = new Date(dateString);
-        const now = new Date();
-        const diff = now - date;
-        const minutes = Math.floor(diff / 60000);
-        const hours = Math.floor(diff / 3600000);
-        const days = Math.floor(diff / 86400000);
-
-        if (minutes < 1) return 'Just now';
-        if (minutes < 60) return `${minutes}m ago`;
-        if (hours < 24) return `${hours}h ago`;
-        if (days < 7) return `${days}d ago`;
-        return date.toLocaleDateString();
+        return formatRelativeTime(dateString);
     };
 
     const getTypeIcon = (type) => {

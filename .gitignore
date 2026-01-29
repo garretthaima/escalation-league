@@ -72,4 +72,5 @@ coverage/
 !.env.example
 !.env.test.example
 
-# ...existing code...
+# Security documentation (local only)
+docs/SECURITY_CHECKLIST.md

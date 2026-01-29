@@ -1,5 +1,6 @@
 const db = require('../models/db');
 const { emitNotificationRead } = require('../utils/socketEmitter');
+const { handleError, notFound } = require('../utils/errorUtils');
 
 /**
  * Get paginated notifications for the current user
@@ -28,8 +29,7 @@ const getNotifications = async (req, res) => {
             offset
         });
     } catch (err) {
-        console.error('Error fetching notifications:', err.message);
-        res.status(500).json({ error: 'Failed to fetch notifications.' });
+        handleError(res, err, 'Failed to fetch notifications');
     }
 };
 
@@ -47,8 +47,7 @@ const getUnreadCount = async (req, res) => {
 
         res.status(200).json({ count: parseInt(result.count) || 0 });
     } catch (err) {
-        console.error('Error fetching unread count:', err.message);
-        res.status(500).json({ error: 'Failed to fetch unread count.' });
+        handleError(res, err, 'Failed to fetch unread count');
     }
 };
 
@@ -65,7 +64,7 @@ const markAsRead = async (req, res) => {
             .first();
 
         if (!notification) {
-            return res.status(404).json({ error: 'Notification not found.' });
+            throw notFound('Notification');
         }
 
         if (notification.is_read) {
@@ -84,8 +83,7 @@ const markAsRead = async (req, res) => {
 
         res.status(200).json({ message: 'Notification marked as read.' });
     } catch (err) {
-        console.error('Error marking notification as read:', err.message);
-        res.status(500).json({ error: 'Failed to mark notification as read.' });
+        handleError(res, err, 'Failed to mark notification as read');
     }
 };
 
@@ -111,8 +109,7 @@ const markAllAsRead = async (req, res) => {
             count: updated
         });
     } catch (err) {
-        console.error('Error marking all notifications as read:', err.message);
-        res.status(500).json({ error: 'Failed to mark notifications as read.' });
+        handleError(res, err, 'Failed to mark notifications as read');
     }
 };
 
@@ -129,13 +126,12 @@ const deleteNotification = async (req, res) => {
             .del();
 
         if (!deleted) {
-            return res.status(404).json({ error: 'Notification not found.' });
+            throw notFound('Notification');
         }
 
         res.status(200).json({ message: 'Notification deleted.' });
     } catch (err) {
-        console.error('Error deleting notification:', err.message);
-        res.status(500).json({ error: 'Failed to delete notification.' });
+        handleError(res, err, 'Failed to delete notification');
     }
 };
 

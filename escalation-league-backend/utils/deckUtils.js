@@ -1,5 +1,5 @@
 // Helper function: Standardize deck data for storage
-const standardizeDeckData = (platform, deckId, decklistUrl, name, commanders, cards) => {
+const standardizeDeckData = (platform, deckId, decklistUrl, name, commanders, cards, updatedAt) => {
     return {
         id: deckId,
         decklist_url: decklistUrl,
@@ -13,6 +13,7 @@ const standardizeDeckData = (platform, deckId, decklistUrl, name, commanders, ca
             name: card.name,
             scryfall_id: card.scryfall_id,
         })),
+        updated_at: updatedAt || null,
     };
 };
 

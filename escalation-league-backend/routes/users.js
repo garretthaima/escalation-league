@@ -10,6 +10,7 @@ const {
     getUserSummary,
     getUserSetting,
     updateUserSetting,
+    getGlobalLeaderboard,
 } = require('../controllers/usersController');
 const authenticateToken = require('../middlewares/authentication');
 const authorizePermission = require('../middlewares/authorizePermission');
@@ -70,6 +71,13 @@ router.get(
     authenticateToken, // Ensure the user is authenticated
     authorizePermission(['auth_view_basic_info']), // Permission to view basic user info
     getUserSummary // Controller method to fetch basic user info
+);
+
+// Global leaderboard - all players ranked by ELO
+router.get(
+    '/leaderboard',
+    authenticateToken,
+    getGlobalLeaderboard
 );
 
 module.exports = router;

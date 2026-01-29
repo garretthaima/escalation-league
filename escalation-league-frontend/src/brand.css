@@ -3,6 +3,24 @@
    Purple Primary, Black Secondary, Dark Gold Accent
 =========================== */
 
+/* Global Font Override - ensures font applies everywhere */
+body,
+html,
+* {
+    font-family: var(--font-primary) !important;
+}
+
+/* Preserve icon fonts */
+.fa, .fas, .far, .fab, .fal, .fad,
+[class^="fa-"], [class*=" fa-"],
+.bi, [class^="bi-"], [class*=" bi-"] {
+    font-family: 'Font Awesome 5 Free', 'Font Awesome 6 Free', 'bootstrap-icons' !important;
+}
+
+code, pre, .code, kbd, samp {
+    font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace !important;
+}
+
 /* Primary Buttons - Deep Purple */
 .btn-primary {
     background-color: #2d1b4e !important;
@@ -167,25 +185,671 @@ body.dark-mode .table-hover tbody tr:hover {
     background-color: #6c757d;
 }
 
-/* Form Focus */
+/* Form Controls - Unified Styling */
+.form-control,
+.form-select {
+    background-color: var(--bg-primary) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 8px !important;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-control::placeholder {
+    color: var(--text-muted) !important;
+    opacity: 0.7;
+}
+
 .form-control:focus,
 .form-select:focus {
-    border-color: #6c757d;
-    box-shadow: 0 0 0 0.2rem rgba(108, 117, 125, 0.25);
+    background-color: var(--bg-primary) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--brand-purple) !important;
+    box-shadow: 0 0 0 0.2rem rgba(45, 27, 78, 0.25) !important;
+    outline: none !important;
+}
+
+/* Form select dropdown arrow - dark mode fix */
+body.dark-mode .form-select {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23e9ecef' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e") !important;
+}
+
+/* Input group styling */
+.input-group-text {
+    background-color: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 8px !important;
+}
+
+/* Form labels */
+.form-label,
+label {
+    color: var(--text-primary) !important;
+}
+
+/* Form text/help text */
+.form-text {
+    color: var(--text-muted) !important;
+}
+
+/* Disabled form controls */
+.form-control:disabled,
+.form-select:disabled,
+.form-control[readonly] {
+    background-color: var(--bg-secondary) !important;
+    color: var(--text-muted) !important;
+    opacity: 0.7;
+}
+
+/* Form check inputs (checkboxes, radios) */
+.form-check-input {
+    background-color: var(--bg-primary) !important;
+    border-color: var(--border-color) !important;
+}
+
+.form-check-input:checked {
+    background-color: var(--brand-purple) !important;
+    border-color: var(--brand-purple) !important;
+}
+
+.form-check-input:focus {
+    border-color: var(--brand-purple) !important;
+    box-shadow: 0 0 0 0.2rem rgba(45, 27, 78, 0.25) !important;
+}
+
+.form-check-label {
+    color: var(--text-primary) !important;
+}
+
+/* Nav Tabs - Modern Pill/Segmented Control Style */
+.nav-tabs {
+    border-bottom: none !important;
+    gap: 0.375rem;
+    padding: 0.375rem;
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    display: inline-flex;
+    flex-wrap: wrap;
+}
+
+.nav-tabs .nav-item {
+    margin-bottom: 0 !important;
+}
+
+.nav-tabs .nav-link {
+    color: var(--text-secondary) !important;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 10px !important;
+    padding: 0.5rem 1rem !important;
+    font-weight: 500;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.nav-tabs .nav-link:hover {
+    color: var(--text-primary) !important;
+    background: rgba(0, 0, 0, 0.05) !important;
+}
+
+.nav-tabs .nav-link.active {
+    color: #ffffff !important;
+    background: var(--brand-purple) !important;
+    box-shadow: 0 2px 8px rgba(45, 27, 78, 0.3);
+}
+
+/* Dark mode tabs - modern segmented style */
+body.dark-mode .nav-tabs {
+    background: rgba(20, 20, 35, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(8px);
+}
+
+body.dark-mode .nav-tabs .nav-link {
+    color: rgba(255, 255, 255, 0.7) !important;
+    background: transparent !important;
+    border: none !important;
+}
+
+body.dark-mode .nav-tabs .nav-link:hover {
+    color: #ffffff !important;
+    background: rgba(255, 255, 255, 0.15) !important;
+}
+
+body.dark-mode .nav-tabs .nav-link.active {
+    color: #ffffff !important;
+    background: var(--brand-purple) !important;
+    box-shadow: 0 2px 12px rgba(74, 47, 112, 0.5);
+}
+
+/* Mobile responsive tabs */
+@media (max-width: 576px) {
+    .nav-tabs {
+        display: flex !important;
+        width: 100%;
+        gap: 0.25rem;
+        padding: 0.25rem;
+    }
+
+    .nav-tabs .nav-item {
+        flex: 1 1 auto;
+    }
+
+    .nav-tabs .nav-link {
+        padding: 0.5rem 0.75rem !important;
+        font-size: 0.8rem;
+        text-align: center;
+        width: 100%;
+    }
+}
+
+/* Nav Pills - Modern Segmented Control Style */
+.nav-pills {
+    gap: 0.5rem;
+    padding: 0.375rem;
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    display: inline-flex;
+    flex-wrap: wrap;
+}
+
+.nav-pills.nav-fill {
+    display: flex;
+    width: 100%;
+}
+
+.nav-pills .nav-item {
+    flex: 1 1 auto;
+}
+
+.nav-pills .nav-link {
+    color: var(--text-secondary) !important;
+    background: transparent !important;
+    border-radius: 10px !important;
+    padding: 0.625rem 1.25rem !important;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    text-align: center;
+}
+
+.nav-pills .nav-link:hover {
+    color: var(--text-primary) !important;
+    background: rgba(0, 0, 0, 0.05) !important;
+}
+
+.nav-pills .nav-link.active {
+    color: #ffffff !important;
+    background: var(--brand-purple) !important;
+    box-shadow: 0 2px 8px rgba(45, 27, 78, 0.3);
+}
+
+/* Dark mode nav-pills */
+body.dark-mode .nav-pills {
+    background: rgba(20, 20, 35, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(8px);
+}
+
+body.dark-mode .nav-pills .nav-link {
+    color: rgba(255, 255, 255, 0.7) !important;
+    background: transparent !important;
+}
+
+body.dark-mode .nav-pills .nav-link:hover {
+    color: #ffffff !important;
+    background: rgba(255, 255, 255, 0.15) !important;
+}
+
+body.dark-mode .nav-pills .nav-link.active {
+    color: #ffffff !important;
+    background: var(--brand-purple) !important;
+    box-shadow: 0 2px 12px rgba(74, 47, 112, 0.5);
+}
+
+/* Mobile responsive nav-pills */
+@media (max-width: 576px) {
+    .nav-pills {
+        gap: 0.25rem;
+        padding: 0.25rem;
+    }
+
+    .nav-pills .nav-link {
+        padding: 0.5rem 0.75rem !important;
+        font-size: 0.85rem;
+    }
 }
 
 /* Pagination */
+.pagination {
+    gap: 4px;
+}
+
 .page-link {
-    color: #495057;
+    color: var(--text-primary);
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px !important;
+    padding: 0.5rem 0.875rem;
+    transition: all 0.2s ease;
+}
+
+.page-item:first-child .page-link,
+.page-item:last-child .page-link {
+    border-radius: 8px !important;
 }
 
 .page-link:hover {
-    color: #212529;
-    background-color: #e9ecef;
-    border-color: #dee2e6;
+    color: var(--text-primary);
+    background: var(--bg-secondary);
+    border-color: var(--border-color);
 }
 
 .page-item.active .page-link {
-    background-color: #495057;
-    border-color: #495057;
+    background: var(--brand-purple);
+    border-color: var(--brand-purple);
+    color: #fff;
+}
+
+.page-item.disabled .page-link {
+    color: var(--text-muted);
+    background: var(--bg-secondary);
+    border-color: var(--border-color);
+    opacity: 0.5;
+}
+
+/* Dark mode pagination */
+body.dark-mode .page-link {
+    background: var(--bg-secondary);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+}
+
+body.dark-mode .page-link:hover {
+    background: rgba(74, 47, 112, 0.3);
+    border-color: var(--brand-purple);
+}
+
+body.dark-mode .page-item.active .page-link {
+    background: var(--brand-purple);
+    border-color: var(--brand-purple);
+}
+
+body.dark-mode .page-item.disabled .page-link {
+    background: var(--bg-tertiary);
+    border-color: rgba(255, 255, 255, 0.05);
+    color: var(--text-muted);
+}
+
+/* ===========================
+   Unified Card System (Bootstrap Override)
+   Consistent card styling across the app
+=========================== */
+
+.card {
+    background: var(--bg-primary) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 24px var(--shadow) !important;
+}
+
+.card-header {
+    background: var(--bg-secondary) !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    border-radius: 12px 12px 0 0 !important;
+    padding: 1rem 1.25rem !important;
+}
+
+/* When card-header is the last child (collapsed state), round all corners */
+.card-header:last-child {
+    border-radius: 12px !important;
+    border-bottom: none !important;
+}
+
+/* Dark mode: use brand purple for card headers */
+body.dark-mode .card-header {
+    background: var(--brand-purple) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+    color: #ffffff !important;
+}
+
+body.dark-mode .card-header h5,
+body.dark-mode .card-header h6,
+body.dark-mode .card-header .card-title {
+    color: #ffffff !important;
+}
+
+.card-body {
+    padding: 1.25rem !important;
+}
+
+.card-footer {
+    background: var(--bg-secondary) !important;
+    border-top: 1px solid var(--border-color) !important;
+    border-radius: 0 0 12px 12px !important;
+}
+
+/* Accordion/Collapsible overrides */
+.accordion-item {
+    background: var(--bg-primary) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 12px !important;
+    margin-bottom: 1rem;
+    box-shadow: 0 4px 24px var(--shadow) !important;
+    overflow: hidden;
+}
+
+.accordion-item:first-of-type,
+.accordion-item:last-of-type {
+    border-radius: 12px !important;
+}
+
+.accordion-button {
+    background: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+    padding: 1rem 1.25rem !important;
+    font-weight: 500;
+}
+
+/* Dark mode: use brand purple for accordion headers */
+body.dark-mode .accordion-button {
+    background: var(--brand-purple) !important;
+    color: #ffffff !important;
+}
+
+body.dark-mode .accordion-button:not(.collapsed) {
+    background: var(--brand-purple-light) !important;
+    color: #ffffff !important;
+}
+
+.accordion-button:not(.collapsed) {
+    background: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+    box-shadow: none !important;
+}
+
+.accordion-button:focus {
+    box-shadow: none !important;
+    border-color: var(--border-color) !important;
+}
+
+/* Dark mode: white arrow icon for visibility on purple */
+body.dark-mode .accordion-button::after {
+    filter: brightness(0) invert(1) !important;
+}
+
+.accordion-body {
+    padding: 1.25rem !important;
+    background: var(--bg-primary) !important;
+}
+
+/* Modal overrides */
+.modal-content {
+    background: var(--bg-primary) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 24px var(--shadow) !important;
+}
+
+.modal-header {
+    background: var(--bg-secondary) !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    border-radius: 12px 12px 0 0 !important;
+    padding: 1rem 1.25rem !important;
+}
+
+.modal-footer {
+    background: var(--bg-secondary) !important;
+    border-top: 1px solid var(--border-color) !important;
+    border-radius: 0 0 12px 12px !important;
+    padding: 1rem 1.25rem !important;
+}
+
+.modal-body {
+    background: var(--bg-primary) !important;
+    color: var(--text-primary) !important;
+}
+
+.modal-title {
+    color: var(--text-primary) !important;
+}
+
+/* Dark mode specific modal overrides */
+body.dark-mode .modal-content {
+    background: #1a1a2e !important;
+    border-color: var(--border-color) !important;
+}
+
+body.dark-mode .modal-header {
+    background: var(--brand-purple) !important;
+    border-bottom-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+body.dark-mode .modal-header .modal-title {
+    color: #ffffff !important;
+}
+
+body.dark-mode .modal-header .btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+body.dark-mode .modal-body {
+    background: #1a1a2e !important;
+    color: var(--text-primary) !important;
+}
+
+body.dark-mode .modal-footer {
+    background: #1f1f3a !important;
+    border-top-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Tables inside modals for dark mode */
+body.dark-mode .modal-body .table {
+    color: var(--text-primary) !important;
+}
+
+body.dark-mode .modal-body .table thead th {
+    background: #252542 !important;
+    color: var(--text-primary) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+body.dark-mode .modal-body .table tbody tr {
+    background: #1a1a2e !important;
+}
+
+body.dark-mode .modal-body .table tbody tr:hover {
+    background: #252542 !important;
+}
+
+body.dark-mode .modal-body .table td {
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    color: var(--text-primary) !important;
+}
+
+/* List group overrides */
+.list-group {
+    border-radius: 12px !important;
+    overflow: hidden;
+}
+
+.list-group-item {
+    background: var(--bg-primary) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-primary) !important;
+}
+
+.list-group-item:first-child {
+    border-top-left-radius: 12px !important;
+    border-top-right-radius: 12px !important;
+}
+
+.list-group-item:last-child {
+    border-bottom-left-radius: 12px !important;
+    border-bottom-right-radius: 12px !important;
+}
+
+/* Dropdown menu overrides - for dropdowns OUTSIDE navbar */
+.dropdown-menu:not(.navbar .dropdown-menu) {
+    background: var(--bg-primary) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 10px !important;
+    box-shadow: 0 4px 24px var(--shadow) !important;
+    padding: 0.5rem 0 !important;
+}
+
+.dropdown-menu:not(.navbar .dropdown-menu) .dropdown-item {
+    color: var(--text-primary) !important;
+    padding: 0.5rem 1rem !important;
+}
+
+.dropdown-menu:not(.navbar .dropdown-menu) .dropdown-item:hover,
+.dropdown-menu:not(.navbar .dropdown-menu) .dropdown-item:focus {
+    background: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+}
+
+.dropdown-menu:not(.navbar .dropdown-menu) .dropdown-divider {
+    border-color: var(--border-color) !important;
+}
+
+/* Navbar dropdown - keep dark purple theme */
+.navbar .dropdown-menu {
+    background: var(--brand-purple) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    border-radius: 10px !important;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5) !important;
+    padding: 0.5rem 0 !important;
+}
+
+.navbar .dropdown-item {
+    color: rgba(255, 255, 255, 0.9) !important;
+    padding: 0.5rem 1rem !important;
+}
+
+.navbar .dropdown-item:hover,
+.navbar .dropdown-item:focus {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: #ffffff !important;
+}
+
+.navbar .dropdown-item.active {
+    background: var(--brand-purple-light) !important;
+    color: #ffffff !important;
+}
+
+.navbar .dropdown-divider {
+    border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* Table overrides for consistency */
+.table {
+    color: var(--text-primary) !important;
+    background: transparent !important;
+    --bs-table-bg: transparent !important;
+    --bs-table-striped-bg: var(--bg-secondary) !important;
+}
+
+.table thead th {
+    background: var(--bg-secondary) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-primary) !important;
+}
+
+.table tbody {
+    background: var(--bg-primary) !important;
+}
+
+.table tbody tr {
+    background: var(--bg-primary) !important;
+}
+
+.table td,
+.table th {
+    border-color: var(--border-color) !important;
+    background: inherit !important;
+}
+
+.table-striped > tbody > tr:nth-of-type(odd) > * {
+    background-color: var(--bg-secondary) !important;
+    --bs-table-accent-bg: var(--bg-secondary) !important;
+}
+
+.table-striped > tbody > tr:nth-of-type(even) > * {
+    background-color: var(--bg-primary) !important;
+    --bs-table-accent-bg: var(--bg-primary) !important;
+}
+
+/* Table hover effect */
+.table-hover > tbody > tr:hover > * {
+    background-color: var(--bg-tertiary) !important;
+    --bs-table-accent-bg: var(--bg-tertiary) !important;
+}
+
+/* Dark mode table - brand purple tones instead of navy */
+body.dark-mode .table {
+    --bs-table-bg: transparent !important;
+    --bs-table-striped-bg: rgba(74, 47, 112, 0.15) !important;
+}
+
+body.dark-mode .table thead th {
+    background: var(--brand-purple) !important;
+    color: #ffffff !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+body.dark-mode .table tbody tr {
+    background: #1a1a2e !important;
+}
+
+body.dark-mode .table-striped > tbody > tr:nth-of-type(odd) > * {
+    background-color: rgba(74, 47, 112, 0.2) !important;
+    --bs-table-accent-bg: rgba(74, 47, 112, 0.2) !important;
+}
+
+body.dark-mode .table-striped > tbody > tr:nth-of-type(even) > * {
+    background-color: #1a1a2e !important;
+    --bs-table-accent-bg: #1a1a2e !important;
+}
+
+body.dark-mode .table-hover > tbody > tr:hover > * {
+    background-color: rgba(74, 47, 112, 0.35) !important;
+    --bs-table-accent-bg: rgba(74, 47, 112, 0.35) !important;
+}
+
+body.dark-mode .table td,
+body.dark-mode .table th {
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    color: var(--text-primary) !important;
+}
+
+/* Mobile responsive card adjustments */
+@media (max-width: 576px) {
+    .card {
+        border-radius: 10px !important;
+    }
+
+    .card-header {
+        border-radius: 10px 10px 0 0 !important;
+        padding: 0.875rem 1rem !important;
+    }
+
+    .card-body {
+        padding: 1rem !important;
+    }
+
+    .card-footer {
+        border-radius: 0 0 10px 10px !important;
+        padding: 0.875rem 1rem !important;
+    }
+
+    .modal-content {
+        border-radius: 10px !important;
+    }
+
+    .modal-header,
+    .modal-footer {
+        border-radius: inherit !important;
+    }
 }

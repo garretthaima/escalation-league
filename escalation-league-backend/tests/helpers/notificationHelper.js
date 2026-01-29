@@ -1,4 +1,4 @@
-const { db } = require('./testDb');
+const db = require('./testDb');
 
 async function createTestNotification(userId, overrides = {}) {
     const [notificationId] = await db('notifications').insert({

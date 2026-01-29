@@ -11,6 +11,8 @@ import {
     rejectSignupRequest,
 } from '../../api/leaguesApi';
 import { getLeagueParticipants, updateParticipantStatus } from '../../api/userLeaguesApi';
+import { syncLeagueDecks } from '../../api/metagameApi';
+import { formatDate } from '../../utils/dateFormatter';
 import EditLeagueModal from './EditLeagueModal';
 import TournamentAdminPanel from '../Tournament/TournamentAdminPanel';
 import AttendanceAdminTab from './tabs/AttendanceAdminTab';
@@ -43,6 +45,7 @@ const LeagueAdminPage = () => {
     const [error, setError] = useState(null);
     const [showEditModal, setShowEditModal] = useState(false);
     const [selectedLeague, setSelectedLeague] = useState(null);
+    const [syncingLeagueId, setSyncingLeagueId] = useState(null);
 
     // Tournament tab state
     const [tournamentData, setTournamentData] = useState(null);
@@ -210,6 +213,24 @@ const LeagueAdminPage = () => {
         }
     };
 
+    // Handle syncing all decks in a league
+    const handleSyncLeagueDecks = async (leagueId) => {
+        if (syncingLeagueId) return; // Prevent multiple syncs at once
+
+        try {
+            setSyncingLeagueId(leagueId);
+            const result = await syncLeagueDecks(leagueId);
+            showToast(
+                `Deck sync complete: ${result.updated} updated, ${result.skipped} up-to-date, ${result.errors} errors`,
+                result.errors > 0 ? 'warning' : 'success'
+            );
+        } catch (err) {
+            showToast('Failed to sync decks. Please try again.', 'error');
+        } finally {
+            setSyncingLeagueId(null);
+        }
+    };
+
     if (loading && activeTab === 'settings') {
         return <div className="text-center mt-4">Loading...</div>;
     }
@@ -296,8 +317,8 @@ const LeagueAdminPage = () => {
                                         <tr key={league.id}>
                                             <td>{league.id}</td>
                                             <td>{league.name}</td>
-                                            <td>{league.start_date ? new Date(league.start_date).toLocaleDateString() : 'N/A'}</td>
-                                            <td>{league.end_date ? new Date(league.end_date).toLocaleDateString() : 'N/A'}</td>
+                                            <td>{league.start_date ? formatDate(league.start_date) : 'N/A'}</td>
+                                            <td>{league.end_date ? formatDate(league.end_date) : 'N/A'}</td>
                                             <td>
                                                 {league.is_active ? (
                                                     <span className="badge" style={{ backgroundColor: '#495057', color: 'white' }}>
@@ -323,6 +344,15 @@ const LeagueAdminPage = () => {
                                                 >
                                                     <i className="fas fa-users me-1"></i>
                                                     Manage Players
+                                                </button>
+                                                <button
+                                                    className="btn btn-outline-secondary btn-sm me-2"
+                                                    onClick={() => handleSyncLeagueDecks(league.id)}
+                                                    disabled={syncingLeagueId !== null}
+                                                    title="Refresh all deck data from Moxfield/Archidekt"
+                                                >
+                                                    <i className={`fas fa-sync-alt me-1 ${syncingLeagueId === league.id ? 'fa-spin' : ''}`}></i>
+                                                    {syncingLeagueId === league.id ? 'Syncing...' : 'Sync Decks'}
                                                 </button>
                                                 {!league.is_active && (
                                                     <button

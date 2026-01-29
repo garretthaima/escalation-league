@@ -23,21 +23,20 @@ const ManaCurveChart = ({ curve }) => {
 
     return (
         <div className="mana-curve-chart">
-            <div className="d-flex align-items-end justify-content-around" style={{ height: `${maxHeight + 60}px`, paddingTop: '30px' }}>
+            <div className="d-flex align-items-end justify-content-around mana-curve-container" style={{ height: `${maxHeight + 60}px` }}>
                 {sortedCurve.map(([cmc, countValue]) => {
                     const height = maxCount > 0 ? (countValue / maxCount) * maxHeight : 0;
 
                     return (
-                        <div key={cmc} className="text-center" style={{ flex: 1 }}>
+                        <div key={cmc} className="text-center mana-curve-column">
                             <div className="mb-2">
-                                <small style={{ color: '#6c757d' }}>{countValue}</small>
+                                <small className="mana-curve-count">{countValue}</small>
                             </div>
                             <div
-                                className="bg-primary rounded-top mx-2"
+                                className="rounded-top mx-2 mana-curve-bar"
                                 style={{
                                     height: `${height}px`,
-                                    minHeight: countValue > 0 ? '10px' : '0',
-                                    transition: 'height 0.3s ease'
+                                    minHeight: countValue > 0 ? '10px' : '0'
                                 }}
                                 title={`CMC ${cmc}: ${countValue} cards`}
                             />
@@ -48,7 +47,7 @@ const ManaCurveChart = ({ curve }) => {
                     );
                 })}
             </div>
-            <div className="text-center mt-3" style={{ color: '#6c757d' }}>
+            <div className="text-center mt-3 mana-curve-label">
                 <small>Converted Mana Cost (CMC)</small>
             </div>
         </div>

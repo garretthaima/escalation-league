@@ -12,6 +12,7 @@ const {
 const authenticateToken = require('../middlewares/authentication');
 const authorizePermission = require('../middlewares/authorizePermission');
 const { gameLimiter } = require('../middlewares/rateLimitMiddleware');
+const requireDiscord = require('../middlewares/requireDiscord');
 
 // Pod Management Endpoints
 router.post(
@@ -19,6 +20,7 @@ router.post(
     gameLimiter, // Apply game-specific rate limiting
     authenticateToken,
     authorizePermission(['pod_create']), // Permission to create a pod
+    requireDiscord('discord_required_for_game_creation'), // Optional Discord requirement
     createPod
 );
 

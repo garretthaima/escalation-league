@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getActiveLeague } from '../../api/leaguesApi';
-import { getBudget, createBudget, getBudgetCards, getBudgetSummary, refreshCardPrices } from '../../api/budgetApi';
+import { getBudget, createBudget, getBudgetCards, getBudgetSummary as getBudgetSummaryApi, refreshCardPrices } from '../../api/budgetApi';
+import { getBudgetSummary } from '../../utils/budgetCalculations';
 import CardSearch from './CardSearch';
 import BudgetCardList from './BudgetCardList';
 import WeeklySummary from './WeeklySummary';
+import LoadingSpinner from '../Shared/LoadingSpinner';
 import './BudgetDashboard.css';
 
 const BudgetDashboard = () => {
@@ -53,7 +55,7 @@ const BudgetDashboard = () => {
             // Fetch cards and summary
             const [cardsData, summaryData] = await Promise.all([
                 getBudgetCards(budgetData.id),
-                getBudgetSummary(budgetData.id)
+                getBudgetSummaryApi(budgetData.id)
             ]);
             setCards(cardsData);
             setSummary(summaryData.weekly_summary || []);
@@ -99,10 +101,8 @@ const BudgetDashboard = () => {
     if (loading) {
         return (
             <div className="container mt-4">
-                <div className="text-center">
-                    <div className="spinner-border" role="status">
-                        <span className="visually-hidden">Loading...</span>
-                    </div>
+                <div className="text-center py-5">
+                    <LoadingSpinner size="lg" />
                 </div>
             </div>
         );
@@ -137,8 +137,12 @@ const BudgetDashboard = () => {
         );
     }
 
-    const remainingBudget = parseFloat(budget.budget_available) - parseFloat(budget.budget_used);
-    const budgetPercentage = (parseFloat(budget.budget_used) / parseFloat(budget.budget_available)) * 100;
+    const budgetUsed = parseFloat(budget.budget_used);
+    const budgetPercentage = (budgetUsed / parseFloat(budget.budget_available)) * 100;
+
+    // Calculate budget values using helper
+    const budgetInfo = getBudgetSummary(activeLeague, budgetUsed);
+    const { budgetAccumulated, totalSeasonBudget, remaining: remainingBudget } = budgetInfo;
 
     return (
         <div className="container mt-4 budget-dashboard">
@@ -146,10 +150,10 @@ const BudgetDashboard = () => {
                 <div className="col-12">
                     <div className="d-flex align-items-center mb-3">
                         <h2 className="mb-0">
-                            <i className="fas fa-wallet me-2" style={{ fontSize: '1.5rem' }}></i>
+                            <i className="fas fa-wallet me-2 budget-header-icon"></i>
                             Budget Dashboard
                         </h2>
-                        <span className="badge bg-warning text-dark ms-3" style={{ fontSize: '0.9rem' }}>BETA</span>
+                        <span className="badge bg-warning text-dark ms-3 budget-beta-badge">BETA</span>
                     </div>
                     {activeLeague && (
                         <p className="text-muted mb-2">
@@ -171,8 +175,12 @@ const BudgetDashboard = () => {
                             <h5 className="card-title">Budget Overview</h5>
                             <div className="budget-stats">
                                 <div className="stat-item">
-                                    <span className="stat-label">Total Budget:</span>
-                                    <span className="stat-value">${parseFloat(budget.budget_available).toFixed(2)}</span>
+                                    <span className="stat-label">Budget Accumulated:</span>
+                                    <span className="stat-value">${budgetAccumulated.toFixed(2)}</span>
+                                </div>
+                                <div className="stat-item">
+                                    <span className="stat-label">Total Season Budget:</span>
+                                    <span className="stat-value">${totalSeasonBudget.toFixed(2)}</span>
                                 </div>
                                 <div className="stat-item">
                                     <span className="stat-label">Used:</span>
@@ -183,7 +191,7 @@ const BudgetDashboard = () => {
                                     <span className="stat-value text-success">${remainingBudget.toFixed(2)}</span>
                                 </div>
                             </div>
-                            <div className="progress mt-3" style={{ height: '25px' }}>
+                            <div className="progress mt-3 budget-progress-bar">
                                 <div
                                     className={`progress-bar ${budgetPercentage > 90 ? 'bg-danger' : budgetPercentage > 70 ? 'bg-warning' : 'bg-success'}`}
                                     role="progressbar"

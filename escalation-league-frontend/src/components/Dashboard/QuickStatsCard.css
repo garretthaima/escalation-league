@@ -1,0 +1,93 @@
+/* QuickStatsCard.css */
+
+.quick-stats-card {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+}
+
+/* Rank Badge */
+.quick-stats-card .rank-badge {
+    display: inline-flex;
+    align-items: baseline;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 1rem;
+}
+
+.quick-stats-card .rank-badge-gold {
+    background: var(--brand-gold);
+    color: #1a1a2e;
+}
+
+.quick-stats-card .rank-badge-default {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.quick-stats-card .rank-total {
+    font-weight: normal;
+    font-size: 0.85rem;
+    opacity: 0.7;
+}
+
+/* Stat Boxes */
+.quick-stats-card .stat-box {
+    text-align: center;
+    padding: 0.75rem;
+    border-radius: 8px;
+}
+
+.quick-stats-card .stat-box-primary {
+    background: rgba(var(--bs-primary-rgb), 0.1);
+}
+
+.quick-stats-card .stat-box-info {
+    background: rgba(var(--bs-info-rgb), 0.1);
+}
+
+.quick-stats-card .stat-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--text-primary);
+}
+
+.quick-stats-card .stat-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* W-L-D Display */
+.quick-stats-card .wld-stat {
+    display: flex;
+    align-items: baseline;
+    gap: 0.25rem;
+}
+
+.quick-stats-card .wld-value {
+    font-size: 1.25rem;
+    font-weight: bold;
+}
+
+.quick-stats-card .wld-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.quick-stats-card .wld-divider {
+    color: var(--text-muted);
+    font-size: 1.25rem;
+}
+
+/* Mobile adjustments */
+@media (max-width: 576px) {
+    .quick-stats-card .stat-value {
+        font-size: 1.25rem;
+    }
+
+    .quick-stats-card .wld-value {
+        font-size: 1rem;
+    }
+}

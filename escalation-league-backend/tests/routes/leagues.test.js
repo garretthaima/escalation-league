@@ -16,6 +16,14 @@ jest.mock('../../utils/settingsUtils', () => ({
     })
 }));
 
+// Mock redis cache
+jest.mock('../../utils/redisClient', () => ({
+    get: jest.fn().mockResolvedValue(null),
+    set: jest.fn().mockResolvedValue('OK'),
+    setex: jest.fn().mockResolvedValue('OK'),
+    del: jest.fn().mockResolvedValue(1)
+}));
+
 // Mock the permissions utility to use test DB
 jest.mock('../../utils/permissionsUtils', () => {
     const testDb = require('../helpers/testDb');
@@ -279,6 +287,50 @@ describe('League Routes', () => {
         });
 
         // TODO: Add test for empty league stats
+
+        it('should calculate playoff spots as 75% rounded to nearest even', async () => {
+            const { token } = await getAuthTokenWithRole('super_admin');
+            const leagueId = await createTestLeague();
+
+            // Add 14 players - 75% = 10.5, should round to nearest even = 10
+            const players = [];
+            for (let i = 0; i < 14; i++) {
+                const userId = await createTestUser({ email: `player${i}@qualification.test` });
+                await addUserToLeague(userId, leagueId, { league_wins: 14 - i, league_losses: i });
+                players.push(userId);
+            }
+
+            const res = await request(app)
+                .get(`/api/leagues/${leagueId}/stats`)
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.status).toBe(200);
+            expect(res.body.stats.playoff_spots).toBe(10);
+
+            // Top 10 should be qualified, bottom 4 should not
+            const qualified = res.body.leaderboard.filter(p => p.qualified);
+            const notQualified = res.body.leaderboard.filter(p => !p.qualified);
+            expect(qualified.length).toBe(10);
+            expect(notQualified.length).toBe(4);
+        });
+
+        it('should calculate playoff spots correctly for 12 players (75% = 9, rounds to 10)', async () => {
+            const { token } = await getAuthTokenWithRole('super_admin');
+            const leagueId = await createTestLeague();
+
+            // Add 12 players - 75% = 9, 9/2 = 4.5, Math.round(4.5) = 5, 5*2 = 10
+            for (let i = 0; i < 12; i++) {
+                const userId = await createTestUser({ email: `player${i}@qualification12.test` });
+                await addUserToLeague(userId, leagueId, { league_wins: 12 - i, league_losses: i });
+            }
+
+            const res = await request(app)
+                .get(`/api/leagues/${leagueId}/stats`)
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.status).toBe(200);
+            expect(res.body.stats.playoff_spots).toBe(10);
+        });
     });
 
     describe('GET /api/leagues/search', () => {

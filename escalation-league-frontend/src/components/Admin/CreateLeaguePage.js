@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createLeague } from '../../api/leaguesApi';
-import { useToast } from '../context/ToastContext';
+import { useToast } from '../../context/ToastContext';
+import { parseDate, formatDateISO } from '../../utils/dateFormatter';
 
 const CreateLeaguePage = () => {
     const navigate = useNavigate();
@@ -20,14 +21,14 @@ const CreateLeaguePage = () => {
         e.preventDefault();
 
         // Calculate the end date based on the start date and number of weeks
-        const startDate = new Date(newLeague.start_date);
+        const startDate = parseDate(newLeague.start_date);
         const endDate = new Date(startDate);
         endDate.setDate(startDate.getDate() + newLeague.number_of_weeks * 7); // Add weeks to the start date
 
         try {
             await createLeague({
                 ...newLeague,
-                end_date: endDate.toISOString().split('T')[0], // Format as YYYY-MM-DD
+                end_date: formatDateISO(endDate), // Format as YYYY-MM-DD
             });
             showToast('League created successfully!', 'success');
             navigate('/admin/leagues'); // Redirect back to the League Admin page

@@ -2,14 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getPods, logPodResult } from '../../../api/podsApi';
 import { getUserProfile } from '../../../api/usersApi';
-import { usePermissions } from '../../context/PermissionsProvider';
-import { useToast } from '../../context/ToastContext';
-import { useWebSocket } from '../../context/WebSocketProvider';
+import { usePermissions } from '../../../context/PermissionsProvider';
+import { useToast } from '../../../context/ToastContext';
+import { useWebSocket } from '../../../context/WebSocketProvider';
 import CollapsibleSection from '../../Shared/CollapsibleSection';
+import LoadingSpinner from '../../Shared/LoadingSpinner';
+import { DiscordPromptBanner } from '../../Shared';
 import GameCard from './GameCard';
 import ConfirmationCard from './ConfirmationCard';
 import CreateGameModal from './CreateGameModal';
 import DeclareResultModal from './DeclareResultModal';
+import { formatDate, parseDate } from '../../../utils/dateFormatter';
 
 const PodsDashboard = () => {
     const { permissions, loading: permissionsLoading, activeLeague } = usePermissions();
@@ -85,7 +88,7 @@ const PodsDashboard = () => {
                 // Only show recent 5 completed games (sorted by newest first)
                 const userCompleted = filterUserPods(completed || []);
                 const sortedCompleted = userCompleted.sort((a, b) =>
-                    new Date(b.created_at) - new Date(a.created_at)
+                    parseDate(b.created_at) - parseDate(a.created_at)
                 );
                 setRecentCompleted(sortedCompleted.slice(0, 5));
 
@@ -136,16 +139,32 @@ const PodsDashboard = () => {
         });
 
         // Winner declared - move from active to pending
-        socket.on('pod:winner_declared', (data) => {
-            const { podId } = data;
-            setActivePods(prev => {
-                const pod = prev.find(p => p.id === podId);
-                if (pod) {
-                    setPendingPods(pending => [...pending, { ...pod, confirmation_status: 'pending' }]);
+        socket.on('pod:winner_declared', async (data) => {
+            const { podId, winnerId } = data;
+            // Remove from active immediately
+            setActivePods(prev => prev.filter(p => p.id !== podId));
+
+            // Fetch fresh pod data to get updated participant results
+            try {
+                const freshPod = await getPods({ podId });
+                if (freshPod) {
+                    // Only add if user is participant or admin
+                    if (freshPod.participants?.some(p => p.player_id === userId) || isAdmin) {
+                        setPendingPods(pending => {
+                            // Avoid duplicates
+                            if (pending.some(p => p.id === podId)) return pending;
+                            return [...pending, freshPod];
+                        });
+                    }
                 }
-                return prev.filter(p => p.id !== podId);
-            });
-            showToast('A game result was declared', 'info');
+            } catch (err) {
+                console.error('Failed to fetch updated pod data:', err);
+            }
+
+            // Only show toast if someone else declared (not the current user)
+            if (winnerId !== userId) {
+                showToast('A game result was declared', 'info');
+            }
         });
 
         // Pod confirmed
@@ -206,9 +225,26 @@ const PodsDashboard = () => {
 
     const handleDeclareWin = async () => {
         setShowResultModal(false);
+        const podId = selectedPodId;
         try {
-            await logPodResult(selectedPodId, { result: 'win' });
+            await logPodResult(podId, { result: 'win' });
             showToast('Winner declared! Waiting for confirmations.', 'success');
+
+            // Move pod from active to pending immediately (don't wait for WebSocket)
+            setActivePods(prev => prev.filter(p => p.id !== podId));
+
+            // Fetch fresh pod data to show in pending
+            try {
+                const freshPod = await getPods({ podId });
+                if (freshPod) {
+                    setPendingPods(pending => {
+                        if (pending.some(p => p.id === podId)) return pending;
+                        return [...pending, freshPod];
+                    });
+                }
+            } catch (fetchErr) {
+                console.error('Failed to fetch updated pod:', fetchErr);
+            }
         } catch (err) {
             if (err.response?.data?.error?.includes('already been declared')) {
                 showToast('A winner has already been declared.', 'info');
@@ -220,9 +256,26 @@ const PodsDashboard = () => {
 
     const handleDeclareDraw = async () => {
         setShowResultModal(false);
+        const podId = selectedPodId;
         try {
-            await logPodResult(selectedPodId, { result: 'draw' });
+            await logPodResult(podId, { result: 'draw' });
             showToast('Draw declared! Waiting for confirmations.', 'success');
+
+            // Move pod from active to pending immediately (don't wait for WebSocket)
+            setActivePods(prev => prev.filter(p => p.id !== podId));
+
+            // Fetch fresh pod data to show in pending
+            try {
+                const freshPod = await getPods({ podId });
+                if (freshPod) {
+                    setPendingPods(pending => {
+                        if (pending.some(p => p.id === podId)) return pending;
+                        return [...pending, freshPod];
+                    });
+                }
+            } catch (fetchErr) {
+                console.error('Failed to fetch updated pod:', fetchErr);
+            }
         } catch (err) {
             showToast(err.response?.data?.error || 'Failed to declare draw.', 'error');
         }
@@ -242,9 +295,7 @@ const PodsDashboard = () => {
         return (
             <div className="container mt-4">
                 <div className="text-center py-5">
-                    <div className="spinner-border" role="status">
-                        <span className="visually-hidden">Loading...</span>
-                    </div>
+                    <LoadingSpinner size="lg" />
                 </div>
             </div>
         );
@@ -268,11 +319,14 @@ const PodsDashboard = () => {
 
     return (
         <div className="container mt-4">
+            {/* Discord Prompt Banner */}
+            <DiscordPromptBanner />
+
             {/* Header */}
-            <div className="d-flex justify-content-between align-items-center mb-4">
+            <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
                 <div>
                     <h2 className="mb-1">Pods & Games</h2>
-                    <div className="d-flex gap-3 text-muted">
+                    <div className="d-flex gap-3 text-muted" style={{ fontSize: '0.9rem' }}>
                         <span>
                             <i className="fas fa-gamepad me-1"></i>
                             {activeCount} Active
@@ -287,6 +341,7 @@ const PodsDashboard = () => {
                     <button
                         className="btn btn-primary"
                         onClick={() => setShowCreateModal(true)}
+                        style={{ whiteSpace: 'nowrap' }}
                     >
                         <i className="fas fa-plus me-2"></i>
                         Create Game
@@ -352,7 +407,7 @@ const PodsDashboard = () => {
                 ) : (
                     <div className="row g-3">
                         {pendingPods.map(pod => (
-                            <div key={pod.id} className="col-md-6">
+                            <div key={pod.id} className="col-md-6 col-lg-4">
                                 <ConfirmationCard
                                     pod={pod}
                                     userId={userId}
@@ -372,7 +427,11 @@ const PodsDashboard = () => {
                 id="completed-games"
                 defaultOpen={false}
                 actions={
-                    <Link to="/pods/history" className="btn btn-sm btn-outline-primary">
+                    <Link
+                        to="/pods/history"
+                        className="text-decoration-none small"
+                        style={{ color: 'var(--text-secondary)' }}
+                    >
                         View All
                     </Link>
                 }
@@ -392,7 +451,7 @@ const PodsDashboard = () => {
                                     <div>
                                         <strong>Pod #{pod.id}</strong>
                                         <span className="text-muted ms-2">
-                                            {new Date(pod.created_at).toLocaleDateString()}
+                                            {formatDate(pod.created_at)}
                                         </span>
                                     </div>
                                     <div>

@@ -1,0 +1,21 @@
+/* DeclareResultModal.css - Styles for the Declare Result modal component */
+
+/* Gold-styled button for win declaration - override Bootstrap defaults */
+.declare-result-btn-gold {
+    background: var(--brand-gold) !important;
+    background-color: var(--brand-gold) !important;
+    border-color: var(--brand-gold) !important;
+    color: #1a1a2e !important;
+    font-weight: 600;
+    opacity: 1 !important;
+}
+
+.declare-result-btn-gold:hover,
+.declare-result-btn-gold:focus,
+.declare-result-btn-gold:active {
+    background: var(--brand-gold-light) !important;
+    background-color: var(--brand-gold-light) !important;
+    border-color: var(--brand-gold-light) !important;
+    color: #1a1a2e !important;
+    opacity: 1 !important;
+}

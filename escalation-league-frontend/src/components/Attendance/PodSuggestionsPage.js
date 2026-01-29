@@ -2,8 +2,10 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getPodSuggestions, getSession } from '../../api/attendanceApi';
 import { createPod } from '../../api/podsApi';
-import { usePermissions } from '../context/PermissionsProvider';
-import { useToast } from '../context/ToastContext';
+import { usePermissions } from '../../context/PermissionsProvider';
+import { useToast } from '../../context/ToastContext';
+import { LoadingButton } from '../Shared';
+import LoadingSpinner from '../Shared/LoadingSpinner';
 import './PodSuggestionsPage.css';
 
 const PodSuggestionsPage = () => {
@@ -215,11 +217,8 @@ const PodSuggestionsPage = () => {
 
     if (loading) {
         return (
-            <div className="container mt-4 text-center">
-                <div className="spinner-border text-primary" role="status">
-                    <span className="visually-hidden">Loading...</span>
-                </div>
-                <p className="mt-2">Calculating optimal pods...</p>
+            <div className="container mt-4 text-center py-5">
+                <LoadingSpinner size="lg" showText text="Calculating optimal pods..." />
             </div>
         );
     }
@@ -383,23 +382,15 @@ const PodSuggestionsPage = () => {
                                 </div>
                             </div>
                             <div className="card-footer">
-                                <button
-                                    className="btn btn-primary w-100"
+                                <LoadingButton
+                                    className="w-100"
+                                    loading={creating[index]}
+                                    loadingText="Creating..."
+                                    icon="fas fa-plus"
                                     onClick={() => handleCreatePod(pod, index)}
-                                    disabled={creating[index]}
                                 >
-                                    {creating[index] ? (
-                                        <>
-                                            <span className="spinner-border spinner-border-sm me-2"></span>
-                                            Creating...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <i className="fas fa-plus me-2"></i>
-                                            Create This Pod
-                                        </>
-                                    )}
-                                </button>
+                                    Create This Pod
+                                </LoadingButton>
                             </div>
                         </div>
                     </div>

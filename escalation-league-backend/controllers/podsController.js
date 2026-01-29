@@ -1,5 +1,6 @@
 const db = require('../models/db'); // Import the database connection
 const gameService = require('../services/gameService');
+const podService = require('../services/podService');
 const logger = require('../utils/logger');
 const {
     emitPodCreated,
@@ -11,6 +12,7 @@ const {
 const { cacheInvalidators } = require('../middlewares/cacheMiddleware');
 const { createNotification } = require('../services/notificationService');
 const { logPodCreated, logPodJoined, logGameResultDeclared, logGameResultConfirmed, logGameCompleted, logPodOverridden } = require('../services/activityLogService');
+const { handleError, notFound, badRequest } = require('../utils/errorUtils');
 
 // Create a Pod
 // Supports two modes:
@@ -32,6 +34,16 @@ const createPod = async (req, res) => {
         if (player_ids && Array.isArray(player_ids) && player_ids.length >= 3) {
             if (player_ids.length > 6) {
                 return res.status(400).json({ error: 'Maximum 6 players allowed in a pod.' });
+            }
+
+            // Validate player IDs are valid integers and no duplicates
+            const parsedIds = player_ids.map(id => parseInt(id, 10));
+            const uniqueIds = new Set(parsedIds);
+            if (parsedIds.some(id => !Number.isInteger(id) || id <= 0)) {
+                return res.status(400).json({ error: 'All player IDs must be valid positive integers.' });
+            }
+            if (uniqueIds.size !== player_ids.length) {
+                return res.status(400).json({ error: 'Duplicate player IDs are not allowed.' });
             }
 
             // Validate turn_order if provided
@@ -143,11 +155,7 @@ const createPod = async (req, res) => {
 
         res.status(201).json(pod);
     } catch (err) {
-        logger.error('Error creating pod', err, {
-            userId: creatorId,
-            leagueId: effectiveLeagueId
-        });
-        res.status(500).json({ error: 'Failed to create pod.' });
+        handleError(res, err, 'Failed to create pod');
     }
 };
 
@@ -207,8 +215,7 @@ const joinPod = async (req, res) => {
 
         res.status(200).json({ message: 'Joined pod successfully.' });
     } catch (err) {
-        console.error('Error joining pod:', err.message);
-        res.status(500).json({ error: 'Failed to join pod.' });
+        handleError(res, err, 'Failed to join pod');
     }
 };
 
@@ -326,95 +333,21 @@ const logPodResult = async (req, res) => {
             // Determine the pod result
             const podResult = participants.some((p) => p.result === 'draw') ? 'draw' : 'win';
 
-            // Get the league ID and point settings for this pod
-            const pod = await db('game_pods').where({ id: podId }).select('league_id').first();
+            // Get the league ID for this pod
+            const podData = await db('game_pods').where({ id: podId }).select('league_id').first();
 
-            if (!pod || !pod.league_id) {
-                return res.status(404).json({ error: 'League not found for this pod.' });
+            if (!podData || !podData.league_id) {
+                throw notFound('League for this pod');
             }
-
-            // Fetch league point settings (including tournament settings)
-            const league = await db('leagues')
-                .where({ id: pod.league_id })
-                .select('points_per_win', 'points_per_loss', 'points_per_draw',
-                    'tournament_win_points', 'tournament_non_win_points', 'tournament_dq_points')
-                .first();
 
             // Fetch full pod data to check if tournament game
             const fullPod = await db('game_pods').where({ id: podId }).first();
 
-            // Update stats for all participants
-            for (const p of participants) {
-                // DQ'd players get 0 for everything
-                if (p.result === 'disqualified') {
-                    // DQ'd players don't get any stats or points
-                    continue;
-                }
+            // Apply game stats using podService (handles tournament stats internally)
+            await podService.applyGameStats(participants, podData.league_id, fullPod.is_tournament_game);
 
-                const wins = p.result === 'win' ? 1 : 0;
-                const losses = p.result === 'loss' ? 1 : 0;
-                const draws = p.result === 'draw' ? 1 : 0;
-
-                // Calculate points based on league settings
-                let points = 0;
-                if (p.result === 'win') {
-                    points = league.points_per_win || 4;
-                } else if (p.result === 'loss') {
-                    points = league.points_per_loss || 1;
-                } else if (p.result === 'draw') {
-                    points = league.points_per_draw || 1;
-                }
-
-                // Update user stats
-                await db('users')
-                    .where({ id: p.player_id })
-                    .increment({
-                        wins: wins,
-                        losses: losses,
-                        draws: draws
-                    });
-
-                // Update league stats
-                await db('user_leagues')
-                    .where({ user_id: p.player_id, league_id: pod.league_id })
-                    .increment({
-                        league_wins: wins,
-                        league_losses: losses,
-                        league_draws: draws,
-                        total_points: points
-                    });
-            }
-
-            // Tournament scoring - if this is a tournament game
-            if (fullPod.is_tournament_game) {
-                for (const p of participants) {
-                    let tPoints = 0;
-                    let tWins = 0;
-                    let tNonWins = 0;
-                    let tDqs = 0;
-
-                    if (p.result === 'disqualified') {
-                        tPoints = league.tournament_dq_points || 0;
-                        tDqs = 1;
-                    } else if (p.result === 'win') {
-                        tPoints = league.tournament_win_points || 4;
-                        tWins = 1;
-                    } else {
-                        // loss or draw both count as non-win
-                        tPoints = league.tournament_non_win_points || 1;
-                        tNonWins = 1;
-                    }
-
-                    await db('user_leagues')
-                        .where({ user_id: p.player_id, league_id: pod.league_id })
-                        .increment({
-                            tournament_points: tPoints,
-                            tournament_wins: tWins,
-                            tournament_non_wins: tNonWins,
-                            tournament_dqs: tDqs
-                        });
-                }
-            }
+            // Apply ELO changes using podService
+            await podService.applyEloChanges(participants, podId, podData.league_id);
 
             // Update the pod's status to 'complete'
             await db('game_pods')
@@ -428,10 +361,10 @@ const logPodResult = async (req, res) => {
             await logGameCompleted(playerId, podId);
 
             // Emit game completed event
-            emitGameConfirmed(req.app, pod.league_id, podId, playerId, true);
+            emitGameConfirmed(req.app, podData.league_id, podId, playerId, true);
 
             // Invalidate caches for this league
-            cacheInvalidators.gameCompleted(pod.league_id);
+            cacheInvalidators.gameCompleted(podData.league_id);
 
             // Notify all players that the game is complete
             for (const p of participants) {
@@ -463,8 +396,7 @@ const logPodResult = async (req, res) => {
             return res.status(200).json({ message: 'Confirmation recorded. Waiting for other players.' });
         }
     } catch (err) {
-        console.error('Error logging pod result:', err.message);
-        res.status(500).json({ error: 'Failed to log pod result.' });
+        handleError(res, err, 'Failed to log pod result');
     }
 };
 
@@ -496,27 +428,48 @@ const getPods = async (req, res) => {
 
         const pods = await query;
 
-        // Fetch participants for each pod
-        const podsWithParticipants = await Promise.all(
-            pods.map(async (pod) => {
-                const participants = await db('game_players as gp')
-                    .join('users as u', 'gp.player_id', 'u.id')
-                    .select(
-                        'u.id as player_id',
-                        'u.firstname',
-                        'u.lastname',
-                        'u.email',
-                        'gp.result',
-                        'gp.confirmed',
-                        'gp.turn_order'
-                    )
-                    .where('gp.pod_id', pod.id)
-                    .whereNull('gp.deleted_at')
-                    .orderBy('gp.turn_order', 'asc');
+        // Batch fetch all participants for all pods (avoid N+1 queries)
+        const podIds = pods.map(p => p.id);
+        let allParticipants = [];
 
-                return { ...pod, participants };
-            })
-        );
+        if (podIds.length > 0) {
+            allParticipants = await db('game_players as gp')
+                .join('users as u', 'gp.player_id', 'u.id')
+                .join('game_pods as pod', 'gp.pod_id', 'pod.id')
+                .leftJoin('user_leagues as ul', function() {
+                    this.on('ul.user_id', '=', 'gp.player_id')
+                        .andOn('ul.league_id', '=', 'pod.league_id');
+                })
+                .select(
+                    'gp.pod_id',
+                    'u.id as player_id',
+                    'u.firstname',
+                    'u.lastname',
+                    'u.email',
+                    'gp.result',
+                    'gp.confirmed',
+                    'gp.turn_order',
+                    'gp.confirmation_time',
+                    'ul.current_commander',
+                    'ul.commander_partner'
+                )
+                .whereIn('gp.pod_id', podIds)
+                .whereNull('gp.deleted_at')
+                .orderBy('gp.turn_order', 'asc');
+        }
+
+        // Group participants by pod_id
+        const participantsByPod = allParticipants.reduce((acc, p) => {
+            if (!acc[p.pod_id]) acc[p.pod_id] = [];
+            acc[p.pod_id].push(p);
+            return acc;
+        }, {});
+
+        // Map participants to pods
+        const podsWithParticipants = pods.map(pod => ({
+            ...pod,
+            participants: participantsByPod[pod.id] || []
+        }));
 
         // If a specific podId was requested, return only that pod
         if (podId) {
@@ -525,8 +478,7 @@ const getPods = async (req, res) => {
 
         res.status(200).json(podsWithParticipants);
     } catch (err) {
-        console.error('Error fetching pods:', err.message);
-        res.status(500).json({ error: 'Failed to fetch pods.' });
+        handleError(res, err, 'Failed to fetch pods');
     }
 };
 
@@ -562,8 +514,7 @@ const overridePod = async (req, res) => {
 
         res.status(200).json({ message: 'Pod successfully overridden to active.' });
     } catch (err) {
-        console.error('Error overriding pod:', err.message);
-        res.status(500).json({ error: 'Failed to override pod.' });
+        handleError(res, err, 'Failed to override pod');
     }
 };
 
@@ -598,8 +549,16 @@ const getLifeTrackerState = async (req, res) => {
             .first();
 
         // Return the state (or null if none saved)
+        // Handle both string and already-parsed JSON (depends on MySQL driver)
+        let parsedState = null;
+        if (savedState?.state) {
+            parsedState = typeof savedState.state === 'string'
+                ? JSON.parse(savedState.state)
+                : savedState.state;
+        }
+
         res.status(200).json({
-            state: savedState ? JSON.parse(savedState.state) : null,
+            state: parsedState,
             podId
         });
     } catch (err) {

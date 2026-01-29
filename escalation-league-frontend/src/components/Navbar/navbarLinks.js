@@ -44,9 +44,10 @@ const navbarLinks = (inLeague, leaguePhase) => [
     },
     { label: 'Awards', path: '/awards', order: 3, section: 'public', type: 'link', icon: 'fa-medal' },
     { label: 'Rules', path: '/rules', order: 4, section: 'public', type: 'link', icon: 'fa-book' },
+    { label: 'Leaderboard', path: '/leaderboard', order: 5, section: 'public', type: 'link', icon: 'fa-chart-line' },
     {
         label: 'Admin',
-        order: 5,
+        order: 6,
         section: 'admin',
         type: 'dropdown',
         icon: 'fa-cog',

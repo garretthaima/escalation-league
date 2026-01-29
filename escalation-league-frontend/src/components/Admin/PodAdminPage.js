@@ -3,6 +3,7 @@ import { getPods } from '../../api/podsApi';
 import { useNavigate } from 'react-router-dom';
 import { Pagination, usePagination } from '../Shared';
 import { SkeletonTable } from '../Shared/Skeleton';
+import { formatDate } from '../../utils/dateFormatter';
 import './PodAdminPage.css';
 
 const PodAdminPage = () => {
@@ -252,7 +253,7 @@ const PodAdminPage = () => {
                 </div>
                 <div className="col-md-2">
                     <button
-                        className="btn btn-secondary w-100"
+                        className="btn btn-primary w-100"
                         onClick={() => {
                             setSearchTerm('');
                             setStatusFilter('all');
@@ -272,8 +273,8 @@ const PodAdminPage = () => {
                     <SkeletonTable rows={10} cols={8} />
                 </div>
             ) : (
-            <div className="table-responsive pod-table-desktop">
-                <table className="table table-hover">
+            <div className="pod-table-desktop">
+                <table className="table table-striped table-hover">
                     <thead>
                         <tr>
                             <th>Pod #</th>
@@ -309,7 +310,7 @@ const PodAdminPage = () => {
                                             </span>
                                         )}
                                     </td>
-                                    <td>{new Date(pod.created_at).toLocaleDateString()}</td>
+                                    <td>{formatDate(pod.created_at)}</td>
                                     <td>
                                         <span className="badge bg-secondary">
                                             {pod.participants.length} players
@@ -389,7 +390,7 @@ const PodAdminPage = () => {
                             <div className="row small mb-2">
                                 <div className="col-6">
                                     <i className="fas fa-calendar me-1"></i>
-                                    {new Date(pod.created_at).toLocaleDateString()}
+                                    {formatDate(pod.created_at)}
                                 </div>
                                 <div className="col-6">
                                     <i className="fas fa-users me-1"></i>

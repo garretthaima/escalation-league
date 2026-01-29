@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import './GameCard.css';
 
 /**
- * Reusable game card component for displaying pod information
+ * Commander pod-style game card - 2x2 grid layout like a real table
  */
 const GameCard = ({ pod, userId, onDeclareResult, showActions = true }) => {
     const navigate = useNavigate();
@@ -12,78 +12,102 @@ const GameCard = ({ pod, userId, onDeclareResult, showActions = true }) => {
     const sortedParticipants = [...participants].sort((a, b) =>
         (a.turn_order || 999) - (b.turn_order || 999)
     );
-    const hasTurnOrder = sortedParticipants.some(p => p.turn_order);
     const isParticipant = participants.some(p => String(p.player_id) === String(userId));
+
+    // Pad to 4 players for consistent grid
+    const paddedParticipants = [...sortedParticipants];
+    while (paddedParticipants.length < 4) {
+        paddedParticipants.push(null);
+    }
+
+    // Arrange in pod seating clockwise: [0]=top-left, [1]=top-right, [3]=bottom-left, [2]=bottom-right
+    // So turn order goes: 1 → 2 → 3 → 4 clockwise around the table
+    const gridOrder = [0, 1, 3, 2];
 
     return (
         <div className="card h-100">
-            <div className="card-body d-flex flex-column">
-                <div className="d-flex justify-content-between align-items-start mb-3">
+            <div className="card-body py-3">
+                {/* Header row */}
+                <div className="d-flex justify-content-between align-items-center mb-3">
                     <h6 className="card-title mb-0">Pod #{pod.id}</h6>
                     {showActions && isParticipant && (
-                        <div className="d-flex gap-2">
-                            <button
-                                className="btn btn-sm btn-life-tracker"
-                                onClick={() => navigate(`/life-tracker/${pod.id}`)}
-                                title="Open Life Tracker"
-                            >
-                                <i className="fas fa-heart me-1"></i>
-                                Life
-                            </button>
-                            {onDeclareResult && (
-                                <button
-                                    className="btn btn-sm btn-declare"
-                                    onClick={() => onDeclareResult(pod.id)}
-                                >
-                                    <i className="fas fa-trophy me-1"></i>
-                                    Declare
-                                </button>
-                            )}
-                        </div>
+                        <button
+                            className="btn btn-sm btn-life-tracker"
+                            onClick={() => navigate(`/life-tracker/${pod.id}`)}
+                            title="Open Life Tracker"
+                        >
+                            <i className="fas fa-heart me-1"></i>
+                            Life Tracker
+                        </button>
                     )}
                 </div>
 
-                <div className="flex-grow-1">
-                    {hasTurnOrder ? (
-                        <ol className="list-group list-group-numbered mb-0">
-                            {sortedParticipants.map((participant, idx) => (
-                                <li
-                                    key={participant.player_id}
-                                    className={`list-group-item py-2 d-flex justify-content-between align-items-center ${idx === 0 ? 'list-group-item-warning' : ''}`}
+                {/* 2x2 Pod Grid */}
+                <div className="pod-grid">
+                    {gridOrder.map((idx) => {
+                        const participant = paddedParticipants[idx];
+                        if (!participant) {
+                            return (
+                                <div
+                                    key={`empty-${idx}`}
+                                    className="pod-slot-empty"
                                 >
-                                    <span>
-                                        {participant.firstname} {participant.lastname}
-                                        {String(participant.player_id) === String(userId) && (
-                                            <span className="badge bg-info ms-2">You</span>
-                                        )}
-                                    </span>
-                                    {idx === 0 && (
-                                        <span className="badge bg-warning text-dark">
-                                            <i className="fas fa-play-circle me-1"></i>
-                                            First
+                                    —
+                                </div>
+                            );
+                        }
+
+                        const isYou = String(participant.player_id) === String(userId);
+                        const isFirst = idx === 0 && participant.turn_order;
+
+                        const slotClasses = [
+                            'pod-slot',
+                            isYou ? 'pod-slot-current-user' : ''
+                        ].filter(Boolean).join(' ');
+
+                        const nameClasses = [
+                            'pod-participant-name',
+                            (isYou || isFirst) ? 'pod-participant-name-highlighted' : '',
+                            isFirst ? 'pod-participant-name-first' : ''
+                        ].filter(Boolean).join(' ');
+
+                        const badgeClasses = [
+                            'pod-turn-badge',
+                            isFirst ? 'pod-turn-badge-first' : 'pod-turn-badge-default'
+                        ].join(' ');
+
+                        return (
+                            <div
+                                key={participant.player_id}
+                                className={slotClasses}
+                                title={`${participant.firstname} ${participant.lastname}`}
+                            >
+                                <div className={nameClasses}>
+                                    {participant.turn_order && (
+                                        <span className={badgeClasses}>
+                                            {idx + 1}
                                         </span>
                                     )}
-                                </li>
-                            ))}
-                        </ol>
-                    ) : (
-                        <ul className="list-group mb-0">
-                            {participants.map((participant) => (
-                                <li
-                                    key={participant.player_id}
-                                    className="list-group-item py-2"
-                                >
-                                    {participant.firstname} {participant.lastname}
-                                    {String(participant.player_id) === String(userId) && (
-                                        <span className="badge bg-info ms-2">You</span>
-                                    )}
-                                </li>
-                            ))}
-                        </ul>
-                    )}
+                                    {participant.firstname}
+                                </div>
+                            </div>
+                        );
+                    })}
                 </div>
-
             </div>
+
+            {/* Footer with Declare button */}
+            {showActions && isParticipant && onDeclareResult && (
+                <div className="card-footer py-2">
+                    <button
+                        className="btn btn-sm btn-declare w-100"
+                        onClick={() => onDeclareResult(pod.id)}
+                    >
+                        <i className="fas fa-trophy me-1"></i>
+                        Declare Result
+                    </button>
+                </div>
+            )}
         </div>
     );
 };

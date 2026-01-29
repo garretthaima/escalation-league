@@ -16,10 +16,11 @@ const authenticateToken = async (req, res, next) => {
   }
 
   try {
-    // Fetch the secret key dynamically
-    const SECRET_KEY = await getSetting('secret_key');
+    // JWT_SECRET must be set in environment
+    const SECRET_KEY = process.env.JWT_SECRET;
     if (!SECRET_KEY) {
-      return res.status(500).json({ error: 'Internal server error. Secret key not found.' });
+      console.error('JWT_SECRET environment variable is not set');
+      return res.status(500).json({ error: 'Internal server error. Server misconfigured.' });
     }
 
     // Verify the token (now properly promisified)
@@ -41,6 +42,9 @@ const authenticateToken = async (req, res, next) => {
         id: user.id,
         role_id: userData.role_id
       };
+      // Prevent caching of authenticated responses by proxies (e.g., Cloudflare)
+      res.set('Cache-Control', 'private, no-store, no-cache, must-revalidate');
+      res.set('Vary', 'Authorization');
       return next();
     }
 
@@ -71,6 +75,10 @@ const authenticateToken = async (req, res, next) => {
       id: user.id,
       role_id: dbUser.role_id
     };
+
+    // Prevent caching of authenticated responses by proxies (e.g., Cloudflare)
+    res.set('Cache-Control', 'private, no-store, no-cache, must-revalidate');
+    res.set('Vary', 'Authorization');
 
     next();
   } catch (err) {

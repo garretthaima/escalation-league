@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { priceCheckDeck } from '../../api/decksApi';
 import { getLeagueParticipantsDetails } from '../../api/userLeaguesApi';
-import { usePermissions } from '../context/PermissionsProvider';
+import { usePermissions } from '../../context/PermissionsProvider';
 
 const PriceCheckPage = () => {
     const { user } = usePermissions();

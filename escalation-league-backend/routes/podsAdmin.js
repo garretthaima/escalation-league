@@ -6,7 +6,10 @@ const {
     addParticipant,
     updateParticipantResult,
     toggleDQ,
-    deletePod
+    deletePod,
+    setWinner,
+    declareWinner,
+    forceComplete
 } = require('../controllers/podsAdminController');
 const authenticateToken = require('../middlewares/authentication');
 const authorizePermission = require('../middlewares/authorizePermission');
@@ -57,6 +60,30 @@ router.delete(
     authenticateToken,
     authorizePermission(['admin_pod_delete']),
     deletePod
+);
+
+// Set winner and complete a pod (for active/pending pods) - skips pending state
+router.post(
+    '/:podId/set-winner',
+    authenticateToken,
+    authorizePermission(['admin_pod_update']),
+    setWinner
+);
+
+// Declare winner and move to pending (active → pending)
+router.post(
+    '/:podId/declare-winner',
+    authenticateToken,
+    authorizePermission(['admin_pod_update']),
+    declareWinner
+);
+
+// Force complete a pending pod (pending → complete)
+router.post(
+    '/:podId/force-complete',
+    authenticateToken,
+    authorizePermission(['admin_pod_update']),
+    forceComplete
 );
 
 module.exports = router;

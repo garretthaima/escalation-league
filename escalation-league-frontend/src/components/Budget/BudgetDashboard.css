@@ -19,12 +19,8 @@
 
 .stat-label {
     font-size: 0.875rem;
-    color: #6c757d;
+    color: var(--text-secondary);
     margin-bottom: 0.25rem;
-}
-
-body.dark-mode .stat-label {
-    color: #adb5bd;
 }
 
 .stat-value {
@@ -33,12 +29,15 @@ body.dark-mode .stat-label {
 }
 
 .search-results .card {
-    transition: transform 0.2s, box-shadow 0.2s;
+    border-radius: 12px;
+    box-shadow: 0 4px 24px var(--shadow);
+    border: 1px solid var(--border-color);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .search-results .card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 6px 32px var(--shadow);
 }
 
 .table-responsive {
@@ -54,4 +53,19 @@ body.dark-mode .stat-label {
     .stat-item {
         width: 100%;
     }
+}
+
+/* Budget-specific icon sizing */
+.budget-header-icon {
+    font-size: 1.5rem;
+}
+
+/* Beta badge styling */
+.budget-beta-badge {
+    font-size: 0.9rem;
+}
+
+/* Budget progress bar height */
+.budget-progress-bar {
+    height: 25px;
 }

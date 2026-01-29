@@ -1,5 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { getMyActivityLogs } from '../../../api/activityLogsApi';
+import LoadingSpinner from '../../Shared/LoadingSpinner';
+import { formatDate, formatRelativeTime } from '../../../utils/dateFormatter';
 
 const ActivityTab = () => {
     const [logs, setLogs] = useState([]);
@@ -7,7 +9,7 @@ const ActivityTab = () => {
     const [error, setError] = useState(null);
     const [pagination, setPagination] = useState({
         page: 1,
-        limit: 10,
+        limit: 15,
         total: 0,
         totalPages: 0
     });
@@ -36,22 +38,41 @@ const ActivityTab = () => {
         fetchLogs();
     }, [fetchLogs]);
 
-    const formatDate = (dateString) => {
+    const formatActivityDate = (dateString) => {
         if (!dateString) return '-';
-        const date = new Date(dateString);
-        return date.toLocaleString();
+        return formatRelativeTime(dateString) || formatDate(dateString);
     };
 
-    const getActionIcon = (action) => {
+    const getActionConfig = (action) => {
         const actionLower = action.toLowerCase();
-        if (actionLower.includes('login') || actionLower.includes('logged in')) return 'fa-sign-in-alt';
-        if (actionLower.includes('logout') || actionLower.includes('logged out')) return 'fa-sign-out-alt';
-        if (actionLower.includes('profile')) return 'fa-user-edit';
-        if (actionLower.includes('password')) return 'fa-key';
-        if (actionLower.includes('league') || actionLower.includes('signup')) return 'fa-trophy';
-        if (actionLower.includes('game') || actionLower.includes('pod')) return 'fa-dice';
-        if (actionLower.includes('confirm')) return 'fa-check-circle';
-        return 'fa-history';
+        if (actionLower.includes('login') || actionLower.includes('logged in')) {
+            return { icon: 'fa-sign-in-alt', color: '#28a745', bg: 'rgba(40, 167, 69, 0.15)' };
+        }
+        if (actionLower.includes('logout') || actionLower.includes('logged out')) {
+            return { icon: 'fa-sign-out-alt', color: '#6c757d', bg: 'rgba(108, 117, 125, 0.15)' };
+        }
+        if (actionLower.includes('profile') || actionLower.includes('update')) {
+            return { icon: 'fa-user-edit', color: 'var(--brand-purple)', bg: 'rgba(45, 27, 78, 0.15)' };
+        }
+        if (actionLower.includes('password')) {
+            return { icon: 'fa-key', color: '#fd7e14', bg: 'rgba(253, 126, 20, 0.15)' };
+        }
+        if (actionLower.includes('league') || actionLower.includes('signup') || actionLower.includes('join')) {
+            return { icon: 'fa-trophy', color: 'var(--brand-gold)', bg: 'rgba(212, 175, 55, 0.15)' };
+        }
+        if (actionLower.includes('game') || actionLower.includes('pod') || actionLower.includes('created')) {
+            return { icon: 'fa-gamepad', color: 'var(--brand-purple)', bg: 'rgba(45, 27, 78, 0.15)' };
+        }
+        if (actionLower.includes('confirm') || actionLower.includes('approved')) {
+            return { icon: 'fa-check-circle', color: '#28a745', bg: 'rgba(40, 167, 69, 0.15)' };
+        }
+        if (actionLower.includes('win') || actionLower.includes('won')) {
+            return { icon: 'fa-trophy', color: 'var(--brand-gold)', bg: 'rgba(212, 175, 55, 0.15)' };
+        }
+        if (actionLower.includes('loss') || actionLower.includes('lost')) {
+            return { icon: 'fa-times-circle', color: '#dc3545', bg: 'rgba(220, 53, 69, 0.15)' };
+        }
+        return { icon: 'fa-history', color: 'var(--text-secondary)', bg: 'var(--bg-secondary)' };
     };
 
     const handlePageChange = (newPage) => {
@@ -62,9 +83,9 @@ const ActivityTab = () => {
 
     if (loading && logs.length === 0) {
         return (
-            <div className="text-center py-4">
-                <div className="spinner-border text-primary" role="status">
-                    <span className="visually-hidden">Loading...</span>
+            <div className="profile-card">
+                <div className="profile-card-body text-center py-5">
+                    <LoadingSpinner size="md" />
                 </div>
             </div>
         );
@@ -72,88 +93,159 @@ const ActivityTab = () => {
 
     if (error) {
         return (
-            <div className="alert alert-danger">
-                <i className="fas fa-exclamation-circle me-2"></i>
-                {error}
+            <div className="profile-card">
+                <div className="profile-card-body">
+                    <div className="alert alert-danger mb-0">
+                        <i className="fas fa-exclamation-circle me-2"></i>
+                        {error}
+                    </div>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="activity-tab">
-            <h5 className="mb-3">
-                <i className="fas fa-history me-2"></i>
-                Recent Activity
-            </h5>
-
-            {logs.length === 0 ? (
-                <div className="alert alert-info">
-                    <i className="fas fa-info-circle me-2"></i>
-                    No activity recorded yet.
-                </div>
-            ) : (
-                <>
-                    <div className="list-group mb-3">
-                        {logs.map(log => (
-                            <div key={log.id} className="list-group-item">
-                                <div className="d-flex w-100 justify-content-between align-items-start">
-                                    <div>
-                                        <i className={`fas ${getActionIcon(log.action)} me-2 text-primary`}></i>
-                                        <strong>{log.action}</strong>
-                                    </div>
-                                    <small className="text-muted">
-                                        {formatDate(log.timestamp)}
-                                    </small>
-                                </div>
-                                {log.metadata && Object.keys(log.metadata).length > 0 && (
-                                    <small className="text-muted d-block mt-1">
-                                        {Object.entries(log.metadata).map(([key, value]) => (
-                                            <span key={key} className="me-3">
-                                                <em>{key}:</em> {typeof value === 'object' ? JSON.stringify(value) : String(value)}
-                                            </span>
-                                        ))}
-                                    </small>
-                                )}
-                            </div>
-                        ))}
+        <div className="row g-4">
+            <div className="col-12">
+                <div className="profile-card">
+                    <div className="profile-card-header">
+                        <h5>
+                            <i className="fas fa-history"></i>
+                            Activity Log
+                        </h5>
+                        {pagination.total > 0 && (
+                            <span className="badge ms-auto activity-badge-total">
+                                {pagination.total} total
+                            </span>
+                        )}
                     </div>
+                    <div className="profile-card-body p-0">
+                        {logs.length === 0 ? (
+                            <div className="text-center py-5">
+                                <i className="fas fa-clipboard-list fa-4x mb-3 activity-empty-icon"></i>
+                                <h5 className="mb-2">No Activity Yet</h5>
+                                <p className="text-muted mb-0">
+                                    Your activity will appear here as you use the app.
+                                </p>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="activity-list">
+                                    {logs.map((log, index) => {
+                                        const config = getActionConfig(log.action);
+                                        const isLast = index === logs.length - 1;
 
-                    {/* Pagination */}
-                    {pagination.totalPages > 1 && (
-                        <nav aria-label="Activity pagination">
-                            <ul className="pagination pagination-sm justify-content-center">
-                                <li className={`page-item ${pagination.page === 1 ? 'disabled' : ''}`}>
-                                    <button
-                                        className="page-link"
-                                        onClick={() => handlePageChange(pagination.page - 1)}
-                                        disabled={pagination.page === 1}
-                                    >
-                                        Previous
-                                    </button>
-                                </li>
-                                <li className="page-item disabled">
-                                    <span className="page-link">
-                                        {pagination.page} / {pagination.totalPages}
-                                    </span>
-                                </li>
-                                <li className={`page-item ${pagination.page === pagination.totalPages ? 'disabled' : ''}`}>
-                                    <button
-                                        className="page-link"
-                                        onClick={() => handlePageChange(pagination.page + 1)}
-                                        disabled={pagination.page === pagination.totalPages}
-                                    >
-                                        Next
-                                    </button>
-                                </li>
-                            </ul>
-                        </nav>
-                    )}
+                                        return (
+                                            <div
+                                                key={log.id}
+                                                className="activity-item d-flex gap-3 p-3"
+                                                style={{
+                                                    borderBottom: isLast ? 'none' : '1px solid var(--border-color)'
+                                                }}
+                                            >
+                                                <div
+                                                    className="activity-icon d-flex align-items-center justify-content-center flex-shrink-0"
+                                                    style={{
+                                                        width: '40px',
+                                                        height: '40px',
+                                                        borderRadius: '10px',
+                                                        background: config.bg,
+                                                        color: config.color
+                                                    }}
+                                                >
+                                                    <i className={`fas ${config.icon}`}></i>
+                                                </div>
+                                                <div className="activity-content flex-grow-1 min-width-0">
+                                                    <div className="d-flex justify-content-between align-items-start gap-2">
+                                                        <div
+                                                            className="activity-title"
+                                                            style={{
+                                                                fontWeight: 500,
+                                                                color: 'var(--text-primary)'
+                                                            }}
+                                                        >
+                                                            {log.action}
+                                                        </div>
+                                                        <span
+                                                            className="activity-time flex-shrink-0"
+                                                            style={{
+                                                                fontSize: '0.8rem',
+                                                                color: 'var(--text-secondary)'
+                                                            }}
+                                                        >
+                                                            {formatActivityDate(log.timestamp)}
+                                                        </span>
+                                                    </div>
+                                                    {log.metadata && Object.keys(log.metadata).length > 0 && (
+                                                        <div
+                                                            className="activity-meta mt-1 d-flex flex-wrap gap-2"
+                                                            style={{ fontSize: '0.8rem' }}
+                                                        >
+                                                            {Object.entries(log.metadata).map(([key, value]) => (
+                                                                <span
+                                                                    key={key}
+                                                                    className="badge"
+                                                                    style={{
+                                                                        background: 'var(--bg-secondary)',
+                                                                        color: 'var(--text-secondary)',
+                                                                        fontWeight: 400
+                                                                    }}
+                                                                >
+                                                                    {key}: {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
 
-                    <p className="text-muted text-center mb-0">
-                        <small>Showing {logs.length} of {pagination.total} activities</small>
-                    </p>
-                </>
-            )}
+                                {/* Pagination */}
+                                {pagination.totalPages > 1 && (
+                                    <div
+                                        className="d-flex justify-content-between align-items-center p-3"
+                                        style={{ borderTop: '1px solid var(--border-color)' }}
+                                    >
+                                        <button
+                                            className="btn btn-sm"
+                                            onClick={() => handlePageChange(pagination.page - 1)}
+                                            disabled={pagination.page === 1 || loading}
+                                            style={{
+                                                background: 'var(--bg-secondary)',
+                                                border: '1px solid var(--border-color)',
+                                                color: 'var(--text-primary)'
+                                            }}
+                                        >
+                                            <i className="fas fa-chevron-left me-1"></i>
+                                            Previous
+                                        </button>
+
+                                        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                            Page {pagination.page} of {pagination.totalPages}
+                                        </span>
+
+                                        <button
+                                            className="btn btn-sm"
+                                            onClick={() => handlePageChange(pagination.page + 1)}
+                                            disabled={pagination.page === pagination.totalPages || loading}
+                                            style={{
+                                                background: 'var(--bg-secondary)',
+                                                border: '1px solid var(--border-color)',
+                                                color: 'var(--text-primary)'
+                                            }}
+                                        >
+                                            Next
+                                            <i className="fas fa-chevron-right ms-1"></i>
+                                        </button>
+                                    </div>
+                                )}
+                            </>
+                        )}
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };

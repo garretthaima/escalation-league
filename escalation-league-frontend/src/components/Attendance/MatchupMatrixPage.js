@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { getMatchupMatrix } from '../../api/attendanceApi';
-import { usePermissions } from '../context/PermissionsProvider';
+import { usePermissions } from '../../context/PermissionsProvider';
+import LoadingSpinner from '../Shared/LoadingSpinner';
 import './MatchupMatrixPage.css';
 
 const MatchupMatrixPage = () => {
@@ -86,10 +87,8 @@ const MatchupMatrixPage = () => {
 
     if (loading) {
         return (
-            <div className="container mt-4 text-center">
-                <div className="spinner-border text-primary" role="status">
-                    <span className="visually-hidden">Loading...</span>
-                </div>
+            <div className="container mt-4 text-center py-5">
+                <LoadingSpinner size="lg" />
             </div>
         );
     }

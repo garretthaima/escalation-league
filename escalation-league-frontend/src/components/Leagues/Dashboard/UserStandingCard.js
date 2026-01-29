@@ -48,17 +48,12 @@ const UserStandingCard = ({ userStats, leagueId, onUpdateCommander }) => {
                                 <img
                                     src={commanderCard.image_uris.art_crop}
                                     alt={userStats.current_commander}
-                                    className="rounded"
-                                    style={{
-                                        width: partnerCard ? '80px' : '120px',
-                                        height: partnerCard ? '60px' : '88px',
-                                        objectFit: 'cover'
-                                    }}
+                                    className={`rounded ${partnerCard ? 'commander-partner-image' : 'commander-placeholder'}`}
+                                    style={{ objectFit: 'cover' }}
                                 />
                             ) : (
                                 <div
-                                    className="bg-secondary rounded d-flex align-items-center justify-content-center"
-                                    style={{ width: '120px', height: '88px' }}
+                                    className="bg-secondary rounded d-flex align-items-center justify-content-center commander-placeholder"
                                 >
                                     <i className="fas fa-hat-wizard fa-2x text-muted"></i>
                                 </div>
@@ -67,8 +62,7 @@ const UserStandingCard = ({ userStats, leagueId, onUpdateCommander }) => {
                                 <img
                                     src={partnerCard.image_uris.art_crop}
                                     alt={userStats.commander_partner}
-                                    className="rounded"
-                                    style={{ width: '80px', height: '60px', objectFit: 'cover' }}
+                                    className="rounded commander-partner-image"
                                 />
                             )}
                         </div>

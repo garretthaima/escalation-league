@@ -155,6 +155,10 @@ const logPlayerDQToggled = async (adminId, podId, playerId, isDQ) => {
     return logActivity(adminId, isDQ ? 'Disqualified player' : 'Reinstated player', { podId, playerId });
 };
 
+const logAdminSetWinner = async (adminId, podId, winnerId) => {
+    return logActivity(adminId, 'Admin set winner and completed pod', { podId, winnerId });
+};
+
 module.exports = {
     logActivity,
     // Auth
@@ -188,5 +192,6 @@ module.exports = {
     logParticipantRemoved,
     logParticipantAdded,
     logParticipantResultUpdated,
-    logPlayerDQToggled
+    logPlayerDQToggled,
+    logAdminSetWinner
 };

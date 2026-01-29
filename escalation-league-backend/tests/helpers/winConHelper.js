@@ -1,4 +1,4 @@
-const { db } = require('./testDb');
+const db = require('./testDb');
 
 async function createWinCondition(overrides = {}) {
     const [id] = await db('win_conditions').insert({

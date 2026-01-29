@@ -171,4 +171,15 @@ try {
     console.error('Error loading activityLogsRoutes:', err.message);
 }
 
+/**
+ * Mounts public settings routes at `/settings`.
+ * @module routes/settings
+ */
+try {
+    const settingsRoutes = require('./settings');
+    router.use('/settings', settingsRoutes); // Public settings routes
+} catch (err) {
+    console.error('Error loading settingsRoutes:', err.message);
+}
+
 module.exports = router;

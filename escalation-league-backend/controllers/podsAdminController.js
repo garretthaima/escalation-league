@@ -1,4 +1,6 @@
 const db = require('../models/db');
+const podService = require('../services/podService');
+const logger = require('../utils/logger');
 const { emitPodDeleted } = require('../utils/socketEmitter');
 const { cacheInvalidators } = require('../middlewares/cacheMiddleware');
 const {
@@ -7,8 +9,10 @@ const {
     logParticipantRemoved,
     logParticipantAdded,
     logParticipantResultUpdated,
-    logPlayerDQToggled
+    logPlayerDQToggled,
+    logAdminSetWinner
 } = require('../services/activityLogService');
+const { handleError, notFound, badRequest } = require('../utils/errorUtils');
 
 
 // Update a Pod
@@ -16,99 +20,22 @@ const updatePod = async (req, res) => {
     const { podId } = req.params;
     const { participants, result, confirmation_status } = req.body;
 
-    console.log('=== updatePod called ===');
-    console.log('podId:', podId);
-    console.log('Request body:', JSON.stringify(req.body, null, 2));
-    console.log('confirmation_status from request:', confirmation_status);
+    logger.debug('updatePod called', { podId, confirmation_status, hasParticipants: !!participants });
 
     try {
         // Get current pod state and participants for stats reversal
-        const currentPod = await db('game_pods').where({ id: podId }).first();
-        const currentParticipants = await db('game_players').where({ pod_id: podId }).whereNull('deleted_at');
+        const currentPod = await podService.getById(podId);
+        const currentParticipants = await podService.getParticipants(podId);
 
-        console.log('Current pod status:', currentPod.confirmation_status);
-        console.log('Current pod result:', currentPod.result);
+        logger.debug('Current pod state', {
+            podId,
+            currentStatus: currentPod?.confirmation_status,
+            currentResult: currentPod?.result
+        });
 
         // If pod was complete, reverse old stats before making changes
         if (currentPod.confirmation_status === 'complete' && currentPod.league_id) {
-            // Fetch league point settings (including tournament settings)
-            const league = await db('leagues')
-                .where({ id: currentPod.league_id })
-                .select('points_per_win', 'points_per_loss', 'points_per_draw',
-                    'tournament_win_points', 'tournament_non_win_points', 'tournament_dq_points')
-                .first();
-
-            for (const p of currentParticipants) {
-                // Skip DQ'd players - they never got regular stats in the first place
-                if (p.result === 'disqualified') {
-                    // But if tournament game, DQ'd players DID get tournament stats
-                    if (currentPod.is_tournament_game) {
-                        await db('user_leagues')
-                            .where({ user_id: p.player_id, league_id: currentPod.league_id })
-                            .increment({
-                                tournament_points: -(league.tournament_dq_points || 0),
-                                tournament_dqs: -1
-                            });
-                    }
-                    continue;
-                }
-
-                const wins = p.result === 'win' ? -1 : 0;
-                const losses = p.result === 'loss' ? -1 : 0;
-                const draws = p.result === 'draw' ? -1 : 0;
-
-                // Calculate points to reverse
-                let points = 0;
-                if (p.result === 'win') {
-                    points = -(league.points_per_win || 4);
-                } else if (p.result === 'loss') {
-                    points = -(league.points_per_loss || 1);
-                } else if (p.result === 'draw') {
-                    points = -(league.points_per_draw || 1);
-                }
-
-                // Reverse user stats
-                await db('users')
-                    .where({ id: p.player_id })
-                    .increment({
-                        wins: wins,
-                        losses: losses,
-                        draws: draws
-                    });
-
-                // Reverse league stats
-                await db('user_leagues')
-                    .where({ user_id: p.player_id, league_id: currentPod.league_id })
-                    .increment({
-                        league_wins: wins,
-                        league_losses: losses,
-                        league_draws: draws,
-                        total_points: points
-                    });
-
-                // Reverse tournament stats if this was a tournament game
-                if (currentPod.is_tournament_game) {
-                    let tPoints = 0;
-                    let tWins = 0;
-                    let tNonWins = 0;
-
-                    if (p.result === 'win') {
-                        tPoints = -(league.tournament_win_points || 4);
-                        tWins = -1;
-                    } else {
-                        tPoints = -(league.tournament_non_win_points || 1);
-                        tNonWins = -1;
-                    }
-
-                    await db('user_leagues')
-                        .where({ user_id: p.player_id, league_id: currentPod.league_id })
-                        .increment({
-                            tournament_points: tPoints,
-                            tournament_wins: tWins,
-                            tournament_non_wins: tNonWins
-                        });
-                }
-            }
+            await podService.reverseGameStats(currentParticipants, currentPod.league_id, currentPod.is_tournament_game);
         }
 
         // Update participants FIRST if provided (before updating pod status)
@@ -145,97 +72,26 @@ const updatePod = async (req, res) => {
         }
 
         // Fetch updated participants for new stats
-        const newParticipants = await db('game_players').where({ pod_id: podId }).whereNull('deleted_at');
+        const newParticipants = await podService.getParticipants(podId);
 
-        console.log('Checking stats condition:');
-        console.log('  confirmation_status === "complete":', confirmation_status === 'complete');
-        console.log('  currentPod.confirmation_status === "complete":', currentPod.confirmation_status === 'complete');
+        logger.debug('Stats condition check', {
+            podId,
+            requestedStatus: confirmation_status,
+            wasComplete: currentPod.confirmation_status === 'complete'
+        });
 
         // If pod is now complete, apply new stats
         // ONLY apply stats if we're explicitly completing the pod OR if it was already complete
         if (confirmation_status === 'complete' || currentPod.confirmation_status === 'complete') {
-            console.log('>>> STATS BLOCK TRIGGERED <<<');
-            const pod = await db('game_pods').where({ id: podId }).first();
+            logger.debug('Applying stats for complete pod', { podId });
+            const pod = await podService.getById(podId);
 
             if (pod && pod.league_id) {
-                // Fetch league point settings (including tournament settings)
-                const league = await db('leagues')
-                    .where({ id: pod.league_id })
-                    .select('points_per_win', 'points_per_loss', 'points_per_draw',
-                        'tournament_win_points', 'tournament_non_win_points', 'tournament_dq_points')
-                    .first();
+                // Apply game stats using podService (handles tournament stats internally)
+                await podService.applyGameStats(newParticipants, pod.league_id, pod.is_tournament_game);
 
-                for (const p of newParticipants) {
-                    // Skip DQ'd players for regular stats - they don't get any stats or points
-                    if (p.result === 'disqualified') {
-                        // But if tournament game, DQ'd players DO get tournament stats
-                        if (pod.is_tournament_game) {
-                            await db('user_leagues')
-                                .where({ user_id: p.player_id, league_id: pod.league_id })
-                                .increment({
-                                    tournament_points: league.tournament_dq_points || 0,
-                                    tournament_dqs: 1
-                                });
-                        }
-                        continue;
-                    }
-
-                    const wins = p.result === 'win' ? 1 : 0;
-                    const losses = p.result === 'loss' ? 1 : 0;
-                    const draws = p.result === 'draw' ? 1 : 0;
-
-                    // Calculate points based on league settings
-                    let points = 0;
-                    if (p.result === 'win') {
-                        points = league.points_per_win || 4;
-                    } else if (p.result === 'loss') {
-                        points = league.points_per_loss || 1;
-                    } else if (p.result === 'draw') {
-                        points = league.points_per_draw || 1;
-                    }
-
-                    // Update user stats
-                    await db('users')
-                        .where({ id: p.player_id })
-                        .increment({
-                            wins: wins,
-                            losses: losses,
-                            draws: draws
-                        });
-
-                    // Update league stats
-                    await db('user_leagues')
-                        .where({ user_id: p.player_id, league_id: pod.league_id })
-                        .increment({
-                            league_wins: wins,
-                            league_losses: losses,
-                            league_draws: draws,
-                            total_points: points
-                        });
-
-                    // Apply tournament stats if this is a tournament game
-                    if (pod.is_tournament_game) {
-                        let tPoints = 0;
-                        let tWins = 0;
-                        let tNonWins = 0;
-
-                        if (p.result === 'win') {
-                            tPoints = league.tournament_win_points || 4;
-                            tWins = 1;
-                        } else {
-                            tPoints = league.tournament_non_win_points || 1;
-                            tNonWins = 1;
-                        }
-
-                        await db('user_leagues')
-                            .where({ user_id: p.player_id, league_id: pod.league_id })
-                            .increment({
-                                tournament_points: tPoints,
-                                tournament_wins: tWins,
-                                tournament_non_wins: tNonWins
-                            });
-                    }
-                }
+                // Apply ELO changes using podService
+                await podService.applyEloChanges(newParticipants, podId, pod.league_id);
             }
         }
 
@@ -276,8 +132,7 @@ const updatePod = async (req, res) => {
 
         res.status(200).json(updatedPod);
     } catch (err) {
-        console.error('Error updating pod:', err.message);
-        res.status(500).json({ error: 'Failed to update pod.' });
+        handleError(res, err, 'Failed to update pod');
     }
 };
 
@@ -323,8 +178,7 @@ const removeParticipant = async (req, res) => {
             winnerRemoved: wasWinner
         });
     } catch (err) {
-        console.error('Error removing participant:', err.message);
-        res.status(500).json({ error: 'Failed to remove participant.' });
+        handleError(res, err, 'Failed to remove participant');
     }
 };
 
@@ -408,8 +262,7 @@ const addParticipant = async (req, res) => {
             participantCount: currentParticipants.length + 1
         });
     } catch (err) {
-        console.error('Error adding participant:', err.message);
-        res.status(500).json({ error: 'Failed to add participant.' });
+        handleError(res, err, 'Failed to add participant');
     }
 };
 
@@ -436,8 +289,7 @@ const updateParticipantResult = async (req, res) => {
 
         res.status(200).json({ message: 'Participant result updated successfully.' });
     } catch (err) {
-        console.error('Error updating participant result:', err.message);
-        res.status(500).json({ error: 'Failed to update participant result.' });
+        handleError(res, err, 'Failed to update participant result');
     }
 };
 
@@ -447,58 +299,17 @@ const deletePod = async (req, res) => {
 
     try {
         // Get current pod state and participants for stats reversal
-        const currentPod = await db('game_pods').where({ id: podId }).first();
-        const currentParticipants = await db('game_players').where({ pod_id: podId }).whereNull('deleted_at');
+        const currentPod = await podService.getById(podId);
+        const currentParticipants = await podService.getParticipants(podId);
 
         // If pod was complete, reverse stats before deleting
         if (currentPod && currentPod.confirmation_status === 'complete' && currentPod.league_id) {
-            console.log('Reversing stats for pod deletion:', { podId, participants: currentParticipants.length });
+            logger.info('Reversing stats for pod deletion', {
+                podId,
+                participantCount: currentParticipants.length
+            });
 
-            // Fetch league point settings for points reversal
-            const league = await db('leagues')
-                .where({ id: currentPod.league_id })
-                .select('points_per_win', 'points_per_loss', 'points_per_draw')
-                .first();
-
-            for (const p of currentParticipants) {
-                // Skip DQ'd players - they never got stats in the first place
-                if (p.result === 'disqualified') {
-                    continue;
-                }
-
-                const wins = p.result === 'win' ? -1 : 0;
-                const losses = p.result === 'loss' ? -1 : 0;
-                const draws = p.result === 'draw' ? -1 : 0;
-
-                // Calculate points to reverse
-                let points = 0;
-                if (p.result === 'win') {
-                    points = -(league.points_per_win || 4);
-                } else if (p.result === 'loss') {
-                    points = -(league.points_per_loss || 1);
-                } else if (p.result === 'draw') {
-                    points = -(league.points_per_draw || 1);
-                }
-
-                // Reverse user stats
-                await db('users')
-                    .where({ id: p.player_id })
-                    .increment({
-                        wins: wins,
-                        losses: losses,
-                        draws: draws
-                    });
-
-                // Reverse league stats (including points)
-                await db('user_leagues')
-                    .where({ user_id: p.player_id, league_id: currentPod.league_id })
-                    .increment({
-                        league_wins: wins,
-                        league_losses: losses,
-                        league_draws: draws,
-                        total_points: points
-                    });
-            }
+            await podService.reverseGameStats(currentParticipants, currentPod.league_id);
         }
 
         // Soft delete all participants from the pod
@@ -512,13 +323,17 @@ const deletePod = async (req, res) => {
             emitPodDeleted(req.app, currentPod.league_id, podId);
         }
 
+        // Invalidate cache if the deleted pod was complete
+        if (currentPod && currentPod.confirmation_status === 'complete' && currentPod.league_id) {
+            await cacheInvalidators.gameCompleted(currentPod.league_id);
+        }
+
         // Log the admin action
         await logPodDeleted(req.user.id, podId);
 
         res.status(200).json({ message: 'Pod deleted successfully.' });
     } catch (err) {
-        console.error('Error deleting pod:', err.message);
-        res.status(500).json({ error: 'Failed to delete pod.' });
+        handleError(res, err, 'Failed to delete pod');
     }
 };
 
@@ -555,44 +370,8 @@ const toggleDQ = async (req, res) => {
 
         // If pod is already complete, need to recalculate stats
         if (pod.confirmation_status === 'complete' && pod.league_id) {
-            const league = await db('leagues')
-                .where({ id: pod.league_id })
-                .select('points_per_win', 'points_per_loss', 'points_per_draw')
-                .first();
-
-            if (newResult === 'disqualified') {
-                // Player is now DQ'd - remove their stats (they had loss stats before)
-                const lossPoints = league.points_per_loss || 1;
-
-                await db('users')
-                    .where({ id: playerId })
-                    .increment({
-                        losses: -1
-                    });
-
-                await db('user_leagues')
-                    .where({ user_id: playerId, league_id: pod.league_id })
-                    .increment({
-                        league_losses: -1,
-                        total_points: -lossPoints
-                    });
-            } else {
-                // Player is no longer DQ'd - add loss stats back
-                const lossPoints = league.points_per_loss || 1;
-
-                await db('users')
-                    .where({ id: playerId })
-                    .increment({
-                        losses: 1
-                    });
-
-                await db('user_leagues')
-                    .where({ user_id: playerId, league_id: pod.league_id })
-                    .increment({
-                        league_losses: 1,
-                        total_points: lossPoints
-                    });
-            }
+            await podService.handleDqToggle(playerId, pod.league_id, newResult === 'disqualified', participant.result);
+            await cacheInvalidators.gameCompleted(pod.league_id);
         }
 
         // Log the admin action
@@ -603,8 +382,327 @@ const toggleDQ = async (req, res) => {
             result: newResult
         });
     } catch (err) {
-        console.error('Error toggling DQ status:', err.message);
-        res.status(500).json({ error: 'Failed to toggle DQ status.' });
+        handleError(res, err, 'Failed to toggle DQ status');
+    }
+};
+
+/**
+ * Admin Set Winner - Sets a winner for an active/pending pod and completes it
+ * This handles the full workflow:
+ * 1. Sets the winner's result to 'win', confirmed=1, confirmation_time
+ * 2. Sets all other players to 'loss', confirmed=1, confirmation_time
+ * 3. Updates pod status to 'complete' with result='win'
+ * 4. Applies game stats (wins/losses) to users and user_leagues
+ * 5. Calculates and applies ELO changes
+ */
+const setWinner = async (req, res) => {
+    const { podId } = req.params;
+    const { winnerId } = req.body;
+
+    if (!winnerId) {
+        return res.status(400).json({ error: 'Winner ID is required.' });
+    }
+
+    logger.info('Admin setWinner called', { podId, winnerId, adminId: req.user.id });
+
+    try {
+        // Get pod and validate it exists
+        const pod = await podService.getById(podId);
+        if (!pod) {
+            return res.status(404).json({ error: 'Pod not found.' });
+        }
+
+        // Only allow setting winner on active or pending pods
+        if (pod.confirmation_status === 'complete') {
+            return res.status(400).json({ error: 'Pod is already complete. Use updatePod to modify a completed pod.' });
+        }
+
+        if (pod.confirmation_status === 'open') {
+            return res.status(400).json({ error: 'Pod is still open. Wait for more players to join or override to active first.' });
+        }
+
+        // Get current participants
+        const participants = await podService.getParticipants(podId);
+        if (participants.length < 2) {
+            return res.status(400).json({ error: 'Pod must have at least 2 participants.' });
+        }
+
+        // Verify winner is a participant
+        const winnerParticipant = participants.find(p => p.player_id === parseInt(winnerId));
+        if (!winnerParticipant) {
+            return res.status(400).json({ error: 'Winner must be a participant in this pod.' });
+        }
+
+        // If pod was already pending (had stats partially applied), we need to reverse first
+        // This handles the case where someone declared a win but the pod wasn't completed
+        if (pod.confirmation_status === 'pending' && pod.league_id) {
+            // Check if any stats were applied (participants have results set)
+            const hasResults = participants.some(p => p.result !== null);
+            if (hasResults) {
+                logger.debug('Reversing partial stats from pending pod', { podId });
+                // Note: In pending state, stats shouldn't have been applied yet
+                // (stats are only applied when ALL players confirm and pod becomes complete)
+                // So we don't need to reverse here
+            }
+        }
+
+        const now = db.fn.now();
+
+        // Update winner: result='win', confirmed=1, confirmation_time=now
+        await db('game_players')
+            .where({ pod_id: podId, player_id: winnerId })
+            .whereNull('deleted_at')
+            .update({
+                result: 'win',
+                confirmed: 1,
+                confirmation_time: now
+            });
+
+        // Update all other players: result='loss', confirmed=1, confirmation_time=now
+        await db('game_players')
+            .where({ pod_id: podId })
+            .whereNot({ player_id: winnerId })
+            .whereNull('deleted_at')
+            .update({
+                result: 'loss',
+                confirmed: 1,
+                confirmation_time: now
+            });
+
+        // Update pod status to complete with result='win'
+        await db('game_pods')
+            .where({ id: podId })
+            .update({
+                confirmation_status: 'complete',
+                result: 'win'
+            });
+
+        // Fetch updated participants for stats application
+        const updatedParticipants = await podService.getParticipants(podId);
+
+        // Apply game stats if pod has a league
+        if (pod.league_id) {
+            // Apply stats (wins/losses to users and user_leagues)
+            await podService.applyGameStats(updatedParticipants, pod.league_id);
+
+            // Apply ELO changes
+            await podService.applyEloChanges(updatedParticipants, podId, pod.league_id);
+
+            // Invalidate caches
+            await cacheInvalidators.gameCompleted(pod.league_id);
+        }
+
+        // Log the admin action
+        await logAdminSetWinner(req.user.id, podId, winnerId);
+
+        // Fetch the complete pod with participants for response
+        const completedPod = await db('game_pods').where({ id: podId }).first();
+        const participantsWithDetails = await podService.getParticipantsWithUsers(podId);
+
+        logger.info('Admin setWinner completed', {
+            podId,
+            winnerId,
+            adminId: req.user.id,
+            leagueId: pod.league_id
+        });
+
+        res.status(200).json({
+            message: 'Winner set and pod completed successfully.',
+            pod: {
+                ...completedPod,
+                participants: participantsWithDetails
+            }
+        });
+    } catch (err) {
+        handleError(res, err, 'Failed to set winner');
+    }
+};
+
+/**
+ * Admin Declare Winner - Sets winner/losers and moves pod from active to pending
+ * Does NOT apply stats - waits for confirmations or admin force complete
+ *
+ * Flow: active → pending
+ *
+ * 1. Sets the winner's result to 'win' (not confirmed - waiting for others)
+ * 2. Sets all other players to 'loss' (not confirmed)
+ * 3. Updates pod status to 'pending' with result='win'
+ */
+const declareWinner = async (req, res) => {
+    const { podId } = req.params;
+    const { winnerId } = req.body;
+
+    if (!winnerId) {
+        return res.status(400).json({ error: 'Winner ID is required.' });
+    }
+
+    logger.info('Admin declareWinner called', { podId, winnerId, adminId: req.user.id });
+
+    try {
+        // Get pod and validate it exists
+        const pod = await podService.getById(podId);
+        if (!pod) {
+            return res.status(404).json({ error: 'Pod not found.' });
+        }
+
+        // Only allow declaring winner on active pods
+        if (pod.confirmation_status !== 'active') {
+            if (pod.confirmation_status === 'pending') {
+                return res.status(400).json({ error: 'Pod is already pending. Use "Force Complete" to finish it.' });
+            }
+            if (pod.confirmation_status === 'complete') {
+                return res.status(400).json({ error: 'Pod is already complete.' });
+            }
+            return res.status(400).json({ error: 'Pod must be active to declare a winner.' });
+        }
+
+        // Get current participants
+        const participants = await podService.getParticipants(podId);
+        if (participants.length < 2) {
+            return res.status(400).json({ error: 'Pod must have at least 2 participants.' });
+        }
+
+        // Verify winner is a participant
+        const winnerParticipant = participants.find(p => p.player_id === parseInt(winnerId));
+        if (!winnerParticipant) {
+            return res.status(400).json({ error: 'Winner must be a participant in this pod.' });
+        }
+
+        // Update winner: result='win' (NOT confirmed yet)
+        await db('game_players')
+            .where({ pod_id: podId, player_id: winnerId })
+            .whereNull('deleted_at')
+            .update({
+                result: 'win',
+                confirmed: 0
+            });
+
+        // Update all other players: result='loss' (NOT confirmed yet)
+        await db('game_players')
+            .where({ pod_id: podId })
+            .whereNot({ player_id: winnerId })
+            .whereNull('deleted_at')
+            .update({
+                result: 'loss',
+                confirmed: 0
+            });
+
+        // Update pod status to pending with result='win'
+        await db('game_pods')
+            .where({ id: podId })
+            .update({
+                confirmation_status: 'pending',
+                result: 'win'
+            });
+
+        // Log the admin action
+        await logPodUpdated(req.user.id, podId, { action: 'declare_winner', winnerId });
+
+        // Fetch the updated pod with participants for response
+        const updatedPod = await db('game_pods').where({ id: podId }).first();
+        const participantsWithDetails = await podService.getParticipantsWithUsers(podId);
+
+        logger.info('Admin declareWinner completed - pod moved to pending', {
+            podId,
+            winnerId,
+            adminId: req.user.id
+        });
+
+        res.status(200).json({
+            message: 'Winner declared. Pod is now pending confirmation.',
+            pod: {
+                ...updatedPod,
+                participants: participantsWithDetails
+            }
+        });
+    } catch (err) {
+        handleError(res, err, 'Failed to declare winner');
+    }
+};
+
+/**
+ * Admin Force Complete - Moves a pending pod to complete, applying stats
+ *
+ * Flow: pending → complete
+ *
+ * 1. Sets all participants to confirmed=1
+ * 2. Updates pod status to 'complete'
+ * 3. Applies game stats (wins/losses)
+ * 4. Applies ELO changes
+ */
+const forceComplete = async (req, res) => {
+    const { podId } = req.params;
+
+    logger.info('Admin forceComplete called', { podId, adminId: req.user.id });
+
+    try {
+        // Get pod and validate it exists
+        const pod = await podService.getById(podId);
+        if (!pod) {
+            return res.status(404).json({ error: 'Pod not found.' });
+        }
+
+        // Only allow force complete on pending pods
+        if (pod.confirmation_status !== 'pending') {
+            if (pod.confirmation_status === 'complete') {
+                return res.status(400).json({ error: 'Pod is already complete.' });
+            }
+            if (pod.confirmation_status === 'active') {
+                return res.status(400).json({ error: 'Pod is still active. Declare a winner first to move it to pending.' });
+            }
+            return res.status(400).json({ error: 'Pod must be pending to force complete.' });
+        }
+
+        const now = db.fn.now();
+
+        // Set all participants to confirmed
+        await db('game_players')
+            .where({ pod_id: podId })
+            .whereNull('deleted_at')
+            .update({
+                confirmed: 1,
+                confirmation_time: now
+            });
+
+        // Update pod status to complete
+        await db('game_pods')
+            .where({ id: podId })
+            .update({
+                confirmation_status: 'complete'
+            });
+
+        // Fetch updated participants for stats application
+        const updatedParticipants = await podService.getParticipants(podId);
+
+        // Apply game stats if pod has a league
+        if (pod.league_id) {
+            await podService.applyGameStats(updatedParticipants, pod.league_id);
+            await podService.applyEloChanges(updatedParticipants, podId, pod.league_id);
+            await cacheInvalidators.gameCompleted(pod.league_id);
+        }
+
+        // Log the admin action
+        await logPodUpdated(req.user.id, podId, { action: 'force_complete' });
+
+        // Fetch the complete pod with participants for response
+        const completedPod = await db('game_pods').where({ id: podId }).first();
+        const participantsWithDetails = await podService.getParticipantsWithUsers(podId);
+
+        logger.info('Admin forceComplete completed', {
+            podId,
+            adminId: req.user.id,
+            leagueId: pod.league_id
+        });
+
+        res.status(200).json({
+            message: 'Pod completed successfully. Stats have been applied.',
+            pod: {
+                ...completedPod,
+                participants: participantsWithDetails
+            }
+        });
+    } catch (err) {
+        handleError(res, err, 'Failed to force complete pod');
     }
 };
 
@@ -615,4 +713,7 @@ module.exports = {
     updateParticipantResult,
     toggleDQ,
     deletePod,
+    setWinner,
+    declareWinner,
+    forceComplete,
 };

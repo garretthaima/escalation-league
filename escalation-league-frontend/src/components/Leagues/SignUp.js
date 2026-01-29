@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { getLeagues } from '../../api/leaguesApi';
 import { getUserPendingSignupRequests, requestSignupForLeague } from '../../api/userLeaguesApi';
 import { validateAndCacheDeck } from '../../api/decksApi'; // Import the function
 import ScryfallApi from '../../api/scryfallApi';
-import { usePermissions } from '../context/PermissionsProvider';
+import { usePermissions } from '../../context/PermissionsProvider';
 
 const SignUp = () => {
     const { activeLeague: contextActiveLeague, loading: permissionsLoading } = usePermissions();
@@ -25,6 +25,7 @@ const SignUp = () => {
     const [commanderAbilityType, setCommanderAbilityType] = useState(null); // 'partner' or 'background'
     const [decklistUrl, setDecklistUrl] = useState('');
     const [deckValidationError, setDeckValidationError] = useState(''); // Validation error state
+    const [discordRequired, setDiscordRequired] = useState(false);
     const navigate = useNavigate();
 
     // Use activeLeague from context
@@ -101,8 +102,14 @@ const SignUp = () => {
             setMessage(response.message || 'Successfully signed up for the league!');
             setPendingRequest(true);
         } catch (error) {
-            setMessage('Error signing up for the league.');
             console.error('Error signing up for the league:', error);
+
+            // Check for Discord required error
+            if (error.response?.data?.code === 'DISCORD_REQUIRED') {
+                setDiscordRequired(true);
+            } else {
+                setMessage('Error signing up for the league.');
+            }
         } finally {
             setIsSubmitting(false);
         }
@@ -184,7 +191,7 @@ const SignUp = () => {
 
     useEffect(() => {
         if (activeLeague) {
-            navigate('/current-league');
+            navigate('/leagues');
         }
     }, [activeLeague, navigate]);
 
@@ -199,6 +206,31 @@ const SignUp = () => {
                 <p className="text-warning">
                     You already have a pending signup request. Please wait for it to be approved.
                 </p>
+            </div>
+        );
+    }
+
+    if (discordRequired) {
+        return (
+            <div className="container mt-4">
+                <h2 className="mb-4">Sign Up for a League</h2>
+                <div className="card">
+                    <div className="card-body text-center py-5">
+                        <i className="fab fa-discord fa-4x mb-3" style={{ color: '#5865F2' }}></i>
+                        <h4>Discord Account Required</h4>
+                        <p className="text-muted mb-4">
+                            Please link your Discord account to join a league.
+                            This enables attendance check-ins via Discord reactions and game notifications.
+                        </p>
+                        <Link
+                            to="/profile?tab=settings"
+                            className="btn btn-primary btn-lg"
+                        >
+                            <i className="fab fa-discord me-2"></i>
+                            Link Discord Account
+                        </Link>
+                    </div>
+                </div>
             </div>
         );
     }

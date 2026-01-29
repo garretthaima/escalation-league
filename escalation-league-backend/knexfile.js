@@ -11,7 +11,7 @@ if (environment === 'production') {
     // require('dotenv').config({ path: '../.env.prod' });
     require('dotenv').config({ path: '.env.prod' });
 } else if (environment === 'test') {
-    // require('dotenv').config({ path: '../.env.dev' });
+    require('dotenv').config({ path: '../.env.dev' });
     require('dotenv').config({ path: '.env.dev' });
 }
 
@@ -24,6 +24,8 @@ module.exports = {
             user: process.env.DB_USER || 'prod_user',
             password: process.env.DB_PASSWORD,
             database: process.env.DB_NAME || 'escalation_league_prod',
+            // Return DATE columns as strings to avoid timezone conversion issues
+            dateStrings: ['DATE'],
         },
         migrations: {
             directory: './migrations/escalation_league',
@@ -42,6 +44,8 @@ module.exports = {
             user: process.env.DB_USER || 'league_user',
             password: process.env.DB_PASSWORD,
             database: process.env.DB_NAME || 'escalation_league_dev',
+            // Return DATE columns as strings to avoid timezone conversion issues
+            dateStrings: ['DATE'],
         },
         migrations: {
             directory: './migrations/escalation_league',
@@ -60,6 +64,8 @@ module.exports = {
             user: process.env.CARD_DB_USER || 'card_user',
             password: process.env.CARD_DB_PASSWORD,
             database: process.env.CARD_DB_NAME || 'scryfall_card_db',
+            // Return DATE columns as strings to avoid timezone conversion issues
+            dateStrings: ['DATE'],
         },
         migrations: {
             directory: './migrations/scryfall',
@@ -78,6 +84,8 @@ module.exports = {
             user: process.env.TEST_DB_USER || 'league_user',
             password: process.env.TEST_DB_PASSWORD,
             database: process.env.TEST_DB_NAME || 'escalation_league_test',
+            // Return DATE columns as strings to avoid timezone conversion issues
+            dateStrings: ['DATE'],
         },
         migrations: {
             directory: './migrations/escalation_league',

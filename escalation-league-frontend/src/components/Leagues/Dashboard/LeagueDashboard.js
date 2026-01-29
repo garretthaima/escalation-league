@@ -3,8 +3,12 @@ import { useNavigate, Link } from 'react-router-dom';
 import { getLeagueDetails, getLeagueStats } from '../../../api/leaguesApi';
 import { getLeagueParticipants, getUserLeagueStats } from '../../../api/userLeaguesApi';
 import { getMetagameAnalysis } from '../../../api/metagameApi';
-import { usePermissions } from '../../context/PermissionsProvider';
+import { usePermissions } from '../../../context/PermissionsProvider';
+import { calculateTotalSeasonBudget, calculateWeeksFromDates } from '../../../utils/budgetCalculations';
+import { formatDate } from '../../../utils/dateFormatter';
 import CollapsibleSection from '../../Shared/CollapsibleSection';
+import LoadingSpinner from '../../Shared/LoadingSpinner';
+import { DiscordPromptBanner } from '../../Shared';
 import UserStandingCard from './UserStandingCard';
 import LeaderboardSection from './LeaderboardSection';
 import MetagamePreview from './MetagamePreview';
@@ -40,7 +44,7 @@ const LeagueDashboard = () => {
                     return;
                 }
 
-                const leagueId = contextLeague.league_id;
+                const leagueId = contextLeague.id;
 
                 // Fetch essential data in parallel (fast endpoints)
                 const [leagueDetails, userStatsData, leaderboardData, participantsData] = await Promise.all([
@@ -107,9 +111,7 @@ const LeagueDashboard = () => {
         return (
             <div className="container mt-4">
                 <div className="text-center py-5">
-                    <div className="spinner-border" role="status">
-                        <span className="visually-hidden">Loading...</span>
-                    </div>
+                    <LoadingSpinner size="lg" />
                 </div>
             </div>
         );
@@ -127,17 +129,11 @@ const LeagueDashboard = () => {
         return null;
     }
 
-    const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            timeZone: 'UTC'
-        });
-    };
-
     return (
         <div className="container mt-4 league-dashboard">
+            {/* Discord Prompt Banner */}
+            <DiscordPromptBanner />
+
             {/* Hero Section */}
             <div className="dashboard-hero mb-4">
                 <div className="row align-items-center">
@@ -155,7 +151,7 @@ const LeagueDashboard = () => {
                             </span>
                             <span>
                                 <i className="fas fa-dollar-sign me-1"></i>
-                                ${league.weekly_budget}/week budget
+                                ${calculateTotalSeasonBudget(league.number_of_weeks || calculateWeeksFromDates(league.start_date, league.end_date), league.weekly_budget).toFixed(2)} season budget
                             </span>
                         </div>
                     </div>

@@ -1,6 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { getResultBadge, getConfirmationBadge } from '../../../utils/badgeHelpers';
+import { parseDate } from '../../../utils/dateFormatter';
+import '../../Shared/Shared.css';
+import './ConfirmationCard.css';
 
 /**
  * Card component for games pending confirmation
@@ -9,10 +11,13 @@ import { getResultBadge, getConfirmationBadge } from '../../../utils/badgeHelper
 const ConfirmationCard = ({ pod, userId, onConfirm }) => {
     const participants = Array.isArray(pod.participants) ? pod.participants : [];
 
-    // Find who declared the result (the one who has confirmed and has a result)
-    const declarer = participants.find(p => p.confirmed === 1 && p.result);
-    const isDraw = declarer?.result === 'draw';
-    const isWin = declarer?.result === 'win';
+    // Find the winner (they declared the win) or fall back to earliest confirmer for draws
+    const winner = participants.find(p => p.result === 'win');
+    const declarer = winner || participants
+        .filter(p => p.confirmed === 1 && p.confirmation_time)
+        .sort((a, b) => parseDate(a.confirmation_time) - parseDate(b.confirmation_time))[0];
+    const isDraw = !winner && declarer?.result === 'draw';
+    const isWin = !!winner;
 
     // Check if current user needs to confirm
     const userParticipant = participants.find(p => String(p.player_id) === String(userId));
@@ -22,61 +27,77 @@ const ConfirmationCard = ({ pod, userId, onConfirm }) => {
     const confirmedCount = participants.filter(p => p.confirmed === 1).length;
     const totalCount = participants.length;
 
+    // 2x2 grid layout for participants
+    const sortedParticipants = [...participants].sort((a, b) =>
+        (a.turn_order || 999) - (b.turn_order || 999)
+    );
+    const paddedParticipants = [...sortedParticipants];
+    while (paddedParticipants.length < 4) {
+        paddedParticipants.push(null);
+    }
+    const gridOrder = [0, 1, 3, 2]; // Clockwise
+
     return (
-        <div className="card h-100 border-warning">
-            <div className="card-header bg-warning bg-opacity-25 d-flex justify-content-between align-items-center">
-                <span>
-                    <i className="fas fa-clock me-2"></i>
-                    Pod #{pod.id}
-                </span>
-                <span className="badge bg-secondary">
-                    {confirmedCount}/{totalCount} confirmed
-                </span>
-            </div>
-            <div className="card-body">
-                {/* Result Declaration */}
-                <div className="alert alert-info py-2 mb-3">
-                    <strong>
-                        {declarer ? (
-                            <>
-                                {declarer.firstname} {declarer.lastname}
-                                {' '}declared{' '}
-                                {isDraw ? (
-                                    <span className="badge bg-secondary">DRAW</span>
-                                ) : isWin ? (
-                                    <span className="badge bg-success">WINNER</span>
-                                ) : (
-                                    <span className="badge bg-secondary">{declarer.result}</span>
-                                )}
-                            </>
-                        ) : (
-                            'Result pending...'
-                        )}
-                    </strong>
+        <div className="card h-100">
+            <div className="card-body py-3">
+                {/* Header row with declaration */}
+                <div className="d-flex justify-content-between align-items-center mb-2">
+                    <h6 className="card-title mb-0">
+                        <i className="fas fa-clock me-2 text-brand-gold"></i>
+                        Pod #{pod.id}
+                    </h6>
+                    <span className="text-xs confirmation-card-counter">
+                        {confirmedCount}/{totalCount}
+                    </span>
                 </div>
 
-                {/* Participants List */}
-                <div className="mb-3">
-                    {participants.map((participant) => {
+                {/* Compact declaration line */}
+                <div className="text-sm confirmation-card-declaration">
+                    {declarer ? (
+                        <>
+                            <span className="confirmation-card-declarer-text">
+                                {declarer.firstname} declared
+                            </span>
+                            <span className={`text-xs confirmation-card-result-badge ${isWin ? 'confirmation-card-result-badge-win' : 'confirmation-card-result-badge-draw'}`}>
+                                {isDraw ? 'DRAW' : 'WIN'}
+                            </span>
+                        </>
+                    ) : (
+                        <span className="confirmation-card-pending-text">Pending...</span>
+                    )}
+                </div>
+
+                {/* 2x2 Grid */}
+                <div className={`confirmation-card-grid${needsConfirmation ? ' confirmation-card-grid-with-button' : ''}`}>
+                    {gridOrder.map((idx) => {
+                        const participant = paddedParticipants[idx];
+                        if (!participant) {
+                            return (
+                                <div
+                                    key={`empty-${idx}`}
+                                    className="text-xs confirmation-card-slot-empty"
+                                >
+                                    —
+                                </div>
+                            );
+                        }
+
                         const isCurrentUser = String(participant.player_id) === String(userId);
                         const isConfirmed = participant.confirmed === 1;
+                        const hasWin = participant.result === 'win';
 
                         return (
                             <div
                                 key={participant.player_id}
-                                className={`d-flex justify-content-between align-items-center py-2 px-2 rounded mb-1 ${isConfirmed ? 'bg-success bg-opacity-10' : ''
-                                    }`}
+                                className={`text-sm confirmation-card-slot${isCurrentUser ? ' confirmation-card-slot-current-user' : ''}`}
                             >
-                                <span>
-                                    {participant.firstname} {participant.lastname}
-                                    {isCurrentUser && (
-                                        <span className="badge bg-info ms-2">You</span>
-                                    )}
+                                <span className={isCurrentUser ? 'confirmation-card-name-current-user' : 'confirmation-card-name'}>
+                                    {hasWin && <i className="fas fa-trophy me-1 text-brand-gold confirmation-card-trophy"></i>}
+                                    {participant.firstname}
                                 </span>
-                                <div className="d-flex align-items-center gap-2">
-                                    {participant.result && getResultBadge(participant.result)}
-                                    {getConfirmationBadge(participant.confirmed)}
-                                </div>
+                                <i
+                                    className={`fas ${isConfirmed ? 'fa-check' : 'fa-clock'} confirmation-card-status-icon ${isConfirmed ? 'confirmation-card-status-confirmed' : 'confirmation-card-status-pending'}`}
+                                ></i>
                             </div>
                         );
                     })}
@@ -85,11 +106,11 @@ const ConfirmationCard = ({ pod, userId, onConfirm }) => {
                 {/* Confirm Button */}
                 {needsConfirmation && (
                     <button
-                        className="btn btn-success w-100"
+                        className="btn btn-success w-100 text-sm"
                         onClick={() => onConfirm(pod.id)}
                     >
                         <i className="fas fa-check-circle me-2"></i>
-                        Confirm Result
+                        Confirm
                     </button>
                 )}
             </div>
