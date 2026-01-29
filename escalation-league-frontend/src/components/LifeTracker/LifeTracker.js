@@ -7,13 +7,35 @@ import './LifeTracker.css';
 const STARTING_LIFE = 40;
 const PLAYER_COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#9b59b6'];
 
-const PlayerLife = ({ player, index, onLifeChange, onCommanderDamageChange, allPlayers, rotation, commanderImage }) => {
+const PlayerLife = ({ player, index, onLifeChange, onCommanderDamageChange, allPlayers, rotation, commanderImage, allCommanderImages }) => {
     const [showCommanderDamage, setShowCommanderDamage] = useState(false);
+    const [deltaIndicator, setDeltaIndicator] = useState({ value: 0, visible: false, key: 0 });
     const touchHandledRef = useRef(false);
+    const deltaTimeoutRef = useRef(null);
+    const cumulativeDeltaRef = useRef(0);
     const color = PLAYER_COLORS[index % PLAYER_COLORS.length];
 
     const handleLifeChange = (delta) => {
         onLifeChange(index, delta);
+
+        // Accumulate delta for display
+        cumulativeDeltaRef.current += delta;
+        setDeltaIndicator(prev => ({
+            value: cumulativeDeltaRef.current,
+            visible: true,
+            key: prev.key + 1 // Force re-render for animation restart
+        }));
+
+        // Clear existing timeout
+        if (deltaTimeoutRef.current) {
+            clearTimeout(deltaTimeoutRef.current);
+        }
+
+        // Reset after 1.5 seconds of no taps
+        deltaTimeoutRef.current = setTimeout(() => {
+            setDeltaIndicator(prev => ({ ...prev, visible: false }));
+            cumulativeDeltaRef.current = 0;
+        }, 1500);
     };
 
     // Handle touch events to support multi-touch (multiple players tapping simultaneously)
@@ -34,19 +56,42 @@ const PlayerLife = ({ player, index, onLifeChange, onCommanderDamageChange, allP
     };
 
     const cellStyle = {
-        '--player-color': color,
-        ...(commanderImage && {
-            backgroundImage: `url(${commanderImage})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center'
-        })
+        '--player-color': color
     };
 
     return (
         <div
-            className={`player-cell player-${index} ${commanderImage ? 'has-commander-bg' : ''}`}
+            className={`player-cell player-${index} ${commanderImage?.main ? 'has-commander-bg' : ''}`}
             style={cellStyle}
         >
+            {/* Commander background image - rotated to face outward like player content */}
+            {commanderImage?.main && (
+                commanderImage.partner ? (
+                    // Partner commanders: two images side by side
+                    <div
+                        className="commander-bg commander-bg-partners"
+                        style={{ transform: `translate(-50%, -50%) rotate(${rotation}deg)` }}
+                    >
+                        <div
+                            className="commander-bg-half"
+                            style={{ backgroundImage: `url(${commanderImage.main})` }}
+                        />
+                        <div
+                            className="commander-bg-half"
+                            style={{ backgroundImage: `url(${commanderImage.partner})` }}
+                        />
+                    </div>
+                ) : (
+                    // Single commander
+                    <div
+                        className="commander-bg"
+                        style={{
+                            backgroundImage: `url(${commanderImage.main})`,
+                            transform: `translate(-50%, -50%) rotate(${rotation}deg)`
+                        }}
+                    />
+                )
+            )}
             <div
                 className="player-content"
                 style={{ transform: `translate(-50%, -50%) rotate(${rotation}deg)` }}
@@ -70,8 +115,18 @@ const PlayerLife = ({ player, index, onLifeChange, onCommanderDamageChange, allP
                         <span className="life-delta">−1</span>
                     </button>
 
-                    <div className="life-total" style={{ color }}>
-                        {player.life}
+                    <div className="life-total-container">
+                        <div className="life-total" style={{ color }}>
+                            {player.life}
+                        </div>
+                        {deltaIndicator.visible && deltaIndicator.value !== 0 && (
+                            <div
+                                key={deltaIndicator.key}
+                                className={`delta-indicator ${deltaIndicator.value > 0 ? 'delta-positive' : 'delta-negative'}`}
+                            >
+                                {deltaIndicator.value > 0 ? '+' : ''}{deltaIndicator.value}
+                            </div>
+                        )}
                     </div>
 
                     <button
@@ -95,43 +150,108 @@ const PlayerLife = ({ player, index, onLifeChange, onCommanderDamageChange, allP
                     <button className="quick-btn" onTouchEnd={handleTouchEnd(+10)} onClick={handleClick(+10)}>+10</button>
                     <button className="quick-btn" onTouchEnd={handleTouchEnd(+5)} onClick={handleClick(+5)}>+5</button>
                 </div>
+            </div>
 
-                {showCommanderDamage && (
-                    <div className="commander-overlay">
-                        <div className="commander-damage-grid">
-                            {allPlayers.map((opponent, oppIndex) => {
-                                if (oppIndex === index) return null;
-                                const damage = player.commanderDamage[oppIndex] || 0;
-                                return (
-                                    <div key={oppIndex} className="cmd-damage-item">
-                                        <span
-                                            className="cmd-color-dot"
-                                            style={{ backgroundColor: PLAYER_COLORS[oppIndex] }}
-                                        />
-                                        <button
-                                            className="cmd-btn"
-                                            onClick={() => onCommanderDamageChange(index, oppIndex, -1)}
-                                        >−</button>
-                                        <span className={`cmd-value ${damage >= 21 ? 'lethal' : ''}`}>
-                                            {damage}
-                                        </span>
-                                        <button
-                                            className="cmd-btn"
-                                            onClick={() => onCommanderDamageChange(index, oppIndex, 1)}
-                                        >+</button>
-                                    </div>
-                                );
-                            })}
-                        </div>
+            {/* Commander damage overlay - outside player-content so it fills the cell */}
+            {showCommanderDamage && (() => {
+                // Rotate entire grid to face the player at this position
+                // Players 0,3 are left column (face left = 90°), players 1,2 are right column (face right = -90°)
+                const isLeftColumn = index === 0 || index === 3;
+                const gridRotation = isLeftColumn ? 90 : -90;
+
+                // Grid position to player mapping, adjusted for rotation
+                // Main layout: P0=top-left, P1=top-right, P2=bottom-right, P3=bottom-left
+                // For 90° (left column): grid renders then rotates CW, so we pre-map CCW
+                // For -90° (right column): grid renders then rotates CCW, so we pre-map CW
+                const gridToPlayer = isLeftColumn
+                    ? [1, 2, 0, 3]  // After 90° CW rotation: [0,1,2,3] -> P0 top-left, P1 top-right, P3 bottom-left, P2 bottom-right
+                    : [3, 0, 2, 1]; // After 90° CCW rotation
+
+                return (
+                    <div className={`commander-overlay cmd-overlay-player-${index}`}>
                         <button
-                            className="cmd-close"
+                            className="cmd-close-x"
                             onClick={() => setShowCommanderDamage(false)}
                         >
-                            Close
+                            ×
                         </button>
+                        <div
+                            className="commander-damage-grid-2x2"
+                            style={{
+                                transform: `translate(-50%, -50%) rotate(${gridRotation}deg)`,
+                                left: isLeftColumn ? '60%' : '40%'
+                            }}
+                        >
+                            {/* Grid positions after rotation should match main layout */}
+                            {[0, 1, 2, 3].map((gridPos) => {
+                                const playerIdx = gridToPlayer[gridPos];
+                                const isSelf = playerIdx === index;
+                                const opponent = allPlayers[playerIdx];
+                                // Only show dual damage tracking for true partners, not backgrounds
+                                const opponentImages = opponent?.playerId ? allCommanderImages[opponent.playerId] : null;
+                                const hasPartner = opponent?.partnerUuid && !opponentImages?.isBackground;
+                                // Get damage - for partners, use key format "playerIdx_1" for second commander
+                                const damage1 = player.commanderDamage[playerIdx] || 0;
+                                const damage2 = player.commanderDamage[`${playerIdx}_1`] || 0;
+                                return (
+                                    <div
+                                        key={gridPos}
+                                        className={`cmd-grid-cell ${isSelf ? 'cmd-grid-self' : ''} ${hasPartner ? 'cmd-grid-partner' : ''}`}
+                                        style={{ '--cell-color': PLAYER_COLORS[playerIdx] }}
+                                    >
+                                    {isSelf ? (
+                                        <span className="cmd-grid-self-label">YOU</span>
+                                    ) : hasPartner ? (
+                                        <div className="cmd-partner-container">
+                                            <div className="cmd-partner-col">
+                                                <button
+                                                    className="cmd-grid-btn cmd-grid-plus"
+                                                    onClick={() => onCommanderDamageChange(index, playerIdx, 1, 0)}
+                                                >+</button>
+                                                <span className={`cmd-grid-value ${damage1 >= 21 ? 'lethal' : ''}`}>
+                                                    {damage1}
+                                                </span>
+                                                <button
+                                                    className="cmd-grid-btn cmd-grid-minus"
+                                                    onClick={() => onCommanderDamageChange(index, playerIdx, -1, 0)}
+                                                >−</button>
+                                            </div>
+                                            <div className="cmd-partner-col">
+                                                <button
+                                                    className="cmd-grid-btn cmd-grid-plus"
+                                                    onClick={() => onCommanderDamageChange(index, playerIdx, 1, 1)}
+                                                >+</button>
+                                                <span className={`cmd-grid-value ${damage2 >= 21 ? 'lethal' : ''}`}>
+                                                    {damage2}
+                                                </span>
+                                                <button
+                                                    className="cmd-grid-btn cmd-grid-minus"
+                                                    onClick={() => onCommanderDamageChange(index, playerIdx, -1, 1)}
+                                                >−</button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <button
+                                                className="cmd-grid-btn cmd-grid-plus"
+                                                onClick={() => onCommanderDamageChange(index, playerIdx, 1, 0)}
+                                            >+</button>
+                                            <span className={`cmd-grid-value ${damage1 >= 21 ? 'lethal' : ''}`}>
+                                                {damage1}
+                                            </span>
+                                            <button
+                                                className="cmd-grid-btn cmd-grid-minus"
+                                                onClick={() => onCommanderDamageChange(index, playerIdx, -1, 0)}
+                                            >−</button>
+                                        </>
+                                    )}
+                                </div>
+                            );
+                        })}
                     </div>
-                )}
-            </div>
+                </div>
+                );
+            })()}
         </div>
     );
 };
@@ -142,8 +262,6 @@ const LifeTracker = () => {
     const [loading, setLoading] = useState(!!podId);
     const [pod, setPod] = useState(null);
     const [commanderImages, setCommanderImages] = useState({});
-    const [isFullscreen, setIsFullscreen] = useState(false);
-    const [isPWA, setIsPWA] = useState(false);
     const saveTimeoutRef = useRef(null);
     const isInitializedRef = useRef(false);
     const wakeLockRef = useRef(null);
@@ -160,18 +278,24 @@ const LifeTracker = () => {
     // Rotations for phone flat on table, each player faces outward to their seat
     const rotations = [90, -90, -90, 90];
 
-    // Detect PWA mode and fullscreen state
+    // Auto-request fullscreen on mobile
     useEffect(() => {
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches
             || window.navigator.standalone
             || document.referrer.includes('android-app://');
-        setIsPWA(isStandalone);
 
-        const handleFullscreenChange = () => {
-            setIsFullscreen(!!document.fullscreenElement);
-        };
-        document.addEventListener('fullscreenchange', handleFullscreenChange);
-        return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+        // Detect mobile device
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+            || window.matchMedia('(max-width: 768px)').matches;
+
+        // Auto-request fullscreen on mount for mobile only (if not already in PWA/fullscreen)
+        // Note: This requires a user gesture on most browsers, so it may not work
+        // on initial page load, but will work when navigating from another page
+        if (isMobile && !isStandalone && !document.fullscreenElement) {
+            document.documentElement.requestFullscreen?.().catch(() => {
+                // Fullscreen request failed (likely no user gesture) - that's ok
+            });
+        }
     }, []);
 
     // Keep screen awake using Wake Lock API
@@ -274,7 +398,7 @@ const LifeTracker = () => {
         fetchData();
     }, [podId]);
 
-    // Fetch commander art images
+    // Fetch commander art images (supports partner commanders)
     const fetchCommanderImages = async (participants) => {
         const images = {};
 
@@ -282,11 +406,28 @@ const LifeTracker = () => {
             if (p.current_commander) {
                 try {
                     const card = await ScryfallApi.getCardById(p.current_commander);
-                    if (card?.image_uris?.art_crop) {
-                        images[p.player_id] = card.image_uris.art_crop;
-                    } else if (card?.image_uris?.normal) {
-                        images[p.player_id] = card.image_uris.normal;
+                    const mainImage = card?.image_uris?.art_crop || card?.image_uris?.normal;
+
+                    // Check for partner commander
+                    let partnerImage = null;
+                    let isBackground = false;
+                    if (p.commander_partner) {
+                        try {
+                            const partnerCard = await ScryfallApi.getCardById(p.commander_partner);
+                            partnerImage = partnerCard?.image_uris?.art_crop || partnerCard?.image_uris?.normal;
+                            // Check if partner is a Background (doesn't deal commander damage)
+                            isBackground = partnerCard?.type_line?.includes('Background') || false;
+                        } catch (error) {
+                            console.error('Error fetching partner commander image:', error);
+                        }
                     }
+
+                    // Store as object with main, partner, and whether partner is a background
+                    images[p.player_id] = {
+                        main: mainImage,
+                        partner: partnerImage,
+                        isBackground: isBackground
+                    };
                 } catch (error) {
                     console.error('Error fetching commander image:', error);
                 }
@@ -342,17 +483,19 @@ const LifeTracker = () => {
         });
     }, [saveToHistory]);
 
-    const handleCommanderDamageChange = useCallback((playerIndex, fromIndex, delta) => {
+    const handleCommanderDamageChange = useCallback((playerIndex, fromIndex, delta, commanderIndex = 0) => {
         saveToHistory();
         setPlayers((prev) => {
             const updated = [...prev];
-            const currentDamage = updated[playerIndex].commanderDamage[fromIndex] || 0;
+            // Use key format "playerIndex" for single commander or "playerIndex_cmdIndex" for partners
+            const damageKey = commanderIndex === 0 ? fromIndex : `${fromIndex}_${commanderIndex}`;
+            const currentDamage = updated[playerIndex].commanderDamage[damageKey] || 0;
             const newDamage = Math.max(0, currentDamage + delta);
             updated[playerIndex] = {
                 ...updated[playerIndex],
                 commanderDamage: {
                     ...updated[playerIndex].commanderDamage,
-                    [fromIndex]: newDamage,
+                    [damageKey]: newDamage,
                 },
             };
             return updated;
@@ -384,60 +527,19 @@ const LifeTracker = () => {
         // Save state before leaving
         if (podId) {
             try {
-                await updateLifeTrackerState(podId, {
+                console.log('Saving life tracker state for pod:', podId);
+                const result = await updateLifeTrackerState(podId, {
                     players,
                     history: history.slice(-10)
                 });
+                console.log('Save result:', result);
             } catch (error) {
                 console.error('Error saving before close:', error);
+                alert('Failed to save game state: ' + (error.response?.data?.error || error.message));
+                return; // Don't navigate if save failed
             }
         }
         navigate('/pods');
-    };
-
-    const handleNewGame = () => {
-        if (pod?.participants) {
-            // Reset with pod player names preserved
-            const sortedParticipants = [...pod.participants].sort((a, b) =>
-                (a.turn_order || 999) - (b.turn_order || 999)
-            );
-
-            const resetPlayers = sortedParticipants.slice(0, 4).map(p => ({
-                name: `${p.firstname} ${p.lastname}`,
-                life: STARTING_LIFE,
-                commanderDamage: {},
-                playerId: p.player_id,
-                commanderUuid: p.current_commander,
-                partnerUuid: p.commander_partner
-            }));
-
-            while (resetPlayers.length < 4) {
-                resetPlayers.push({ name: '', life: STARTING_LIFE, commanderDamage: {} });
-            }
-
-            setPlayers(resetPlayers);
-        } else {
-            setPlayers([
-                { name: '', life: STARTING_LIFE, commanderDamage: {} },
-                { name: '', life: STARTING_LIFE, commanderDamage: {} },
-                { name: '', life: STARTING_LIFE, commanderDamage: {} },
-                { name: '', life: STARTING_LIFE, commanderDamage: {} },
-            ]);
-        }
-        setHistory([]);
-        setShowMenu(false);
-    };
-
-    const toggleFullscreen = async () => {
-        try {
-            if (!document.fullscreenElement) {
-                await document.documentElement.requestFullscreen?.();
-            } else {
-                await document.exitFullscreen?.();
-            }
-        } catch (error) {
-            console.error('Fullscreen error:', error);
-        }
     };
 
     if (loading) {
@@ -452,13 +554,6 @@ const LifeTracker = () => {
 
     return (
         <div className="life-tracker-fullscreen">
-            {/* Fullscreen prompt for non-PWA users */}
-            {!isPWA && !isFullscreen && (
-                <button className="fullscreen-prompt" onClick={toggleFullscreen}>
-                    <i className="fas fa-expand"></i>
-                </button>
-            )}
-
             {/* Center menu button */}
             <button
                 className="center-menu-btn"
@@ -474,9 +569,6 @@ const LifeTracker = () => {
                     </button>
                     <button onClick={handleReset}>
                         <i className="fas fa-sync"></i> Reset Life
-                    </button>
-                    <button onClick={handleNewGame}>
-                        <i className="fas fa-plus"></i> New Game
                     </button>
                     {podId && (
                         <button onClick={handleClose}>
@@ -501,6 +593,7 @@ const LifeTracker = () => {
                         onCommanderDamageChange={handleCommanderDamageChange}
                         allPlayers={players}
                         commanderImage={player.playerId ? commanderImages[player.playerId] : null}
+                        allCommanderImages={commanderImages}
                     />
                 ))}
             </div>

@@ -101,22 +101,22 @@ describe('GameCard', () => {
     describe('life tracker button', () => {
         it('should show life tracker button when user is participant', () => {
             render(<GameCard {...defaultProps} />);
-            expect(screen.getByRole('button', { name: /life/i })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /life tracker/i })).toBeInTheDocument();
         });
 
         it('should not show life tracker button when user is not participant', () => {
             render(<GameCard {...defaultProps} userId={99} />);
-            expect(screen.queryByRole('button', { name: /life/i })).not.toBeInTheDocument();
+            expect(screen.queryByRole('button', { name: /life tracker/i })).not.toBeInTheDocument();
         });
 
         it('should not show life tracker button when showActions is false', () => {
             render(<GameCard {...defaultProps} showActions={false} />);
-            expect(screen.queryByRole('button', { name: /life/i })).not.toBeInTheDocument();
+            expect(screen.queryByRole('button', { name: /life tracker/i })).not.toBeInTheDocument();
         });
 
         it('should navigate to life tracker on click', () => {
             render(<GameCard {...defaultProps} />);
-            const button = screen.getByRole('button', { name: /life/i });
+            const button = screen.getByRole('button', { name: /life tracker/i });
             fireEvent.click(button);
             expect(mockNavigate).toHaveBeenCalledWith('/life-tracker/1');
         });

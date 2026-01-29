@@ -546,8 +546,16 @@ const getLifeTrackerState = async (req, res) => {
             .first();
 
         // Return the state (or null if none saved)
+        // Handle both string and already-parsed JSON (depends on MySQL driver)
+        let parsedState = null;
+        if (savedState?.state) {
+            parsedState = typeof savedState.state === 'string'
+                ? JSON.parse(savedState.state)
+                : savedState.state;
+        }
+
         res.status(200).json({
-            state: savedState ? JSON.parse(savedState.state) : null,
+            state: parsedState,
             podId
         });
     } catch (err) {

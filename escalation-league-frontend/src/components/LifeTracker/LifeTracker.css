@@ -29,10 +29,26 @@
 }
 
 /* Grid positions - P1/P2 top, P4/P3 bottom (diagonal seating) */
-.player-0 { grid-area: 1 / 1 / 2 / 2; } /* P1 - top-left */
-.player-1 { grid-area: 1 / 2 / 2 / 3; } /* P2 - top-right */
-.player-2 { grid-area: 2 / 2 / 3 / 3; } /* P3 - bottom-right */
-.player-3 { grid-area: 2 / 1 / 3 / 2; } /* P4 - bottom-left */
+.player-0 {
+    grid-area: 1 / 1 / 2 / 2;
+}
+
+/* P1 - top-left */
+.player-1 {
+    grid-area: 1 / 2 / 2 / 3;
+}
+
+/* P2 - top-right */
+.player-2 {
+    grid-area: 2 / 2 / 3 / 3;
+}
+
+/* P3 - bottom-right */
+.player-3 {
+    grid-area: 2 / 1 / 3 / 2;
+}
+
+/* P4 - bottom-left */
 
 /* Content wrapper - centered in cell, sized to fit when rotated 90° */
 .player-content {
@@ -113,6 +129,14 @@
     color: rgba(255, 255, 255, 0.6);
 }
 
+/* Life total container - needed for delta indicator positioning */
+.life-total-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 /* Life total display */
 .life-total {
     font-size: clamp(3rem, 15vmin, 6rem);
@@ -120,6 +144,54 @@
     line-height: 1;
     user-select: none;
     text-align: center;
+}
+
+/* Delta indicator - shows cumulative change */
+.delta-indicator {
+    position: absolute;
+    top: -1.2em;
+    right: -2.5em;
+    font-size: clamp(1rem, 5vmin, 2rem);
+    font-weight: 700;
+    padding: 0.1em 0.3em;
+    border-radius: 4px;
+    animation: delta-pop 0.15s ease-out, delta-fade 1.5s ease-in forwards;
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+.delta-positive {
+    color: #2ecc71;
+    text-shadow: 0 0 10px rgba(46, 204, 113, 0.5);
+}
+
+.delta-negative {
+    color: #e74c3c;
+    text-shadow: 0 0 10px rgba(231, 76, 60, 0.5);
+}
+
+@keyframes delta-pop {
+    0% {
+        transform: scale(0.5);
+        opacity: 0;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes delta-fade {
+
+    0%,
+    70% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0;
+    }
 }
 
 /* Quick buttons row */
@@ -211,103 +283,219 @@
     cursor: not-allowed;
 }
 
-/* Commander damage overlay */
+/* Commander damage overlay - fills entire player cell */
 .commander-overlay {
     position: absolute;
     inset: 0;
     background: rgba(10, 10, 20, 0.95);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    padding: 0.5rem;
+    z-index: 5;
 }
 
-.commander-damage-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
+/* 2x2 Grid layout for commander damage - centered in overlay */
+/* Grid is rotated 90° so width/height are swapped relative to cell */
+/* After rotation: width becomes vertical span, height becomes horizontal span */
+.commander-damage-grid-2x2 {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    /* transform set inline to include rotation */
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 4px;
+    width: 36vh;
+    height: 38vw;
 }
 
-.cmd-damage-item {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    background: rgba(255, 255, 255, 0.05);
-    padding: 0.4rem 0.6rem;
+.cmd-grid-cell {
+    background: rgba(0, 0, 0, 0.6);
+    border: 2px solid var(--cell-color);
     border-radius: 6px;
-}
-
-.cmd-color-dot {
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    flex-shrink: 0;
-}
-
-.cmd-btn {
-    width: 28px;
-    height: 28px;
-    border-radius: 4px;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
-    font-size: 1rem;
-    cursor: pointer;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 0.15rem;
+    padding: 0.25rem;
 }
 
-.cmd-btn:active {
-    background: rgba(255, 255, 255, 0.2);
+.cmd-grid-cell.cmd-grid-self {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.2);
 }
 
-.cmd-value {
-    min-width: 2ch;
-    text-align: center;
-    font-size: 1.1rem;
+/* Partner commander layout - side by side */
+.cmd-grid-cell.cmd-grid-partner {
+    gap: 0;
+    padding: 0.1rem;
+}
+
+.cmd-partner-container {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    height: 100%;
+    gap: 4px;
+}
+
+.cmd-partner-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    gap: 0;
+}
+
+.cmd-partner-col .cmd-grid-btn {
+    width: 100%;
+    height: 20px;
+    font-size: 0.75rem;
+}
+
+.cmd-partner-col .cmd-grid-value {
+    font-size: clamp(0.9rem, 4vmin, 1.3rem);
+    line-height: 1;
+}
+
+.cmd-grid-self-label {
+    font-size: 0.7rem;
     font-weight: 600;
-    color: white;
+    color: rgba(255, 255, 255, 0.3);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
 }
 
-.cmd-value.lethal {
+.cmd-grid-value {
+    font-size: clamp(1.2rem, 6vmin, 1.8rem);
+    font-weight: 700;
+    color: white;
+    line-height: 1;
+}
+
+.cmd-grid-value.lethal {
     color: #e74c3c;
     animation: pulse 1s infinite;
 }
 
-@keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
-}
-
-.cmd-close {
-    padding: 0.4rem 1rem;
+.cmd-grid-btn {
+    width: 100%;
+    height: 24px;
+    border-radius: 3px;
     border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 6px;
     background: rgba(255, 255, 255, 0.1);
     color: white;
-    font-size: 0.8rem;
+    font-size: 1rem;
+    font-weight: 600;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.cmd-grid-btn:active {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.cmd-grid-minus:active {
+    background: rgba(231, 76, 60, 0.3);
+}
+
+.cmd-grid-plus:active {
+    background: rgba(46, 204, 113, 0.3);
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.cmd-close-x {
+    position: absolute;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    background: rgba(30, 30, 50, 0.95);
+    color: white;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+
+/* Top row players (0, 1): X at top center (away from center cog) */
+.cmd-overlay-player-0 .cmd-close-x,
+.cmd-overlay-player-1 .cmd-close-x {
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+/* Bottom row players (2, 3): X at bottom center (away from center cog) */
+.cmd-overlay-player-2 .cmd-close-x,
+.cmd-overlay-player-3 .cmd-close-x {
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.cmd-close-x:active {
+    background: rgba(255, 255, 255, 0.2);
 }
 
 /* Commander background image support */
-.player-cell.has-commander-bg {
+/* Swap width/height for rotation - cell is ~50vw x 50vh, so background needs inverse */
+.commander-bg {
+    position: absolute;
+    /* After 90° rotation, width becomes height and vice versa */
+    /* Cell is roughly 50vw wide x 50vh tall */
+    /* So we set bg to 50vh wide x 50vw tall, which after rotation fills the cell */
+    width: 50vh;
+    height: 50vw;
+    top: 50%;
+    left: 50%;
+    transform-origin: center center;
+    /* Transform set inline: translate(-50%, -50%) rotate(Xdeg) */
+    background-size: cover;
+    background-position: center;
+    z-index: 0;
+}
+
+/* Partner commanders: container for side-by-side images */
+.commander-bg.commander-bg-partners {
+    display: flex;
+    background: none;
+}
+
+.commander-bg-half {
+    flex: 1;
     background-size: cover;
     background-position: center;
 }
 
+/* Dark overlay for text readability */
 .player-cell.has-commander-bg::before {
     content: '';
     position: absolute;
     inset: 0;
     background: rgba(26, 26, 46, 0.75);
-    z-index: 0;
+    z-index: 1;
 }
 
 .player-cell.has-commander-bg .player-content {
-    z-index: 1;
+    z-index: 2;
 }
 
 /* Loading state */
@@ -338,9 +526,12 @@
 }
 
 @keyframes pulse-glow {
-    0%, 100% {
+
+    0%,
+    100% {
         box-shadow: 0 0 5px rgba(74, 47, 112, 0.5);
     }
+
     50% {
         box-shadow: 0 0 15px rgba(74, 47, 112, 0.8);
     }

@@ -31,25 +31,14 @@ const GameCard = ({ pod, userId, onDeclareResult, showActions = true }) => {
                 <div className="d-flex justify-content-between align-items-center mb-3">
                     <h6 className="card-title mb-0">Pod #{pod.id}</h6>
                     {showActions && isParticipant && (
-                        <div className="d-flex gap-2">
-                            <button
-                                className="btn btn-sm btn-life-tracker"
-                                onClick={() => navigate(`/life-tracker/${pod.id}`)}
-                                title="Open Life Tracker"
-                            >
-                                <i className="fas fa-heart me-1"></i>
-                                Life
-                            </button>
-                            {onDeclareResult && (
-                                <button
-                                    className="btn btn-sm btn-declare"
-                                    onClick={() => onDeclareResult(pod.id)}
-                                >
-                                    <i className="fas fa-trophy me-1"></i>
-                                    Declare
-                                </button>
-                            )}
-                        </div>
+                        <button
+                            className="btn btn-sm btn-life-tracker"
+                            onClick={() => navigate(`/life-tracker/${pod.id}`)}
+                            title="Open Life Tracker"
+                        >
+                            <i className="fas fa-heart me-1"></i>
+                            Life Tracker
+                        </button>
                     )}
                 </div>
 
@@ -106,6 +95,19 @@ const GameCard = ({ pod, userId, onDeclareResult, showActions = true }) => {
                     })}
                 </div>
             </div>
+
+            {/* Footer with Declare button */}
+            {showActions && isParticipant && onDeclareResult && (
+                <div className="card-footer py-2">
+                    <button
+                        className="btn btn-sm btn-declare w-100"
+                        onClick={() => onDeclareResult(pod.id)}
+                    >
+                        <i className="fas fa-trophy me-1"></i>
+                        Declare Result
+                    </button>
+                </div>
+            )}
         </div>
     );
 };
