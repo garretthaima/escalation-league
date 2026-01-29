@@ -194,34 +194,78 @@
     }
 }
 
-/* Quick buttons row */
-.quick-buttons {
+/* Overlay toggle buttons (CMD and Poison) */
+.overlay-buttons {
     display: flex;
-    gap: 0.25rem;
+    gap: 0.5rem;
     padding: 0.25rem;
-    flex-wrap: wrap;
     justify-content: center;
 }
 
-.quick-btn {
-    padding: 0.3rem 0.5rem;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 4px;
-    background: rgba(255, 255, 255, 0.05);
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 0.7rem;
-    font-weight: 500;
+.overlay-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.4rem 0.7rem;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.8rem;
+    font-weight: 600;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
+    transition: all 0.15s;
 }
 
-.quick-btn:active {
-    background: rgba(255, 255, 255, 0.15);
+.overlay-btn i {
+    font-size: 0.75rem;
 }
 
-.quick-btn.cmd-toggle {
+.overlay-btn:active {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.overlay-btn.active {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* CMD button specific */
+.overlay-btn.cmd-btn {
     background: rgba(155, 89, 182, 0.3);
     border-color: rgba(155, 89, 182, 0.5);
+}
+
+.overlay-btn.cmd-btn:active,
+.overlay-btn.cmd-btn.active {
+    background: rgba(155, 89, 182, 0.5);
+    border-color: rgba(155, 89, 182, 0.8);
+}
+
+/* Poison button specific */
+.overlay-btn.poison-btn {
+    background: rgba(100, 100, 100, 0.3);
+    border-color: rgba(150, 150, 150, 0.5);
+}
+
+.overlay-btn.poison-btn.has-poison {
+    background: rgba(46, 139, 87, 0.4);
+    border-color: rgba(46, 204, 113, 0.6);
+    color: #2ecc71;
+}
+
+.overlay-btn.poison-btn.lethal {
+    background: rgba(46, 139, 87, 0.6);
+    border-color: #2ecc71;
+    color: #2ecc71;
+    animation: pulse 1s infinite;
+}
+
+.overlay-btn.poison-btn:active,
+.overlay-btn.poison-btn.active {
+    background: rgba(46, 139, 87, 0.5);
+    border-color: rgba(46, 204, 113, 0.8);
 }
 
 /* Center menu button */
@@ -544,4 +588,98 @@
     50% {
         box-shadow: 0 0 15px rgba(74, 47, 112, 0.8);
     }
+}
+
+/* Poison overlay - fills entire player cell like commander damage */
+.poison-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(10, 30, 20, 0.95);
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.poison-close-x {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid rgba(46, 204, 113, 0.5);
+    background: rgba(30, 50, 40, 0.95);
+    color: #2ecc71;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+
+.poison-close-x:active {
+    background: rgba(46, 204, 113, 0.3);
+}
+
+.poison-controls {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.poison-ctrl-btn {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 3px solid rgba(46, 204, 113, 0.5);
+    background: rgba(46, 204, 113, 0.2);
+    color: #2ecc71;
+    font-size: 2rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.poison-ctrl-btn:active {
+    background: rgba(46, 204, 113, 0.4);
+}
+
+.poison-ctrl-btn.poison-minus:active {
+    background: rgba(231, 76, 60, 0.3);
+    border-color: rgba(231, 76, 60, 0.5);
+}
+
+.poison-ctrl-btn.poison-plus:active {
+    background: rgba(46, 204, 113, 0.4);
+}
+
+.poison-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.poison-display i {
+    font-size: 2rem;
+    color: #2ecc71;
+}
+
+.poison-count {
+    font-size: clamp(3rem, 12vmin, 5rem);
+    font-weight: 700;
+    color: #2ecc71;
+    line-height: 1;
+}
+
+.poison-count.lethal {
+    color: #e74c3c;
+    animation: pulse 1s infinite;
 }

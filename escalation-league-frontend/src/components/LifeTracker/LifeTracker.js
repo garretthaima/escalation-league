@@ -7,8 +7,9 @@ import './LifeTracker.css';
 const STARTING_LIFE = 40;
 const PLAYER_COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#9b59b6'];
 
-const PlayerLife = ({ player, index, onLifeChange, onCommanderDamageChange, allPlayers, rotation, commanderImage, allCommanderImages }) => {
+const PlayerLife = ({ player, index, onLifeChange, onPoisonChange, onCommanderDamageChange, allPlayers, rotation, commanderImage, allCommanderImages }) => {
     const [showCommanderDamage, setShowCommanderDamage] = useState(false);
+    const [showPoisonControls, setShowPoisonControls] = useState(false);
     const [deltaIndicator, setDeltaIndicator] = useState({ value: 0, visible: false, key: 0 });
     const touchHandledRef = useRef(false);
     const deltaTimeoutRef = useRef(null);
@@ -138,18 +139,51 @@ const PlayerLife = ({ player, index, onLifeChange, onCommanderDamageChange, allP
                     </button>
                 </div>
 
-                <div className="quick-buttons">
-                    <button className="quick-btn" onTouchEnd={handleTouchEnd(-5)} onClick={handleClick(-5)}>−5</button>
-                    <button className="quick-btn" onTouchEnd={handleTouchEnd(-10)} onClick={handleClick(-10)}>−10</button>
+                {/* Overlay toggle buttons */}
+                <div className="overlay-buttons">
                     <button
-                        className="quick-btn cmd-toggle"
+                        className={`overlay-btn cmd-btn ${showCommanderDamage ? 'active' : ''}`}
                         onClick={() => setShowCommanderDamage(!showCommanderDamage)}
                     >
-                        CMD
+                        <i className="fas fa-shield-alt"></i>
+                        <span>CMD</span>
                     </button>
-                    <button className="quick-btn" onTouchEnd={handleTouchEnd(+10)} onClick={handleClick(+10)}>+10</button>
-                    <button className="quick-btn" onTouchEnd={handleTouchEnd(+5)} onClick={handleClick(+5)}>+5</button>
+                    <button
+                        className={`overlay-btn poison-btn ${showPoisonControls ? 'active' : ''} ${(player.poison || 0) > 0 ? 'has-poison' : ''} ${(player.poison || 0) >= 10 ? 'lethal' : ''}`}
+                        onClick={() => setShowPoisonControls(!showPoisonControls)}
+                    >
+                        <i className="fas fa-skull-crossbones"></i>
+                        <span>{player.poison || 0}</span>
+                    </button>
                 </div>
+
+                {/* Poison controls overlay */}
+                {showPoisonControls && (
+                    <div className="poison-overlay">
+                        <button
+                            className="poison-close-x"
+                            onClick={() => setShowPoisonControls(false)}
+                        >
+                            ×
+                        </button>
+                        <div className="poison-controls">
+                            <button
+                                className="poison-ctrl-btn poison-minus"
+                                onClick={() => onPoisonChange(index, -1)}
+                            >−</button>
+                            <div className="poison-display">
+                                <i className="fas fa-skull-crossbones"></i>
+                                <span className={`poison-count ${(player.poison || 0) >= 10 ? 'lethal' : ''}`}>
+                                    {player.poison || 0}
+                                </span>
+                            </div>
+                            <button
+                                className="poison-ctrl-btn poison-plus"
+                                onClick={() => onPoisonChange(index, 1)}
+                            >+</button>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Commander damage overlay - outside player-content so it fills the cell */}
@@ -295,10 +329,10 @@ const LifeTracker = () => {
     const wakeLockRef = useRef(null);
 
     const [players, setPlayers] = useState([
-        { name: '', life: STARTING_LIFE, commanderDamage: {} },
-        { name: '', life: STARTING_LIFE, commanderDamage: {} },
-        { name: '', life: STARTING_LIFE, commanderDamage: {} },
-        { name: '', life: STARTING_LIFE, commanderDamage: {} },
+        { name: '', life: STARTING_LIFE, poison: 0, commanderDamage: {} },
+        { name: '', life: STARTING_LIFE, poison: 0, commanderDamage: {} },
+        { name: '', life: STARTING_LIFE, poison: 0, commanderDamage: {} },
+        { name: '', life: STARTING_LIFE, poison: 0, commanderDamage: {} },
     ]);
     const [history, setHistory] = useState([]);
     const [showMenu, setShowMenu] = useState(false);
@@ -511,6 +545,19 @@ const LifeTracker = () => {
         });
     }, [saveToHistory]);
 
+    const handlePoisonChange = useCallback((playerIndex, delta) => {
+        saveToHistory();
+        setPlayers((prev) => {
+            const updated = [...prev];
+            const currentPoison = updated[playerIndex].poison || 0;
+            updated[playerIndex] = {
+                ...updated[playerIndex],
+                poison: Math.max(0, currentPoison + delta),
+            };
+            return updated;
+        });
+    }, [saveToHistory]);
+
     const handleCommanderDamageChange = useCallback((playerIndex, fromIndex, delta, commanderIndex = 0) => {
         saveToHistory();
         setPlayers((prev) => {
@@ -545,6 +592,7 @@ const LifeTracker = () => {
             prev.map((p) => ({
                 ...p,
                 life: STARTING_LIFE,
+                poison: 0,
                 commanderDamage: {},
             }))
         );
@@ -618,6 +666,7 @@ const LifeTracker = () => {
                         index={index}
                         rotation={rotations[index]}
                         onLifeChange={handleLifeChange}
+                        onPoisonChange={handlePoisonChange}
                         onCommanderDamageChange={handleCommanderDamageChange}
                         allPlayers={players}
                         commanderImage={player.playerId ? commanderImages[player.playerId] : null}
