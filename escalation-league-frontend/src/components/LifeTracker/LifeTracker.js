@@ -167,6 +167,12 @@ const PlayerLife = ({ player, index, onLifeChange, onCommanderDamageChange, allP
                     ? [1, 2, 0, 3]  // After 90° CW rotation: [0,1,2,3] -> P0 top-left, P1 top-right, P3 bottom-left, P2 bottom-right
                     : [3, 0, 2, 1]; // After 90° CCW rotation
 
+                // Grid dimensions - cell is 50vw x 50vh, grid rotates 90°
+                // After rotation: CSS width becomes visual height, CSS height becomes visual width
+                // Slightly taller than wide for rectangular cells after rotation
+                const gridWidth = '38vh';  // Becomes visual height after rotation
+                const gridHeight = '40vw'; // Becomes visual width after rotation
+
                 return (
                     <div className={`commander-overlay cmd-overlay-player-${index}`}>
                         <button
@@ -179,7 +185,8 @@ const PlayerLife = ({ player, index, onLifeChange, onCommanderDamageChange, allP
                             className="commander-damage-grid-2x2"
                             style={{
                                 transform: `translate(-50%, -50%) rotate(${gridRotation}deg)`,
-                                left: isLeftColumn ? '60%' : '40%'
+                                width: gridWidth,
+                                height: gridHeight
                             }}
                         >
                             {/* Grid positions after rotation should match main layout */}
@@ -193,17 +200,31 @@ const PlayerLife = ({ player, index, onLifeChange, onCommanderDamageChange, allP
                                 // Get damage - for partners, use key format "playerIdx_1" for second commander
                                 const damage1 = player.commanderDamage[playerIdx] || 0;
                                 const damage2 = player.commanderDamage[`${playerIdx}_1`] || 0;
+                                // Get commander image(s) for this opponent
+                                const cmdImage1 = opponentImages?.main || null;
+                                const cmdImage2 = opponentImages?.partner || null;
+
                                 return (
                                     <div
                                         key={gridPos}
-                                        className={`cmd-grid-cell ${isSelf ? 'cmd-grid-self' : ''} ${hasPartner ? 'cmd-grid-partner' : ''}`}
-                                        style={{ '--cell-color': PLAYER_COLORS[playerIdx] }}
+                                        className={`cmd-grid-cell ${isSelf ? 'cmd-grid-self' : ''} ${hasPartner ? 'cmd-grid-partner' : ''} ${cmdImage1 && !isSelf ? 'has-cmd-bg' : ''}`}
+                                        style={{
+                                            '--cell-color': PLAYER_COLORS[playerIdx],
+                                            '--cmd-bg-image': cmdImage1 && !isSelf ? `url(${cmdImage1})` : 'none'
+                                        }}
                                     >
                                     {isSelf ? (
                                         <span className="cmd-grid-self-label">YOU</span>
                                     ) : hasPartner ? (
                                         <div className="cmd-partner-container">
-                                            <div className="cmd-partner-col">
+                                            <div
+                                                className="cmd-partner-col"
+                                                style={cmdImage1 ? {
+                                                    backgroundImage: `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url(${cmdImage1})`,
+                                                    backgroundSize: 'cover',
+                                                    backgroundPosition: 'center'
+                                                } : {}}
+                                            >
                                                 <button
                                                     className="cmd-grid-btn cmd-grid-plus"
                                                     onClick={() => onCommanderDamageChange(index, playerIdx, 1, 0)}
@@ -216,7 +237,14 @@ const PlayerLife = ({ player, index, onLifeChange, onCommanderDamageChange, allP
                                                     onClick={() => onCommanderDamageChange(index, playerIdx, -1, 0)}
                                                 >−</button>
                                             </div>
-                                            <div className="cmd-partner-col">
+                                            <div
+                                                className="cmd-partner-col"
+                                                style={cmdImage2 ? {
+                                                    backgroundImage: `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url(${cmdImage2})`,
+                                                    backgroundSize: 'cover',
+                                                    backgroundPosition: 'center'
+                                                } : {}}
+                                            >
                                                 <button
                                                     className="cmd-grid-btn cmd-grid-plus"
                                                     onClick={() => onCommanderDamageChange(index, playerIdx, 1, 1)}

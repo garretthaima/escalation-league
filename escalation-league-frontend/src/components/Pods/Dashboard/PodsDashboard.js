@@ -135,16 +135,32 @@ const PodsDashboard = () => {
         });
 
         // Winner declared - move from active to pending
-        socket.on('pod:winner_declared', (data) => {
-            const { podId } = data;
-            setActivePods(prev => {
-                const pod = prev.find(p => p.id === podId);
-                if (pod) {
-                    setPendingPods(pending => [...pending, { ...pod, confirmation_status: 'pending' }]);
+        socket.on('pod:winner_declared', async (data) => {
+            const { podId, winnerId } = data;
+            // Remove from active immediately
+            setActivePods(prev => prev.filter(p => p.id !== podId));
+
+            // Fetch fresh pod data to get updated participant results
+            try {
+                const freshPod = await getPods({ podId });
+                if (freshPod) {
+                    // Only add if user is participant or admin
+                    if (freshPod.participants?.some(p => p.player_id === userId) || isAdmin) {
+                        setPendingPods(pending => {
+                            // Avoid duplicates
+                            if (pending.some(p => p.id === podId)) return pending;
+                            return [...pending, freshPod];
+                        });
+                    }
                 }
-                return prev.filter(p => p.id !== podId);
-            });
-            showToast('A game result was declared', 'info');
+            } catch (err) {
+                console.error('Failed to fetch updated pod data:', err);
+            }
+
+            // Only show toast if someone else declared (not the current user)
+            if (winnerId !== userId) {
+                showToast('A game result was declared', 'info');
+            }
         });
 
         // Pod confirmed
@@ -205,9 +221,26 @@ const PodsDashboard = () => {
 
     const handleDeclareWin = async () => {
         setShowResultModal(false);
+        const podId = selectedPodId;
         try {
-            await logPodResult(selectedPodId, { result: 'win' });
+            await logPodResult(podId, { result: 'win' });
             showToast('Winner declared! Waiting for confirmations.', 'success');
+
+            // Move pod from active to pending immediately (don't wait for WebSocket)
+            setActivePods(prev => prev.filter(p => p.id !== podId));
+
+            // Fetch fresh pod data to show in pending
+            try {
+                const freshPod = await getPods({ podId });
+                if (freshPod) {
+                    setPendingPods(pending => {
+                        if (pending.some(p => p.id === podId)) return pending;
+                        return [...pending, freshPod];
+                    });
+                }
+            } catch (fetchErr) {
+                console.error('Failed to fetch updated pod:', fetchErr);
+            }
         } catch (err) {
             if (err.response?.data?.error?.includes('already been declared')) {
                 showToast('A winner has already been declared.', 'info');
@@ -219,9 +252,26 @@ const PodsDashboard = () => {
 
     const handleDeclareDraw = async () => {
         setShowResultModal(false);
+        const podId = selectedPodId;
         try {
-            await logPodResult(selectedPodId, { result: 'draw' });
+            await logPodResult(podId, { result: 'draw' });
             showToast('Draw declared! Waiting for confirmations.', 'success');
+
+            // Move pod from active to pending immediately (don't wait for WebSocket)
+            setActivePods(prev => prev.filter(p => p.id !== podId));
+
+            // Fetch fresh pod data to show in pending
+            try {
+                const freshPod = await getPods({ podId });
+                if (freshPod) {
+                    setPendingPods(pending => {
+                        if (pending.some(p => p.id === podId)) return pending;
+                        return [...pending, freshPod];
+                    });
+                }
+            } catch (fetchErr) {
+                console.error('Failed to fetch updated pod:', fetchErr);
+            }
         } catch (err) {
             showToast(err.response?.data?.error || 'Failed to declare draw.', 'error');
         }

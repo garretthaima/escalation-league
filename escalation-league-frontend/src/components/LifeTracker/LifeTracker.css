@@ -293,7 +293,7 @@
 
 /* 2x2 Grid layout for commander damage - centered in overlay */
 /* Grid is rotated 90° so width/height are swapped relative to cell */
-/* After rotation: width becomes vertical span, height becomes horizontal span */
+/* Dimensions set inline in JS to avoid clipping issues */
 .commander-damage-grid-2x2 {
     position: absolute;
     top: 50%;
@@ -303,8 +303,7 @@
     grid-template-columns: 1fr 1fr;
     grid-template-rows: 1fr 1fr;
     gap: 4px;
-    width: 36vh;
-    height: 38vw;
+    /* width and height set inline in JS */
 }
 
 .cmd-grid-cell {
@@ -317,11 +316,21 @@
     justify-content: center;
     gap: 0.15rem;
     padding: 0.25rem;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
 }
 
 .cmd-grid-cell.cmd-grid-self {
     background: rgba(255, 255, 255, 0.05);
     border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Commander background image in cmd damage cells */
+.cmd-grid-cell.has-cmd-bg {
+    background-image: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), var(--cmd-bg-image);
+    background-size: cover;
+    background-position: center;
 }
 
 /* Partner commander layout - side by side */
