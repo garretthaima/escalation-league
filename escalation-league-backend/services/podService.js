@@ -58,14 +58,17 @@ const getParticipantsWithUsers = async (podId) => {
 };
 
 /**
- * Get league point settings
+ * Get league point settings (including tournament settings)
  * @param {number} leagueId - League ID
- * @returns {Promise<Object>} Points settings { points_per_win, points_per_loss, points_per_draw }
+ * @returns {Promise<Object>} Points settings including tournament points
  */
 const getLeaguePointSettings = async (leagueId) => {
     return db('leagues')
         .where({ id: leagueId })
-        .select('points_per_win', 'points_per_loss', 'points_per_draw')
+        .select(
+            'points_per_win', 'points_per_loss', 'points_per_draw',
+            'tournament_win_points', 'tournament_non_win_points', 'tournament_dq_points'
+        )
         .first();
 };
 
@@ -85,12 +88,14 @@ const calculatePoints = (result, league) => {
 /**
  * Apply game stats for completed pods
  * Updates both global user stats and league-specific stats
+ * Also handles tournament stats if isTournamentGame is true
  *
  * @param {Array} participants - Array of participant records with player_id, result
  * @param {number} leagueId - League ID for league stats
+ * @param {boolean} isTournamentGame - Whether this is a tournament game (optional)
  * @returns {Promise<void>}
  */
-const applyGameStats = async (participants, leagueId) => {
+const applyGameStats = async (participants, leagueId, isTournamentGame = false) => {
     const league = await getLeaguePointSettings(leagueId);
 
     if (!league) {
@@ -124,23 +129,55 @@ const applyGameStats = async (participants, leagueId) => {
                 league_draws: draws,
                 total_points: points
             });
+
+        // Apply tournament stats if this is a tournament game
+        if (isTournamentGame) {
+            let tPoints = 0;
+            let tWins = 0;
+            let tNonWins = 0;
+            let tDqs = 0;
+
+            if (isDq) {
+                tPoints = league.tournament_dq_points || 0;
+                tDqs = 1;
+            } else if (p.result === 'win') {
+                tPoints = league.tournament_win_points || 4;
+                tWins = 1;
+            } else {
+                // loss or draw both count as non-win
+                tPoints = league.tournament_non_win_points || 1;
+                tNonWins = 1;
+            }
+
+            await db('user_leagues')
+                .where({ user_id: p.player_id, league_id: leagueId })
+                .increment({
+                    tournament_points: tPoints,
+                    tournament_wins: tWins,
+                    tournament_non_wins: tNonWins,
+                    tournament_dqs: tDqs
+                });
+        }
     }
 
     logger.debug('Game stats applied', {
         leagueId,
-        participantCount: participants.length
+        participantCount: participants.length,
+        isTournamentGame
     });
 };
 
 /**
  * Reverse game stats for a pod (used when editing/deleting completed pods)
  * Reverses both global user stats and league-specific stats
+ * Also reverses tournament stats if isTournamentGame is true
  *
  * @param {Array} participants - Array of participant records with player_id, result, elo_change
  * @param {number} leagueId - League ID for league stats
+ * @param {boolean} isTournamentGame - Whether this was a tournament game (optional)
  * @returns {Promise<void>}
  */
-const reverseGameStats = async (participants, leagueId) => {
+const reverseGameStats = async (participants, leagueId, isTournamentGame = false) => {
     const league = await getLeaguePointSettings(leagueId);
 
     if (!league) {
@@ -185,11 +222,40 @@ const reverseGameStats = async (participants, leagueId) => {
                 .where({ user_id: p.player_id, league_id: leagueId })
                 .decrement('elo_rating', p.elo_change);
         }
+
+        // Reverse tournament stats if this was a tournament game
+        if (isTournamentGame) {
+            let tPoints = 0;
+            let tWins = 0;
+            let tNonWins = 0;
+            let tDqs = 0;
+
+            if (isDq) {
+                tPoints = -(league.tournament_dq_points || 0);
+                tDqs = -1;
+            } else if (p.result === 'win') {
+                tPoints = -(league.tournament_win_points || 4);
+                tWins = -1;
+            } else {
+                tPoints = -(league.tournament_non_win_points || 1);
+                tNonWins = -1;
+            }
+
+            await db('user_leagues')
+                .where({ user_id: p.player_id, league_id: leagueId })
+                .increment({
+                    tournament_points: tPoints,
+                    tournament_wins: tWins,
+                    tournament_non_wins: tNonWins,
+                    tournament_dqs: tDqs
+                });
+        }
     }
 
     logger.debug('Game stats reversed', {
         leagueId,
-        participantCount: participants.length
+        participantCount: participants.length,
+        isTournamentGame
     });
 };
 
