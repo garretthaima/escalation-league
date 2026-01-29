@@ -209,9 +209,11 @@ const ScryfallController = {
                 .select(
                     'id',
                     'name',
+                    'type_line',
                     scryfallDb.raw('JSON_EXTRACT(image_uris, "$.normal") AS image_normal'),
                     scryfallDb.raw('JSON_EXTRACT(image_uris, "$.large") AS image_large'),
                     scryfallDb.raw('JSON_EXTRACT(image_uris, "$.small") AS image_small'),
+                    scryfallDb.raw('JSON_EXTRACT(image_uris, "$.art_crop") AS image_art_crop'),
                     'card_faces'
                 )
                 .where('id', id)
@@ -238,10 +240,12 @@ const ScryfallController = {
             const response = {
                 id: card.id,
                 name: card.name,
+                type_line: card.type_line,
                 image_uris: {
                     normal: safeParseOrReturn(card.image_normal),
                     large: safeParseOrReturn(card.image_large),
                     small: safeParseOrReturn(card.image_small),
+                    art_crop: safeParseOrReturn(card.image_art_crop),
                 },
                 card_faces: safeParseOrReturn(card.card_faces),
             };

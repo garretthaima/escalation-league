@@ -24,6 +24,21 @@
     opacity: 0.65 !important;
 }
 
+/* Life tracker button styling */
+.btn-life-tracker {
+    background: linear-gradient(135deg, var(--brand-purple-light, #4a2f70), var(--brand-purple, #2d1b4e)) !important;
+    border: none !important;
+    color: #fff !important;
+    font-weight: 600;
+}
+
+.btn-life-tracker:hover,
+.btn-life-tracker:focus,
+.btn-life-tracker:active {
+    background: linear-gradient(135deg, var(--brand-purple, #2d1b4e), var(--brand-purple-dark, #1f1335)) !important;
+    color: #fff !important;
+}
+
 /* Pod 2x2 grid layout */
 .pod-grid {
     display: grid;

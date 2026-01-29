@@ -2,6 +2,11 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import GameCard from '../GameCard';
 
+const mockNavigate = jest.fn();
+jest.mock('react-router-dom', () => ({
+    useNavigate: () => mockNavigate
+}));
+
 describe('GameCard', () => {
     const createMockPod = (overrides = {}) => ({
         id: 1,
@@ -23,6 +28,7 @@ describe('GameCard', () => {
 
     beforeEach(() => {
         jest.clearAllMocks();
+        mockNavigate.mockClear();
     });
 
     describe('rendering', () => {
@@ -89,6 +95,30 @@ describe('GameCard', () => {
             const { container } = render(<GameCard {...defaultProps} userId={99} />);
             const currentUserSlot = container.querySelector('.pod-slot-current-user');
             expect(currentUserSlot).not.toBeInTheDocument();
+        });
+    });
+
+    describe('life tracker button', () => {
+        it('should show life tracker button when user is participant', () => {
+            render(<GameCard {...defaultProps} />);
+            expect(screen.getByRole('button', { name: /life tracker/i })).toBeInTheDocument();
+        });
+
+        it('should not show life tracker button when user is not participant', () => {
+            render(<GameCard {...defaultProps} userId={99} />);
+            expect(screen.queryByRole('button', { name: /life tracker/i })).not.toBeInTheDocument();
+        });
+
+        it('should not show life tracker button when showActions is false', () => {
+            render(<GameCard {...defaultProps} showActions={false} />);
+            expect(screen.queryByRole('button', { name: /life tracker/i })).not.toBeInTheDocument();
+        });
+
+        it('should navigate to life tracker on click', () => {
+            render(<GameCard {...defaultProps} />);
+            const button = screen.getByRole('button', { name: /life tracker/i });
+            fireEvent.click(button);
+            expect(mockNavigate).toHaveBeenCalledWith('/life-tracker/1');
         });
     });
 

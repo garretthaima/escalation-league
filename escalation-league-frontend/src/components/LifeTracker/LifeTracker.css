@@ -1,0 +1,839 @@
+/* Fullscreen container - no scroll */
+.life-tracker-fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #0f0f1a;
+    z-index: 9999;
+    overflow: hidden;
+}
+
+/* 2x2 Grid Table */
+.players-table {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    width: 100vw;
+    height: 100vh;
+    gap: 2px;
+}
+
+/* Player cells */
+.player-cell {
+    background: #1a1a2e;
+    position: relative;
+    overflow: hidden;
+    border: 3px solid var(--player-color);
+}
+
+/* Grid positions - P1/P2 top, P4/P3 bottom (diagonal seating) */
+.player-0 {
+    grid-area: 1 / 1 / 2 / 2;
+}
+
+/* P1 - top-left */
+.player-1 {
+    grid-area: 1 / 2 / 2 / 3;
+}
+
+/* P2 - top-right */
+.player-2 {
+    grid-area: 2 / 2 / 3 / 3;
+}
+
+/* P3 - bottom-right */
+.player-3 {
+    grid-area: 2 / 1 / 3 / 2;
+}
+
+/* P4 - bottom-left */
+
+/* Content wrapper - centered in cell, sized to fit when rotated 90° */
+.player-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    /* After 90° rotation, we need height to match cell width and vice versa */
+    width: 50vh;
+    height: 50vw;
+    transform-origin: center center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+    box-sizing: border-box;
+}
+
+/* Player name */
+.player-name-input {
+    background: transparent;
+    border: none;
+    font-size: 1rem;
+    font-weight: 600;
+    text-align: center;
+    width: 80%;
+    max-width: 150px;
+    outline: none;
+    padding: 0.25rem;
+}
+
+.player-name-input::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+/* Life controls - tap zones */
+.life-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    width: 100%;
+    max-height: 60%;
+}
+
+.life-zone {
+    flex: 1;
+    height: 100%;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.life-zone:active {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.life-zone-minus:active {
+    background: rgba(231, 76, 60, 0.2);
+}
+
+.life-zone-plus:active {
+    background: rgba(46, 204, 113, 0.2);
+}
+
+.life-delta {
+    font-size: 1.2rem;
+    color: rgba(255, 255, 255, 0.3);
+    font-weight: 300;
+}
+
+.life-zone:active .life-delta {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* Life total container - needed for delta indicator positioning */
+.life-total-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Life total display */
+.life-total {
+    font-size: clamp(3rem, 15vmin, 6rem);
+    font-weight: 700;
+    line-height: 1;
+    user-select: none;
+    text-align: center;
+}
+
+/* Delta indicator - shows cumulative change */
+.delta-indicator {
+    position: absolute;
+    top: -1.2em;
+    right: -2.5em;
+    font-size: clamp(1rem, 5vmin, 2rem);
+    font-weight: 700;
+    padding: 0.1em 0.3em;
+    border-radius: 4px;
+    animation: delta-pop 0.15s ease-out, delta-fade 1.5s ease-in forwards;
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+.delta-positive {
+    color: #2ecc71;
+    text-shadow: 0 0 10px rgba(46, 204, 113, 0.5);
+}
+
+.delta-negative {
+    color: #e74c3c;
+    text-shadow: 0 0 10px rgba(231, 76, 60, 0.5);
+}
+
+@keyframes delta-pop {
+    0% {
+        transform: scale(0.5);
+        opacity: 0;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes delta-fade {
+
+    0%,
+    70% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0;
+    }
+}
+
+/* Overlay toggle buttons (CMD and Poison) */
+.overlay-buttons {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.25rem;
+    justify-content: center;
+}
+
+.overlay-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.4rem 0.7rem;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: all 0.15s;
+}
+
+.overlay-btn i {
+    font-size: 0.75rem;
+}
+
+.overlay-btn:active {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.overlay-btn.active {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* CMD button specific */
+.overlay-btn.cmd-btn {
+    background: rgba(155, 89, 182, 0.3);
+    border-color: rgba(155, 89, 182, 0.5);
+}
+
+.overlay-btn.cmd-btn:active,
+.overlay-btn.cmd-btn.active {
+    background: rgba(155, 89, 182, 0.5);
+    border-color: rgba(155, 89, 182, 0.8);
+}
+
+/* Poison button specific */
+.overlay-btn.poison-btn {
+    background: rgba(100, 100, 100, 0.3);
+    border-color: rgba(150, 150, 150, 0.5);
+}
+
+.overlay-btn.poison-btn.has-poison {
+    background: rgba(46, 139, 87, 0.4);
+    border-color: rgba(46, 204, 113, 0.6);
+    color: #2ecc71;
+}
+
+.overlay-btn.poison-btn.lethal {
+    background: rgba(46, 139, 87, 0.6);
+    border-color: #2ecc71;
+    color: #2ecc71;
+    animation: pulse 1s infinite;
+}
+
+.overlay-btn.poison-btn:active,
+.overlay-btn.poison-btn.active {
+    background: rgba(46, 139, 87, 0.5);
+    border-color: rgba(46, 204, 113, 0.8);
+}
+
+/* Center menu button */
+.center-menu-btn {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 100;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.9);
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    color: white;
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Center menu popup */
+.center-menu {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 101;
+    background: rgba(20, 20, 40, 0.98);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 12px;
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    min-width: 140px;
+}
+
+.center-menu button {
+    padding: 0.6rem 0.8rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    color: white;
+    font-size: 0.85rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.center-menu button:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.center-menu button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.center-menu button.toggle-active {
+    background: rgba(46, 204, 113, 0.3);
+    border-color: rgba(46, 204, 113, 0.5);
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* Commander background image support */
+/* Swap width/height for rotation - cell is ~50vw x 50vh, so background needs inverse */
+.commander-bg {
+    position: absolute;
+    /* After 90° rotation, width becomes height and vice versa */
+    /* Cell is roughly 50vw wide x 50vh tall */
+    /* So we set bg to 50vh wide x 50vw tall, which after rotation fills the cell */
+    width: 50vh;
+    height: 50vw;
+    top: 50%;
+    left: 50%;
+    transform-origin: center center;
+    /* Transform set inline: translate(-50%, -50%) rotate(Xdeg) */
+    background-size: cover;
+    background-position: center;
+    z-index: 0;
+}
+
+/* Partner commanders: container for side-by-side images */
+.commander-bg.commander-bg-partners {
+    display: flex;
+    background: none;
+}
+
+.commander-bg-half {
+    flex: 1;
+    background-size: cover;
+    background-position: center;
+}
+
+/* Dark overlay for text readability */
+.player-cell.has-commander-bg::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(26, 26, 46, 0.75);
+    z-index: 1;
+}
+
+.player-cell.has-commander-bg .player-content {
+    z-index: 2;
+}
+
+/* Loading state */
+.life-tracker-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Fullscreen prompt button */
+.fullscreen-prompt {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 102;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(74, 47, 112, 0.9);
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    color: white;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: pulse-glow 2s infinite;
+}
+
+@keyframes pulse-glow {
+
+    0%,
+    100% {
+        box-shadow: 0 0 5px rgba(74, 47, 112, 0.5);
+    }
+
+    50% {
+        box-shadow: 0 0 15px rgba(74, 47, 112, 0.8);
+    }
+}
+
+
+/* Seat Selection Overlay */
+.seat-selection-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 15, 26, 0.98);
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+}
+
+.seat-selection-prompt {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    color: white;
+    text-align: center;
+    padding: 0 1rem;
+}
+
+.seat-selection-prompt i {
+    font-size: 2rem;
+    color: #e74c3c;
+    animation: bounce 1s infinite;
+}
+
+.seat-selection-prompt span {
+    font-size: 1.1rem;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.seat-selection-prompt strong {
+    color: #e74c3c;
+}
+
+@keyframes bounce {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+.seat-selection-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    width: 80vw;
+    max-width: 400px;
+    height: 80vw;
+    max-height: 400px;
+    gap: 8px;
+}
+
+.seat-selection-cell {
+    background: rgba(255, 255, 255, 0.1);
+    border: 3px dashed rgba(255, 255, 255, 0.3);
+    border-radius: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.seat-selection-cell:hover,
+.seat-selection-cell:active {
+    background: rgba(231, 76, 60, 0.3);
+    border-color: #e74c3c;
+    border-style: solid;
+}
+
+.seat-label {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.6);
+    text-align: center;
+    padding: 0.5rem;
+}
+
+.seat-selection-cell:hover .seat-label,
+.seat-selection-cell:active .seat-label {
+    color: white;
+}
+
+/* Grid positions for seat selection */
+.seat-0 { grid-area: 1 / 1 / 2 / 2; }
+.seat-1 { grid-area: 1 / 2 / 2 / 3; }
+.seat-2 { grid-area: 2 / 2 / 3 / 3; }
+.seat-3 { grid-area: 2 / 1 / 3 / 2; }
+
+.seat-selection-cancel {
+    padding: 0.6rem 1.5rem;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1rem;
+    cursor: pointer;
+    margin-top: 1rem;
+}
+
+.seat-selection-cancel:hover {
+    border-color: rgba(255, 255, 255, 0.5);
+    color: white;
+}
+
+/* ============================================
+   CENTERED OVERLAY (CMD & Poison)
+   ============================================ */
+
+.centered-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 150;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.centered-overlay-content {
+    position: relative;
+    background: rgba(20, 20, 35, 0.98);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 16px;
+    padding: 1rem;
+    /* When rotated 90°, width becomes height and vice versa */
+    /* Use vh for width since it will be the vertical dimension after rotation */
+    width: 95vh;
+    max-width: 95vh;
+    height: 85vw;
+    max-height: 85vw;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.overlay-close-x {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.overlay-close-x:active {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Player indicator at top of overlay */
+.overlay-player-indicator {
+    text-align: center;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--player-color, rgba(255,255,255,0.2));
+    flex-shrink: 0;
+}
+
+.overlay-player-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--player-color, white);
+}
+
+/* ============================================
+   CENTERED POISON CONTROLS
+   ============================================ */
+
+.centered-poison-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    padding: 1rem 0;
+}
+
+.centered-ctrl-btn {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    border: 3px solid rgba(46, 204, 113, 0.5);
+    background: rgba(46, 204, 113, 0.2);
+    color: #2ecc71;
+    font-size: 2.5rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+    transition: all 0.15s;
+}
+
+.centered-ctrl-btn:active {
+    background: rgba(46, 204, 113, 0.4);
+    transform: scale(0.95);
+}
+
+.centered-ctrl-btn.poison-minus:active {
+    background: rgba(231, 76, 60, 0.3);
+    border-color: rgba(231, 76, 60, 0.5);
+}
+
+.centered-value-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    min-width: 80px;
+}
+
+.centered-value-display i {
+    font-size: 1.5rem;
+    color: #2ecc71;
+}
+
+.centered-value {
+    font-size: 4rem;
+    font-weight: 700;
+    color: #2ecc71;
+    line-height: 1;
+}
+
+.centered-value.lethal {
+    color: #e74c3c;
+    animation: pulse 1s infinite;
+}
+
+.centered-value-label {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+/* ============================================
+   CENTERED CMD GRID
+   ============================================ */
+
+.centered-cmd-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 8px;
+    flex: 1;
+    width: 100%;
+    height: 100%;
+}
+
+.centered-cmd-cell {
+    background: rgba(0, 0, 0, 0.4);
+    border: 3px solid var(--cell-color);
+    border-radius: 12px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.centered-cmd-cell.cmd-self {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.cmd-self-label {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.3);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+/* CMD Tap Zone Style - mirrors main life counter */
+.cmd-tap-zone-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    padding: 0.5rem 0;
+}
+
+.cmd-opponent-name {
+    font-size: 0.9rem;
+    color: var(--cell-color);
+    font-weight: 600;
+    padding: 0.25rem 0;
+    z-index: 1;
+    flex-shrink: 0;
+}
+
+.cmd-tap-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    width: 100%;
+}
+
+.cmd-tap-zone {
+    flex: 1;
+    height: 100%;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.cmd-tap-zone:active {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.cmd-tap-minus:active {
+    background: rgba(231, 76, 60, 0.3);
+}
+
+.cmd-tap-plus:active {
+    background: rgba(46, 204, 113, 0.3);
+}
+
+.cmd-tap-delta {
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.3);
+    font-weight: 300;
+}
+
+.cmd-tap-zone:active .cmd-tap-delta {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.cmd-value-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0.5rem;
+}
+
+.cmd-damage-value {
+    font-size: clamp(2rem, 8vmin, 3.5rem);
+    font-weight: 700;
+    color: white;
+    min-width: 50px;
+    text-align: center;
+    line-height: 1;
+}
+
+.cmd-damage-value.lethal {
+    color: #e74c3c;
+    animation: pulse 1s infinite;
+}
+
+/* Partner commander layout in centered overlay */
+.centered-cmd-cell.cmd-has-partner {
+    padding: 0;
+}
+
+.cmd-partner-row {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    height: 100%;
+    gap: 4px;
+}
+
+.cmd-partner-half {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.cmd-partner-half.cmd-tap-zone-container {
+    flex-direction: row;
+}
+
+.cmd-partner-half .cmd-tap-zone {
+    min-height: 100%;
+    flex: 1;
+}
+
+.cmd-partner-half .cmd-damage-value {
+    font-size: clamp(1.5rem, 6vmin, 2.5rem);
+    min-width: 35px;
+    padding: 0 0.25rem;
+}
