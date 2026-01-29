@@ -432,6 +432,11 @@ const getPods = async (req, res) => {
         if (podIds.length > 0) {
             allParticipants = await db('game_players as gp')
                 .join('users as u', 'gp.player_id', 'u.id')
+                .join('game_pods as pod', 'gp.pod_id', 'pod.id')
+                .leftJoin('user_leagues as ul', function() {
+                    this.on('ul.user_id', '=', 'gp.player_id')
+                        .andOn('ul.league_id', '=', 'pod.league_id');
+                })
                 .select(
                     'gp.pod_id',
                     'u.id as player_id',
@@ -441,7 +446,9 @@ const getPods = async (req, res) => {
                     'gp.result',
                     'gp.confirmed',
                     'gp.turn_order',
-                    'gp.confirmation_time'
+                    'gp.confirmation_time',
+                    'ul.current_commander',
+                    'ul.commander_partner'
                 )
                 .whereIn('gp.pod_id', podIds)
                 .whereNull('gp.deleted_at')

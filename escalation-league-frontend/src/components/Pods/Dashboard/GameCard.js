@@ -105,10 +105,6 @@ const GameCard = ({ pod, userId, onDeclareResult, showActions = true }) => {
                         );
                     })}
                 </div>
-<<<<<<< HEAD
-=======
-
->>>>>>> 5a53368... WIP: Life tracker integration with pod system (#164)
             </div>
         </div>
     );

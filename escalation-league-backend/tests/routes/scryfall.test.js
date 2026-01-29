@@ -455,6 +455,7 @@ describe('Scryfall Routes', () => {
             image_normal: '"https://example.com/sol_normal.jpg"',
             image_large: '"https://example.com/sol_large.jpg"',
             image_small: '"https://example.com/sol_small.jpg"',
+            image_art_crop: '"https://example.com/sol_art_crop.jpg"',
             card_faces: null
         };
 
