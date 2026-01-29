@@ -7,9 +7,7 @@ import './LifeTracker.css';
 const STARTING_LIFE = 40;
 const PLAYER_COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#9b59b6'];
 
-const PlayerLife = ({ player, index, playerIndex, onLifeChange, onPoisonChange, onCommanderDamageChange, allPlayers, seatOrder, rotation, commanderImage, allCommanderImages }) => {
-    const [showCommanderDamage, setShowCommanderDamage] = useState(false);
-    const [showPoisonControls, setShowPoisonControls] = useState(false);
+const PlayerLife = ({ player, index, playerIndex, onLifeChange, onOpenOverlay, rotation, commanderImage }) => {
     const [deltaIndicator, setDeltaIndicator] = useState({ value: 0, visible: false, key: 0 });
     const touchHandledRef = useRef(false);
     const deltaTimeoutRef = useRef(null);
@@ -145,183 +143,21 @@ const PlayerLife = ({ player, index, playerIndex, onLifeChange, onPoisonChange, 
                 {/* Overlay toggle buttons */}
                 <div className="overlay-buttons">
                     <button
-                        className={`overlay-btn cmd-btn ${showCommanderDamage ? 'active' : ''}`}
-                        onClick={() => setShowCommanderDamage(!showCommanderDamage)}
+                        className="overlay-btn cmd-btn"
+                        onClick={() => onOpenOverlay('cmd', actualIndex, index)}
                     >
                         <i className="fas fa-shield-alt"></i>
                         <span>CMD</span>
                     </button>
                     <button
-                        className={`overlay-btn poison-btn ${showPoisonControls ? 'active' : ''} ${(player.poison || 0) > 0 ? 'has-poison' : ''} ${(player.poison || 0) >= 10 ? 'lethal' : ''}`}
-                        onClick={() => setShowPoisonControls(!showPoisonControls)}
+                        className={`overlay-btn poison-btn ${(player.poison || 0) > 0 ? 'has-poison' : ''} ${(player.poison || 0) >= 10 ? 'lethal' : ''}`}
+                        onClick={() => onOpenOverlay('poison', actualIndex, index)}
                     >
                         <i className="fas fa-skull-crossbones"></i>
                         <span>{player.poison || 0}</span>
                     </button>
                 </div>
-
-                {/* Poison controls overlay */}
-                {showPoisonControls && (
-                    <div className="poison-overlay">
-                        <button
-                            className="poison-close-x"
-                            onClick={() => setShowPoisonControls(false)}
-                        >
-                            ×
-                        </button>
-                        <div className="poison-controls">
-                            <button
-                                className="poison-ctrl-btn poison-minus"
-                                onClick={() => onPoisonChange(actualIndex, -1)}
-                            >−</button>
-                            <div className="poison-display">
-                                <i className="fas fa-skull-crossbones"></i>
-                                <span className={`poison-count ${(player.poison || 0) >= 10 ? 'lethal' : ''}`}>
-                                    {player.poison || 0}
-                                </span>
-                            </div>
-                            <button
-                                className="poison-ctrl-btn poison-plus"
-                                onClick={() => onPoisonChange(actualIndex, 1)}
-                            >+</button>
-                        </div>
-                    </div>
-                )}
             </div>
-
-            {/* Commander damage overlay - outside player-content so it fills the cell */}
-            {showCommanderDamage && (() => {
-                // Rotate entire grid to face the player at this position (based on seat, not player index)
-                // Players 0,3 are left column (face left = 90°), players 1,2 are right column (face right = -90°)
-                const isLeftColumn = index === 0 || index === 3;
-                const gridRotation = isLeftColumn ? 90 : -90;
-
-                // Grid position to seat mapping, adjusted for rotation
-                // Main layout: seat 0=top-left, seat 1=top-right, seat 2=bottom-right, seat 3=bottom-left
-                // For 90° (left column): grid renders then rotates CW, so we pre-map CCW
-                // For -90° (right column): grid renders then rotates CCW, so we pre-map CW
-                const gridToSeat = isLeftColumn
-                    ? [1, 2, 0, 3]  // After 90° CW rotation
-                    : [3, 0, 2, 1]; // After 90° CCW rotation
-
-                // Grid dimensions - cell is 50vw x 50vh, grid rotates 90°
-                const gridWidth = '38vh';
-                const gridHeight = '40vw';
-
-                // Helper to get player index for a seat (accounting for seatOrder)
-                const getPlayerIdxForSeat = (seatIdx) => {
-                    if (!seatOrder) return seatIdx;
-                    return seatOrder[seatIdx];
-                };
-
-                return (
-                    <div className={`commander-overlay cmd-overlay-player-${index}`}>
-                        <button
-                            className="cmd-close-x"
-                            onClick={() => setShowCommanderDamage(false)}
-                        >
-                            ×
-                        </button>
-                        <div
-                            className="commander-damage-grid-2x2"
-                            style={{
-                                transform: `translate(-50%, -50%) rotate(${gridRotation}deg)`,
-                                width: gridWidth,
-                                height: gridHeight
-                            }}
-                        >
-                            {/* Grid positions after rotation should match seat layout */}
-                            {[0, 1, 2, 3].map((gridPos) => {
-                                const seatIdx = gridToSeat[gridPos];
-                                const opponentPlayerIdx = getPlayerIdxForSeat(seatIdx);
-                                const isSelf = opponentPlayerIdx === actualIndex;
-                                const opponent = allPlayers[opponentPlayerIdx];
-                                // Only show dual damage tracking for true partners, not backgrounds
-                                const opponentImages = opponent?.playerId ? allCommanderImages[opponent.playerId] : null;
-                                const hasPartner = opponent?.partnerUuid && !opponentImages?.isBackground;
-                                // Get damage - for partners, use key format "playerIdx_1" for second commander
-                                const damage1 = player.commanderDamage[opponentPlayerIdx] || 0;
-                                const damage2 = player.commanderDamage[`${opponentPlayerIdx}_1`] || 0;
-                                // Get commander image(s) for this opponent
-                                const cmdImage1 = opponentImages?.main || null;
-                                const cmdImage2 = opponentImages?.partner || null;
-
-                                return (
-                                    <div
-                                        key={gridPos}
-                                        className={`cmd-grid-cell ${isSelf ? 'cmd-grid-self' : ''} ${hasPartner ? 'cmd-grid-partner' : ''} ${cmdImage1 && !isSelf ? 'has-cmd-bg' : ''}`}
-                                        style={{
-                                            '--cell-color': PLAYER_COLORS[opponentPlayerIdx],
-                                            '--cmd-bg-image': cmdImage1 && !isSelf ? `url(${cmdImage1})` : 'none'
-                                        }}
-                                    >
-                                    {isSelf ? (
-                                        <span className="cmd-grid-self-label">YOU</span>
-                                    ) : hasPartner ? (
-                                        <div className="cmd-partner-container">
-                                            <div
-                                                className="cmd-partner-col"
-                                                style={cmdImage1 ? {
-                                                    backgroundImage: `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url(${cmdImage1})`,
-                                                    backgroundSize: 'cover',
-                                                    backgroundPosition: 'center'
-                                                } : {}}
-                                            >
-                                                <button
-                                                    className="cmd-grid-btn cmd-grid-plus"
-                                                    onClick={() => onCommanderDamageChange(actualIndex, opponentPlayerIdx, 1, 0)}
-                                                >+</button>
-                                                <span className={`cmd-grid-value ${damage1 >= 21 ? 'lethal' : ''}`}>
-                                                    {damage1}
-                                                </span>
-                                                <button
-                                                    className="cmd-grid-btn cmd-grid-minus"
-                                                    onClick={() => onCommanderDamageChange(actualIndex, opponentPlayerIdx, -1, 0)}
-                                                >−</button>
-                                            </div>
-                                            <div
-                                                className="cmd-partner-col"
-                                                style={cmdImage2 ? {
-                                                    backgroundImage: `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url(${cmdImage2})`,
-                                                    backgroundSize: 'cover',
-                                                    backgroundPosition: 'center'
-                                                } : {}}
-                                            >
-                                                <button
-                                                    className="cmd-grid-btn cmd-grid-plus"
-                                                    onClick={() => onCommanderDamageChange(actualIndex, opponentPlayerIdx, 1, 1)}
-                                                >+</button>
-                                                <span className={`cmd-grid-value ${damage2 >= 21 ? 'lethal' : ''}`}>
-                                                    {damage2}
-                                                </span>
-                                                <button
-                                                    className="cmd-grid-btn cmd-grid-minus"
-                                                    onClick={() => onCommanderDamageChange(actualIndex, opponentPlayerIdx, -1, 1)}
-                                                >−</button>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <>
-                                            <button
-                                                className="cmd-grid-btn cmd-grid-plus"
-                                                onClick={() => onCommanderDamageChange(actualIndex, opponentPlayerIdx, 1, 0)}
-                                            >+</button>
-                                            <span className={`cmd-grid-value ${damage1 >= 21 ? 'lethal' : ''}`}>
-                                                {damage1}
-                                            </span>
-                                            <button
-                                                className="cmd-grid-btn cmd-grid-minus"
-                                                onClick={() => onCommanderDamageChange(actualIndex, opponentPlayerIdx, -1, 0)}
-                                            >−</button>
-                                        </>
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-                );
-            })()}
         </div>
     );
 };
@@ -330,7 +166,6 @@ const LifeTracker = () => {
     const { podId } = useParams();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(!!podId);
-    const [pod, setPod] = useState(null);
     const [commanderImages, setCommanderImages] = useState({});
     const saveTimeoutRef = useRef(null);
     const isInitializedRef = useRef(false);
@@ -349,6 +184,10 @@ const LifeTracker = () => {
     // e.g., [2, 3, 0, 1] means: seat 0 has P3, seat 1 has P4, seat 2 has P1, seat 3 has P2
     const [seatOrder, setSeatOrder] = useState(null);
     const [showSeatSelection, setShowSeatSelection] = useState(false);
+    // Centered overlay state: { type: 'cmd'|'poison', playerIndex: number } or null
+    const [overlay, setOverlay] = useState(null);
+    // Link commander damage to life loss (when true, CMD damage also subtracts life)
+    const [linkCmdDamage, setLinkCmdDamage] = useState(true);
 
     // Rotations for phone flat on table, each player faces outward to their seat
     const rotations = [90, -90, -90, 90];
@@ -420,7 +259,6 @@ const LifeTracker = () => {
             try {
                 // Fetch pod data
                 const podData = await getPods({ podId });
-                setPod(podData);
 
                 // Fetch saved life tracker state
                 const savedStateResponse = await getLifeTrackerState(podId).catch(() => ({ state: null }));
@@ -439,6 +277,9 @@ const LifeTracker = () => {
                     } else {
                         // Has saved state but no seat order - show selection
                         setShowSeatSelection(true);
+                    }
+                    if (saved.linkCmdDamage !== undefined) {
+                        setLinkCmdDamage(saved.linkCmdDamage);
                     }
                 } else if (podData?.participants) {
                     // Initialize from pod participants
@@ -533,7 +374,8 @@ const LifeTracker = () => {
                 await updateLifeTrackerState(podId, {
                     players,
                     history: history.slice(-10), // Only save last 10 history items
-                    seatOrder
+                    seatOrder,
+                    linkCmdDamage
                 });
             } catch (error) {
                 console.error('Error auto-saving life tracker:', error);
@@ -545,7 +387,7 @@ const LifeTracker = () => {
                 clearTimeout(saveTimeoutRef.current);
             }
         };
-    }, [podId, players, history, seatOrder]);
+    }, [podId, players, history, seatOrder, linkCmdDamage]);
 
     const saveToHistory = useCallback(() => {
         setHistory((prev) => [...prev.slice(-49), JSON.parse(JSON.stringify(players))]);
@@ -588,16 +430,24 @@ const LifeTracker = () => {
             const damageKey = commanderIndex === 0 ? fromIndex : `${fromIndex}_${commanderIndex}`;
             const currentDamage = updated[playerIndex].commanderDamage[damageKey] || 0;
             const newDamage = Math.max(0, currentDamage + delta);
+
+            // Calculate actual delta (in case we hit 0 floor)
+            const actualDelta = newDamage - currentDamage;
+
             updated[playerIndex] = {
                 ...updated[playerIndex],
                 commanderDamage: {
                     ...updated[playerIndex].commanderDamage,
                     [damageKey]: newDamage,
                 },
+                // If linked, also adjust life (damage increase = life decrease)
+                ...(linkCmdDamage && actualDelta !== 0 ? {
+                    life: updated[playerIndex].life - actualDelta
+                } : {})
             };
             return updated;
         });
-    }, [saveToHistory]);
+    }, [saveToHistory, linkCmdDamage]);
 
     const handleUndo = () => {
         if (history.length > 0) {
@@ -640,6 +490,16 @@ const LifeTracker = () => {
         }
         navigate('/pods');
     };
+
+    // Handle opening centered overlay
+    // seatIndex determines rotation: left column (0,3) = 90°, right column (1,2) = -90°
+    const handleOpenOverlay = useCallback((type, playerIndex, seatIndex) => {
+        setOverlay({ type, playerIndex, seatIndex });
+    }, []);
+
+    const handleCloseOverlay = useCallback(() => {
+        setOverlay(null);
+    }, []);
 
     // Handle seat selection - P1 taps their seat, rest fill clockwise
     const handleSeatSelection = (seatIndex) => {
@@ -702,6 +562,13 @@ const LifeTracker = () => {
                     <button onClick={handleReset}>
                         <i className="fas fa-sync"></i> Reset Life
                     </button>
+                    <button
+                        onClick={() => setLinkCmdDamage(prev => !prev)}
+                        className={linkCmdDamage ? 'toggle-active' : ''}
+                    >
+                        <i className={`fas fa-${linkCmdDamage ? 'link' : 'unlink'}`}></i>
+                        {linkCmdDamage ? 'CMD → Life: On' : 'CMD → Life: Off'}
+                    </button>
                     <button onClick={() => { setShowSeatSelection(true); setShowMenu(false); }}>
                         <i className="fas fa-chair"></i> Rearrange Seats
                     </button>
@@ -759,16 +626,180 @@ const LifeTracker = () => {
                             playerIndex={playerIndex}
                             rotation={rotations[seatIndex]}
                             onLifeChange={handleLifeChange}
-                            onPoisonChange={handlePoisonChange}
-                            onCommanderDamageChange={handleCommanderDamageChange}
-                            allPlayers={players}
-                            seatOrder={seatOrder}
+                            onOpenOverlay={handleOpenOverlay}
                             commanderImage={player.playerId ? commanderImages[player.playerId] : null}
-                            allCommanderImages={commanderImages}
                         />
                     );
                 })}
             </div>
+
+            {/* Centered Overlay for CMD/Poison */}
+            {overlay && (() => {
+                // Seat positions: 0=top-left, 1=top-right, 2=bottom-right, 3=bottom-left
+                // Left column (0, 3) faces left = 90° rotation
+                // Right column (1, 2) faces right = -90° rotation
+                const isLeftColumn = overlay.seatIndex === 0 || overlay.seatIndex === 3;
+                const overlayRotation = isLeftColumn ? 90 : -90;
+
+                return (
+                <div className="centered-overlay" onClick={handleCloseOverlay}>
+                    <div
+                        className="centered-overlay-content"
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ transform: `rotate(${overlayRotation}deg)` }}
+                    >
+                        <button className="overlay-close-x" onClick={handleCloseOverlay}>×</button>
+
+                        {/* Player indicator */}
+                        <div
+                            className="overlay-player-indicator"
+                            style={{ '--player-color': PLAYER_COLORS[overlay.playerIndex] }}
+                        >
+                            <span className="overlay-player-name">
+                                {players[overlay.playerIndex]?.name || `Player ${overlay.playerIndex + 1}`}
+                            </span>
+                        </div>
+
+                        {overlay.type === 'poison' && (
+                            <div className="centered-poison-controls">
+                                <button
+                                    className="centered-ctrl-btn poison-minus"
+                                    onClick={() => handlePoisonChange(overlay.playerIndex, -1)}
+                                >−</button>
+                                <div className="centered-value-display">
+                                    <i className="fas fa-skull-crossbones"></i>
+                                    <span className={`centered-value ${(players[overlay.playerIndex]?.poison || 0) >= 10 ? 'lethal' : ''}`}>
+                                        {players[overlay.playerIndex]?.poison || 0}
+                                    </span>
+                                    <span className="centered-value-label">Poison</span>
+                                </div>
+                                <button
+                                    className="centered-ctrl-btn poison-plus"
+                                    onClick={() => handlePoisonChange(overlay.playerIndex, 1)}
+                                >+</button>
+                            </div>
+                        )}
+
+                        {overlay.type === 'cmd' && (() => {
+                            // Grid order depends on rotation to match visual layout
+                            // Left column (90° rotation): CSS grid flows differently when viewed rotated
+                            // Right column (-90° rotation): opposite transformation
+                            // Main grid visual order: 0=top-left, 1=top-right, 3=bottom-left, 2=bottom-right
+                            const gridOrder = isLeftColumn
+                                ? [1, 2, 0, 3]  // After 90° rotation: top-right→top-left, bottom-right→top-right, etc.
+                                : [3, 0, 2, 1]; // After -90° rotation
+                            return (
+                            <div className="centered-cmd-grid">
+                                {gridOrder.map((seatIdx) => {
+                                    // Map seat index to player index using seatOrder
+                                    const playerIdx = seatOrder ? seatOrder[seatIdx] : seatIdx;
+                                    // isSelf: is this the seat that opened the overlay?
+                                    const isSelf = seatIdx === overlay.seatIndex;
+                                    const opponent = players[playerIdx];
+                                    const opponentImages = opponent?.playerId ? commanderImages[opponent.playerId] : null;
+                                    const hasPartner = opponent?.partnerUuid && !opponentImages?.isBackground;
+                                    const damage1 = players[overlay.playerIndex]?.commanderDamage[playerIdx] || 0;
+                                    const damage2 = players[overlay.playerIndex]?.commanderDamage[`${playerIdx}_1`] || 0;
+                                    const cmdImage1 = opponentImages?.main || null;
+                                    const cmdImage2 = opponentImages?.partner || null;
+
+                                    return (
+                                        <div
+                                            key={seatIdx}
+                                            className={`centered-cmd-cell ${isSelf ? 'cmd-self' : ''} ${hasPartner ? 'cmd-has-partner' : ''}`}
+                                            style={{
+                                                '--cell-color': PLAYER_COLORS[playerIdx],
+                                                backgroundImage: cmdImage1 && !isSelf && !hasPartner
+                                                    ? `linear-gradient(rgba(0,0,0,0.65), rgba(0,0,0,0.65)), url(${cmdImage1})`
+                                                    : 'none',
+                                                backgroundSize: 'cover',
+                                                backgroundPosition: 'center'
+                                            }}
+                                        >
+                                            {isSelf ? (
+                                                <span className="cmd-self-label">YOU</span>
+                                            ) : hasPartner ? (
+                                                <div className="cmd-partner-row">
+                                                    {/* Partner 1 - tap zone style */}
+                                                    <div
+                                                        className="cmd-partner-half cmd-tap-zone-container"
+                                                        style={cmdImage1 ? {
+                                                            backgroundImage: `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url(${cmdImage1})`,
+                                                            backgroundSize: 'cover',
+                                                            backgroundPosition: 'center'
+                                                        } : {}}
+                                                    >
+                                                        <button
+                                                            className="cmd-tap-zone cmd-tap-minus"
+                                                            onClick={() => handleCommanderDamageChange(overlay.playerIndex, playerIdx, -1, 0)}
+                                                        >
+                                                            <span className="cmd-tap-delta">−1</span>
+                                                        </button>
+                                                        <span className={`cmd-damage-value ${damage1 >= 21 ? 'lethal' : ''}`}>{damage1}</span>
+                                                        <button
+                                                            className="cmd-tap-zone cmd-tap-plus"
+                                                            onClick={() => handleCommanderDamageChange(overlay.playerIndex, playerIdx, 1, 0)}
+                                                        >
+                                                            <span className="cmd-tap-delta">+1</span>
+                                                        </button>
+                                                    </div>
+                                                    {/* Partner 2 - tap zone style */}
+                                                    <div
+                                                        className="cmd-partner-half cmd-tap-zone-container"
+                                                        style={cmdImage2 ? {
+                                                            backgroundImage: `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url(${cmdImage2})`,
+                                                            backgroundSize: 'cover',
+                                                            backgroundPosition: 'center'
+                                                        } : {}}
+                                                    >
+                                                        <button
+                                                            className="cmd-tap-zone cmd-tap-minus"
+                                                            onClick={() => handleCommanderDamageChange(overlay.playerIndex, playerIdx, -1, 1)}
+                                                        >
+                                                            <span className="cmd-tap-delta">−1</span>
+                                                        </button>
+                                                        <span className={`cmd-damage-value ${damage2 >= 21 ? 'lethal' : ''}`}>{damage2}</span>
+                                                        <button
+                                                            className="cmd-tap-zone cmd-tap-plus"
+                                                            onClick={() => handleCommanderDamageChange(overlay.playerIndex, playerIdx, 1, 1)}
+                                                        >
+                                                            <span className="cmd-tap-delta">+1</span>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                /* Single commander - tap zone style like main life counter */
+                                                <div className="cmd-tap-zone-container">
+                                                    <span className="cmd-opponent-name">{opponent?.name?.split(' ')[0] || `P${playerIdx + 1}`}</span>
+                                                    <div className="cmd-tap-controls">
+                                                        <button
+                                                            className="cmd-tap-zone cmd-tap-minus"
+                                                            onClick={() => handleCommanderDamageChange(overlay.playerIndex, playerIdx, -1, 0)}
+                                                        >
+                                                            <span className="cmd-tap-delta">−1</span>
+                                                        </button>
+                                                        <div className="cmd-value-container">
+                                                            <span className={`cmd-damage-value ${damage1 >= 21 ? 'lethal' : ''}`}>{damage1}</span>
+                                                        </div>
+                                                        <button
+                                                            className="cmd-tap-zone cmd-tap-plus"
+                                                            onClick={() => handleCommanderDamageChange(overlay.playerIndex, playerIdx, 1, 0)}
+                                                        >
+                                                            <span className="cmd-tap-delta">+1</span>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            );
+                        })()}
+                    </div>
+                </div>
+                );
+            })()}
         </div>
     );
 };

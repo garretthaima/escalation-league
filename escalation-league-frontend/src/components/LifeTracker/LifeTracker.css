@@ -327,136 +327,9 @@
     cursor: not-allowed;
 }
 
-/* Commander damage overlay - fills entire player cell */
-.commander-overlay {
-    position: absolute;
-    inset: 0;
-    background: rgba(10, 10, 20, 0.95);
-    z-index: 5;
-}
-
-/* 2x2 Grid layout for commander damage - centered in overlay */
-/* Grid is rotated 90° so width/height are swapped relative to cell */
-/* Dimensions set inline in JS to avoid clipping issues */
-.commander-damage-grid-2x2 {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    /* transform set inline to include rotation */
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: 1fr 1fr;
-    gap: 4px;
-    /* width and height set inline in JS */
-}
-
-.cmd-grid-cell {
-    background: rgba(0, 0, 0, 0.6);
-    border: 2px solid var(--cell-color);
-    border-radius: 6px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0.15rem;
-    padding: 0.25rem;
-    min-width: 0;
-    min-height: 0;
-    overflow: hidden;
-}
-
-.cmd-grid-cell.cmd-grid-self {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.2);
-}
-
-/* Commander background image in cmd damage cells */
-.cmd-grid-cell.has-cmd-bg {
-    background-image: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), var(--cmd-bg-image);
-    background-size: cover;
-    background-position: center;
-}
-
-/* Partner commander layout - side by side */
-.cmd-grid-cell.cmd-grid-partner {
-    gap: 0;
-    padding: 0.1rem;
-}
-
-.cmd-partner-container {
-    display: flex;
-    flex-direction: row;
-    width: 100%;
-    height: 100%;
-    gap: 4px;
-}
-
-.cmd-partner-col {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    flex: 1;
-    gap: 0;
-}
-
-.cmd-partner-col .cmd-grid-btn {
-    width: 100%;
-    height: 20px;
-    font-size: 0.75rem;
-}
-
-.cmd-partner-col .cmd-grid-value {
-    font-size: clamp(0.9rem, 4vmin, 1.3rem);
-    line-height: 1;
-}
-
-.cmd-grid-self-label {
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.3);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-}
-
-.cmd-grid-value {
-    font-size: clamp(1.2rem, 6vmin, 1.8rem);
-    font-weight: 700;
-    color: white;
-    line-height: 1;
-}
-
-.cmd-grid-value.lethal {
-    color: #e74c3c;
-    animation: pulse 1s infinite;
-}
-
-.cmd-grid-btn {
-    width: 100%;
-    height: 24px;
-    border-radius: 3px;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    -webkit-tap-highlight-color: transparent;
-}
-
-.cmd-grid-btn:active {
-    background: rgba(255, 255, 255, 0.25);
-}
-
-.cmd-grid-minus:active {
-    background: rgba(231, 76, 60, 0.3);
-}
-
-.cmd-grid-plus:active {
+.center-menu button.toggle-active {
     background: rgba(46, 204, 113, 0.3);
+    border-color: rgba(46, 204, 113, 0.5);
 }
 
 @keyframes pulse {
@@ -469,43 +342,6 @@
     50% {
         opacity: 0.5;
     }
-}
-
-.cmd-close-x {
-    position: absolute;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    border: 2px solid rgba(255, 255, 255, 0.5);
-    background: rgba(30, 30, 50, 0.95);
-    color: white;
-    font-size: 1.5rem;
-    line-height: 1;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10;
-}
-
-/* Top row players (0, 1): X at top center (away from center cog) */
-.cmd-overlay-player-0 .cmd-close-x,
-.cmd-overlay-player-1 .cmd-close-x {
-    top: 8px;
-    left: 50%;
-    transform: translateX(-50%);
-}
-
-/* Bottom row players (2, 3): X at bottom center (away from center cog) */
-.cmd-overlay-player-2 .cmd-close-x,
-.cmd-overlay-player-3 .cmd-close-x {
-    bottom: 8px;
-    left: 50%;
-    transform: translateX(-50%);
-}
-
-.cmd-close-x:active {
-    background: rgba(255, 255, 255, 0.2);
 }
 
 /* Commander background image support */
@@ -590,99 +426,6 @@
     }
 }
 
-/* Poison overlay - fills entire player cell like commander damage */
-.poison-overlay {
-    position: absolute;
-    inset: 0;
-    background: rgba(10, 30, 20, 0.95);
-    z-index: 5;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.poison-close-x {
-    position: absolute;
-    top: 8px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    border: 2px solid rgba(46, 204, 113, 0.5);
-    background: rgba(30, 50, 40, 0.95);
-    color: #2ecc71;
-    font-size: 1.5rem;
-    line-height: 1;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10;
-}
-
-.poison-close-x:active {
-    background: rgba(46, 204, 113, 0.3);
-}
-
-.poison-controls {
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
-}
-
-.poison-ctrl-btn {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    border: 3px solid rgba(46, 204, 113, 0.5);
-    background: rgba(46, 204, 113, 0.2);
-    color: #2ecc71;
-    font-size: 2rem;
-    font-weight: 600;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    -webkit-tap-highlight-color: transparent;
-}
-
-.poison-ctrl-btn:active {
-    background: rgba(46, 204, 113, 0.4);
-}
-
-.poison-ctrl-btn.poison-minus:active {
-    background: rgba(231, 76, 60, 0.3);
-    border-color: rgba(231, 76, 60, 0.5);
-}
-
-.poison-ctrl-btn.poison-plus:active {
-    background: rgba(46, 204, 113, 0.4);
-}
-
-.poison-display {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.poison-display i {
-    font-size: 2rem;
-    color: #2ecc71;
-}
-
-.poison-count {
-    font-size: clamp(3rem, 12vmin, 5rem);
-    font-weight: 700;
-    color: #2ecc71;
-    line-height: 1;
-}
-
-.poison-count.lethal {
-    color: #e74c3c;
-    animation: pulse 1s infinite;
-}
 
 /* Seat Selection Overlay */
 .seat-selection-overlay {
@@ -793,4 +536,304 @@
 .seat-selection-cancel:hover {
     border-color: rgba(255, 255, 255, 0.5);
     color: white;
+}
+
+/* ============================================
+   CENTERED OVERLAY (CMD & Poison)
+   ============================================ */
+
+.centered-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 150;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.centered-overlay-content {
+    position: relative;
+    background: rgba(20, 20, 35, 0.98);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 16px;
+    padding: 1rem;
+    /* When rotated 90°, width becomes height and vice versa */
+    /* Use vh for width since it will be the vertical dimension after rotation */
+    width: 95vh;
+    max-width: 95vh;
+    height: 85vw;
+    max-height: 85vw;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.overlay-close-x {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.overlay-close-x:active {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Player indicator at top of overlay */
+.overlay-player-indicator {
+    text-align: center;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--player-color, rgba(255,255,255,0.2));
+    flex-shrink: 0;
+}
+
+.overlay-player-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--player-color, white);
+}
+
+/* ============================================
+   CENTERED POISON CONTROLS
+   ============================================ */
+
+.centered-poison-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    padding: 1rem 0;
+}
+
+.centered-ctrl-btn {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    border: 3px solid rgba(46, 204, 113, 0.5);
+    background: rgba(46, 204, 113, 0.2);
+    color: #2ecc71;
+    font-size: 2.5rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+    transition: all 0.15s;
+}
+
+.centered-ctrl-btn:active {
+    background: rgba(46, 204, 113, 0.4);
+    transform: scale(0.95);
+}
+
+.centered-ctrl-btn.poison-minus:active {
+    background: rgba(231, 76, 60, 0.3);
+    border-color: rgba(231, 76, 60, 0.5);
+}
+
+.centered-value-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    min-width: 80px;
+}
+
+.centered-value-display i {
+    font-size: 1.5rem;
+    color: #2ecc71;
+}
+
+.centered-value {
+    font-size: 4rem;
+    font-weight: 700;
+    color: #2ecc71;
+    line-height: 1;
+}
+
+.centered-value.lethal {
+    color: #e74c3c;
+    animation: pulse 1s infinite;
+}
+
+.centered-value-label {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+/* ============================================
+   CENTERED CMD GRID
+   ============================================ */
+
+.centered-cmd-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 8px;
+    flex: 1;
+    width: 100%;
+    height: 100%;
+}
+
+.centered-cmd-cell {
+    background: rgba(0, 0, 0, 0.4);
+    border: 3px solid var(--cell-color);
+    border-radius: 12px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.centered-cmd-cell.cmd-self {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.cmd-self-label {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.3);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+/* CMD Tap Zone Style - mirrors main life counter */
+.cmd-tap-zone-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    padding: 0.5rem 0;
+}
+
+.cmd-opponent-name {
+    font-size: 0.9rem;
+    color: var(--cell-color);
+    font-weight: 600;
+    padding: 0.25rem 0;
+    z-index: 1;
+    flex-shrink: 0;
+}
+
+.cmd-tap-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    width: 100%;
+}
+
+.cmd-tap-zone {
+    flex: 1;
+    height: 100%;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.cmd-tap-zone:active {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.cmd-tap-minus:active {
+    background: rgba(231, 76, 60, 0.3);
+}
+
+.cmd-tap-plus:active {
+    background: rgba(46, 204, 113, 0.3);
+}
+
+.cmd-tap-delta {
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.3);
+    font-weight: 300;
+}
+
+.cmd-tap-zone:active .cmd-tap-delta {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.cmd-value-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0.5rem;
+}
+
+.cmd-damage-value {
+    font-size: clamp(2rem, 8vmin, 3.5rem);
+    font-weight: 700;
+    color: white;
+    min-width: 50px;
+    text-align: center;
+    line-height: 1;
+}
+
+.cmd-damage-value.lethal {
+    color: #e74c3c;
+    animation: pulse 1s infinite;
+}
+
+/* Partner commander layout in centered overlay */
+.centered-cmd-cell.cmd-has-partner {
+    padding: 0;
+}
+
+.cmd-partner-row {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    height: 100%;
+    gap: 4px;
+}
+
+.cmd-partner-half {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.cmd-partner-half.cmd-tap-zone-container {
+    flex-direction: row;
+}
+
+.cmd-partner-half .cmd-tap-zone {
+    min-height: 100%;
+    flex: 1;
+}
+
+.cmd-partner-half .cmd-damage-value {
+    font-size: clamp(1.5rem, 6vmin, 2.5rem);
+    min-width: 35px;
+    padding: 0 0.25rem;
 }
