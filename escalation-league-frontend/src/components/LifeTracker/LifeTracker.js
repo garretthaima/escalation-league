@@ -7,17 +7,20 @@ import './LifeTracker.css';
 const STARTING_LIFE = 40;
 const PLAYER_COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#9b59b6'];
 
-const PlayerLife = ({ player, index, onLifeChange, onPoisonChange, onCommanderDamageChange, allPlayers, rotation, commanderImage, allCommanderImages }) => {
+const PlayerLife = ({ player, index, playerIndex, onLifeChange, onPoisonChange, onCommanderDamageChange, allPlayers, seatOrder, rotation, commanderImage, allCommanderImages }) => {
     const [showCommanderDamage, setShowCommanderDamage] = useState(false);
     const [showPoisonControls, setShowPoisonControls] = useState(false);
     const [deltaIndicator, setDeltaIndicator] = useState({ value: 0, visible: false, key: 0 });
     const touchHandledRef = useRef(false);
     const deltaTimeoutRef = useRef(null);
     const cumulativeDeltaRef = useRef(0);
-    const color = PLAYER_COLORS[index % PLAYER_COLORS.length];
+    // Use playerIndex for the actual player in the array (for callbacks)
+    // Use index for visual seat position (for grid layout and rotations)
+    const actualIndex = playerIndex !== undefined ? playerIndex : index;
+    const color = PLAYER_COLORS[actualIndex % PLAYER_COLORS.length];
 
     const handleLifeChange = (delta) => {
-        onLifeChange(index, delta);
+        onLifeChange(actualIndex, delta);
 
         // Accumulate delta for display
         cumulativeDeltaRef.current += delta;
@@ -169,7 +172,7 @@ const PlayerLife = ({ player, index, onLifeChange, onPoisonChange, onCommanderDa
                         <div className="poison-controls">
                             <button
                                 className="poison-ctrl-btn poison-minus"
-                                onClick={() => onPoisonChange(index, -1)}
+                                onClick={() => onPoisonChange(actualIndex, -1)}
                             >−</button>
                             <div className="poison-display">
                                 <i className="fas fa-skull-crossbones"></i>
@@ -179,7 +182,7 @@ const PlayerLife = ({ player, index, onLifeChange, onPoisonChange, onCommanderDa
                             </div>
                             <button
                                 className="poison-ctrl-btn poison-plus"
-                                onClick={() => onPoisonChange(index, 1)}
+                                onClick={() => onPoisonChange(actualIndex, 1)}
                             >+</button>
                         </div>
                     </div>
@@ -188,24 +191,28 @@ const PlayerLife = ({ player, index, onLifeChange, onPoisonChange, onCommanderDa
 
             {/* Commander damage overlay - outside player-content so it fills the cell */}
             {showCommanderDamage && (() => {
-                // Rotate entire grid to face the player at this position
+                // Rotate entire grid to face the player at this position (based on seat, not player index)
                 // Players 0,3 are left column (face left = 90°), players 1,2 are right column (face right = -90°)
                 const isLeftColumn = index === 0 || index === 3;
                 const gridRotation = isLeftColumn ? 90 : -90;
 
-                // Grid position to player mapping, adjusted for rotation
-                // Main layout: P0=top-left, P1=top-right, P2=bottom-right, P3=bottom-left
+                // Grid position to seat mapping, adjusted for rotation
+                // Main layout: seat 0=top-left, seat 1=top-right, seat 2=bottom-right, seat 3=bottom-left
                 // For 90° (left column): grid renders then rotates CW, so we pre-map CCW
                 // For -90° (right column): grid renders then rotates CCW, so we pre-map CW
-                const gridToPlayer = isLeftColumn
-                    ? [1, 2, 0, 3]  // After 90° CW rotation: [0,1,2,3] -> P0 top-left, P1 top-right, P3 bottom-left, P2 bottom-right
+                const gridToSeat = isLeftColumn
+                    ? [1, 2, 0, 3]  // After 90° CW rotation
                     : [3, 0, 2, 1]; // After 90° CCW rotation
 
                 // Grid dimensions - cell is 50vw x 50vh, grid rotates 90°
-                // After rotation: CSS width becomes visual height, CSS height becomes visual width
-                // Slightly taller than wide for rectangular cells after rotation
-                const gridWidth = '38vh';  // Becomes visual height after rotation
-                const gridHeight = '40vw'; // Becomes visual width after rotation
+                const gridWidth = '38vh';
+                const gridHeight = '40vw';
+
+                // Helper to get player index for a seat (accounting for seatOrder)
+                const getPlayerIdxForSeat = (seatIdx) => {
+                    if (!seatOrder) return seatIdx;
+                    return seatOrder[seatIdx];
+                };
 
                 return (
                     <div className={`commander-overlay cmd-overlay-player-${index}`}>
@@ -223,17 +230,18 @@ const PlayerLife = ({ player, index, onLifeChange, onPoisonChange, onCommanderDa
                                 height: gridHeight
                             }}
                         >
-                            {/* Grid positions after rotation should match main layout */}
+                            {/* Grid positions after rotation should match seat layout */}
                             {[0, 1, 2, 3].map((gridPos) => {
-                                const playerIdx = gridToPlayer[gridPos];
-                                const isSelf = playerIdx === index;
-                                const opponent = allPlayers[playerIdx];
+                                const seatIdx = gridToSeat[gridPos];
+                                const opponentPlayerIdx = getPlayerIdxForSeat(seatIdx);
+                                const isSelf = opponentPlayerIdx === actualIndex;
+                                const opponent = allPlayers[opponentPlayerIdx];
                                 // Only show dual damage tracking for true partners, not backgrounds
                                 const opponentImages = opponent?.playerId ? allCommanderImages[opponent.playerId] : null;
                                 const hasPartner = opponent?.partnerUuid && !opponentImages?.isBackground;
                                 // Get damage - for partners, use key format "playerIdx_1" for second commander
-                                const damage1 = player.commanderDamage[playerIdx] || 0;
-                                const damage2 = player.commanderDamage[`${playerIdx}_1`] || 0;
+                                const damage1 = player.commanderDamage[opponentPlayerIdx] || 0;
+                                const damage2 = player.commanderDamage[`${opponentPlayerIdx}_1`] || 0;
                                 // Get commander image(s) for this opponent
                                 const cmdImage1 = opponentImages?.main || null;
                                 const cmdImage2 = opponentImages?.partner || null;
@@ -243,7 +251,7 @@ const PlayerLife = ({ player, index, onLifeChange, onPoisonChange, onCommanderDa
                                         key={gridPos}
                                         className={`cmd-grid-cell ${isSelf ? 'cmd-grid-self' : ''} ${hasPartner ? 'cmd-grid-partner' : ''} ${cmdImage1 && !isSelf ? 'has-cmd-bg' : ''}`}
                                         style={{
-                                            '--cell-color': PLAYER_COLORS[playerIdx],
+                                            '--cell-color': PLAYER_COLORS[opponentPlayerIdx],
                                             '--cmd-bg-image': cmdImage1 && !isSelf ? `url(${cmdImage1})` : 'none'
                                         }}
                                     >
@@ -261,14 +269,14 @@ const PlayerLife = ({ player, index, onLifeChange, onPoisonChange, onCommanderDa
                                             >
                                                 <button
                                                     className="cmd-grid-btn cmd-grid-plus"
-                                                    onClick={() => onCommanderDamageChange(index, playerIdx, 1, 0)}
+                                                    onClick={() => onCommanderDamageChange(actualIndex, opponentPlayerIdx, 1, 0)}
                                                 >+</button>
                                                 <span className={`cmd-grid-value ${damage1 >= 21 ? 'lethal' : ''}`}>
                                                     {damage1}
                                                 </span>
                                                 <button
                                                     className="cmd-grid-btn cmd-grid-minus"
-                                                    onClick={() => onCommanderDamageChange(index, playerIdx, -1, 0)}
+                                                    onClick={() => onCommanderDamageChange(actualIndex, opponentPlayerIdx, -1, 0)}
                                                 >−</button>
                                             </div>
                                             <div
@@ -281,14 +289,14 @@ const PlayerLife = ({ player, index, onLifeChange, onPoisonChange, onCommanderDa
                                             >
                                                 <button
                                                     className="cmd-grid-btn cmd-grid-plus"
-                                                    onClick={() => onCommanderDamageChange(index, playerIdx, 1, 1)}
+                                                    onClick={() => onCommanderDamageChange(actualIndex, opponentPlayerIdx, 1, 1)}
                                                 >+</button>
                                                 <span className={`cmd-grid-value ${damage2 >= 21 ? 'lethal' : ''}`}>
                                                     {damage2}
                                                 </span>
                                                 <button
                                                     className="cmd-grid-btn cmd-grid-minus"
-                                                    onClick={() => onCommanderDamageChange(index, playerIdx, -1, 1)}
+                                                    onClick={() => onCommanderDamageChange(actualIndex, opponentPlayerIdx, -1, 1)}
                                                 >−</button>
                                             </div>
                                         </div>
@@ -296,14 +304,14 @@ const PlayerLife = ({ player, index, onLifeChange, onPoisonChange, onCommanderDa
                                         <>
                                             <button
                                                 className="cmd-grid-btn cmd-grid-plus"
-                                                onClick={() => onCommanderDamageChange(index, playerIdx, 1, 0)}
+                                                onClick={() => onCommanderDamageChange(actualIndex, opponentPlayerIdx, 1, 0)}
                                             >+</button>
                                             <span className={`cmd-grid-value ${damage1 >= 21 ? 'lethal' : ''}`}>
                                                 {damage1}
                                             </span>
                                             <button
                                                 className="cmd-grid-btn cmd-grid-minus"
-                                                onClick={() => onCommanderDamageChange(index, playerIdx, -1, 0)}
+                                                onClick={() => onCommanderDamageChange(actualIndex, opponentPlayerIdx, -1, 0)}
                                             >−</button>
                                         </>
                                     )}
@@ -336,6 +344,11 @@ const LifeTracker = () => {
     ]);
     const [history, setHistory] = useState([]);
     const [showMenu, setShowMenu] = useState(false);
+    // Seat order: maps physical seat index to turn order index
+    // null means not yet configured (show seat selection)
+    // e.g., [2, 3, 0, 1] means: seat 0 has P3, seat 1 has P4, seat 2 has P1, seat 3 has P2
+    const [seatOrder, setSeatOrder] = useState(null);
+    const [showSeatSelection, setShowSeatSelection] = useState(false);
 
     // Rotations for phone flat on table, each player faces outward to their seat
     const rotations = [90, -90, -90, 90];
@@ -421,6 +434,12 @@ const LifeTracker = () => {
                     if (saved.history) {
                         setHistory(saved.history);
                     }
+                    if (saved.seatOrder) {
+                        setSeatOrder(saved.seatOrder);
+                    } else {
+                        // Has saved state but no seat order - show selection
+                        setShowSeatSelection(true);
+                    }
                 } else if (podData?.participants) {
                     // Initialize from pod participants
                     const sortedParticipants = [...podData.participants].sort((a, b) =>
@@ -442,6 +461,8 @@ const LifeTracker = () => {
                     }
 
                     setPlayers(initialPlayers);
+                    // New game - show seat selection
+                    setShowSeatSelection(true);
                 }
 
                 // Fetch commander images
@@ -511,7 +532,8 @@ const LifeTracker = () => {
             try {
                 await updateLifeTrackerState(podId, {
                     players,
-                    history: history.slice(-10) // Only save last 10 history items
+                    history: history.slice(-10), // Only save last 10 history items
+                    seatOrder
                 });
             } catch (error) {
                 console.error('Error auto-saving life tracker:', error);
@@ -523,7 +545,7 @@ const LifeTracker = () => {
                 clearTimeout(saveTimeoutRef.current);
             }
         };
-    }, [podId, players, history]);
+    }, [podId, players, history, seatOrder]);
 
     const saveToHistory = useCallback(() => {
         setHistory((prev) => [...prev.slice(-49), JSON.parse(JSON.stringify(players))]);
@@ -606,7 +628,8 @@ const LifeTracker = () => {
                 console.log('Saving life tracker state for pod:', podId);
                 const result = await updateLifeTrackerState(podId, {
                     players,
-                    history: history.slice(-10)
+                    history: history.slice(-10),
+                    seatOrder
                 });
                 console.log('Save result:', result);
             } catch (error) {
@@ -616,6 +639,39 @@ const LifeTracker = () => {
             }
         }
         navigate('/pods');
+    };
+
+    // Handle seat selection - P1 taps their seat, rest fill clockwise
+    const handleSeatSelection = (seatIndex) => {
+        // seatIndex is where P1 (turn order 0) sits
+        // Fill clockwise: seat 0 -> 1 -> 2 -> 3 maps to grid positions
+        // Grid clockwise order: 0 (top-left) -> 1 (top-right) -> 2 (bottom-right) -> 3 (bottom-left)
+        const newSeatOrder = [];
+        for (let i = 0; i < 4; i++) {
+            // Which turn order player sits at seat i?
+            // If P1 is at seatIndex, then seat i has player (i - seatIndex + 4) % 4
+            const turnOrderAtSeat = (i - seatIndex + 4) % 4;
+            newSeatOrder[i] = turnOrderAtSeat;
+        }
+        setSeatOrder(newSeatOrder);
+        setShowSeatSelection(false);
+    };
+
+    // Get the player for a given seat position based on seatOrder
+    const getPlayerForSeat = (seatIndex) => {
+        if (!seatOrder) {
+            // Default: seat index = turn order
+            return players[seatIndex];
+        }
+        return players[seatOrder[seatIndex]];
+    };
+
+    // Get the original player index for a seat (needed for callbacks)
+    const getPlayerIndexForSeat = (seatIndex) => {
+        if (!seatOrder) {
+            return seatIndex;
+        }
+        return seatOrder[seatIndex];
     };
 
     if (loading) {
@@ -646,6 +702,9 @@ const LifeTracker = () => {
                     <button onClick={handleReset}>
                         <i className="fas fa-sync"></i> Reset Life
                     </button>
+                    <button onClick={() => { setShowSeatSelection(true); setShowMenu(false); }}>
+                        <i className="fas fa-chair"></i> Rearrange Seats
+                    </button>
                     {podId && (
                         <button onClick={handleClose}>
                             <i className="fas fa-sign-out-alt"></i> Close & Save
@@ -657,22 +716,58 @@ const LifeTracker = () => {
                 </div>
             )}
 
+            {/* Seat Selection Overlay */}
+            {showSeatSelection && (
+                <div className="seat-selection-overlay">
+                    <div className="seat-selection-prompt">
+                        <i className="fas fa-hand-pointer"></i>
+                        <span>Tap where <strong>{players[0]?.name || 'Player 1'}</strong> is sitting</span>
+                    </div>
+                    <div className="seat-selection-grid">
+                        {[0, 1, 2, 3].map((seatIndex) => (
+                            <button
+                                key={seatIndex}
+                                className={`seat-selection-cell seat-${seatIndex}`}
+                                onClick={() => handleSeatSelection(seatIndex)}
+                                style={{ '--seat-color': PLAYER_COLORS[0] }}
+                            >
+                                <span className="seat-label">Tap if P1 sits here</span>
+                            </button>
+                        ))}
+                    </div>
+                    {seatOrder && (
+                        <button
+                            className="seat-selection-cancel"
+                            onClick={() => setShowSeatSelection(false)}
+                        >
+                            Cancel
+                        </button>
+                    )}
+                </div>
+            )}
+
             {/* 2x2 Grid */}
             <div className="players-table">
-                {players.map((player, index) => (
-                    <PlayerLife
-                        key={player.playerId || index}
-                        player={player}
-                        index={index}
-                        rotation={rotations[index]}
-                        onLifeChange={handleLifeChange}
-                        onPoisonChange={handlePoisonChange}
-                        onCommanderDamageChange={handleCommanderDamageChange}
-                        allPlayers={players}
-                        commanderImage={player.playerId ? commanderImages[player.playerId] : null}
-                        allCommanderImages={commanderImages}
-                    />
-                ))}
+                {[0, 1, 2, 3].map((seatIndex) => {
+                    const playerIndex = getPlayerIndexForSeat(seatIndex);
+                    const player = getPlayerForSeat(seatIndex);
+                    return (
+                        <PlayerLife
+                            key={player.playerId || seatIndex}
+                            player={player}
+                            index={seatIndex}
+                            playerIndex={playerIndex}
+                            rotation={rotations[seatIndex]}
+                            onLifeChange={handleLifeChange}
+                            onPoisonChange={handlePoisonChange}
+                            onCommanderDamageChange={handleCommanderDamageChange}
+                            allPlayers={players}
+                            seatOrder={seatOrder}
+                            commanderImage={player.playerId ? commanderImages[player.playerId] : null}
+                            allCommanderImages={commanderImages}
+                        />
+                    );
+                })}
             </div>
         </div>
     );
