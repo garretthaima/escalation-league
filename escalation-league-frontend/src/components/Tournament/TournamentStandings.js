@@ -162,7 +162,7 @@ const TournamentStandings = ({ standings, currentUserId, tournamentWinPoints, to
                                                     Finals
                                                 </span>
                                             ) : isTop4 ? (
-                                                <span className="badge bg-info">
+                                                <span className="badge bg-primary">
                                                     <i className="fas fa-arrow-up me-1"></i>
                                                     Top 4
                                                 </span>

@@ -5,11 +5,38 @@
  * Issue #76: Finals Tournament System
  */
 
+const crypto = require('crypto');
 const db = require('../models/db');
 const logger = require('../utils/logger');
 const { emitPodCreated } = require('../utils/socketEmitter');
 const { cacheInvalidators } = require('../middlewares/cacheMiddleware');
 const { createNotification } = require('../services/notificationService');
+
+/**
+ * Generate a cryptographically secure random number between 0 and 1
+ * Uses crypto.randomBytes for better entropy than Math.random()
+ */
+function secureRandom() {
+    // Generate 4 random bytes (32 bits)
+    const buffer = crypto.randomBytes(4);
+    // Convert to unsigned 32-bit integer
+    const uint32 = buffer.readUInt32BE(0);
+    // Normalize to [0, 1) range
+    return uint32 / 0x100000000;
+}
+
+/**
+ * Fisher-Yates shuffle using cryptographically secure randomness
+ */
+function secureShuffleArray(array) {
+    const result = [...array];
+    for (let i = result.length - 1; i > 0; i--) {
+        // Generate secure random index from 0 to i (inclusive)
+        const j = Math.floor(secureRandom() * (i + 1));
+        [result[i], result[j]] = [result[j], result[i]];
+    }
+    return result;
+}
 
 /**
  * End Regular Season - Lock stats and qualify players
@@ -319,21 +346,22 @@ const generateTournamentPods = async (req, res) => {
             logger.warn('Pod generation produced uneven game counts', { invalidCounts });
         }
 
-        // Create pods in database
+        // Create pods in database as unpublished drafts
         const createdPods = [];
         await db.transaction(async (trx) => {
             for (let i = 0; i < pods.length; i++) {
                 const [podId] = await trx('game_pods').insert({
                     league_id: leagueId,
                     creator_id: adminId,
-                    confirmation_status: 'active',
+                    confirmation_status: 'open',
                     is_tournament_game: true,
                     tournament_round: Math.floor(i / Math.ceil(n / 4)) + 1,
-                    is_championship_game: false
+                    is_championship_game: false,
+                    published: false
                 });
 
-                // Randomize turn order within pod
-                const shuffledPlayers = [...pods[i]].sort(() => Math.random() - 0.5);
+                // Randomly assign turn orders using cryptographically secure shuffle
+                const shuffledPlayers = secureShuffleArray(pods[i]);
 
                 const playerInserts = shuffledPlayers.map((playerId, index) => ({
                     pod_id: podId,
@@ -350,35 +378,18 @@ const generateTournamentPods = async (req, res) => {
             }
         });
 
-        // Emit WebSocket events for each pod
-        for (const pod of createdPods) {
-            emitPodCreated(req.app, leagueId, {
-                id: pod.id,
-                league_id: leagueId,
-                is_tournament_game: true,
-                tournament_round: pod.round,
-                confirmation_status: 'active'
-            });
-        }
+        // Don't emit WebSocket events or notify players yet - pods are drafts
+        // Events will be emitted when pods are published
 
-        // Notify qualified players
-        for (const player of qualifiedPlayers) {
-            await createNotification(req.app, player.player_id, {
-                title: 'Tournament Pods Generated',
-                message: 'Tournament pods have been created. Play your 4 qualifying games!',
-                type: 'info',
-                link: '/leagues/tournament'
-            });
-        }
-
-        logger.info('Tournament pods generated', { leagueId, podCount: pods.length, adminId });
+        logger.info('Tournament draft pods generated', { leagueId, podCount: pods.length, adminId });
 
         res.status(201).json({
-            message: 'Tournament pods generated successfully.',
+            message: 'Tournament draft pods generated. Review and publish when ready.',
             podCount: pods.length,
             gamesPerPlayer: 4,
             qualifiedPlayerCount: n,
-            pods: createdPods
+            pods: createdPods,
+            isDraft: true
         });
     } catch (err) {
         logger.error('Error generating tournament pods', err, { leagueId });
@@ -449,16 +460,20 @@ function generateBalancedPods(playerIds, podSize, gamesPerPlayer) {
 
 /**
  * Select best pod from eligible players by minimizing pairing overlap
+ * Uses cryptographically secure randomization for tie-breaking
  */
 function selectBestPod(eligiblePlayers, podSize, pairings, playerGames) {
     const pod = [];
 
-    // Start with the player who has the fewest games
-    pod.push(eligiblePlayers[0]);
+    // Start with a random player from those with fewest games (secure random)
+    const minGames = playerGames[eligiblePlayers[0]];
+    const minGamePlayers = eligiblePlayers.filter(p => playerGames[p] === minGames);
+    const shuffledMinPlayers = secureShuffleArray(minGamePlayers);
+    pod.push(shuffledMinPlayers[0]);
 
     while (pod.length < podSize) {
-        let bestCandidate = null;
         let bestScore = Infinity;
+        let bestCandidates = [];
 
         for (const candidate of eligiblePlayers) {
             if (pod.includes(candidate)) continue;
@@ -473,12 +488,17 @@ function selectBestPod(eligiblePlayers, podSize, pairings, playerGames) {
 
             if (score < bestScore) {
                 bestScore = score;
-                bestCandidate = candidate;
+                bestCandidates = [candidate];
+            } else if (score === bestScore) {
+                // Collect all candidates with same best score for random selection
+                bestCandidates.push(candidate);
             }
         }
 
-        if (bestCandidate !== null) {
-            pod.push(bestCandidate);
+        if (bestCandidates.length > 0) {
+            // Randomly select from tied candidates using secure random
+            const shuffled = secureShuffleArray(bestCandidates);
+            pod.push(shuffled[0]);
         } else {
             break;
         }
@@ -488,7 +508,59 @@ function selectBestPod(eligiblePlayers, podSize, pairings, playerGames) {
 }
 
 /**
- * Get Tournament Pods
+ * Assign turn orders using weighted randomization with cryptographically secure random
+ * Players who have been in a position more often have lower weight for that position
+ * This balances turn order distribution across all pods
+ *
+ * Uses exponential decay weighting: weight = e^(-k * count)
+ * This provides stronger bias against repeated positions than linear 1/(count+1)
+ */
+function assignWeightedTurnOrder(podPlayers, turnOrderCounts) {
+    const positions = [1, 2, 3, 4];
+    const result = new Array(4);
+    const remainingPlayers = [...podPlayers];
+
+    // Decay constant - higher = stronger bias against repeated positions
+    const decayConstant = 1.5;
+
+    for (const position of positions) {
+        if (remainingPlayers.length === 0) break;
+
+        // Calculate weights using exponential decay
+        // e^(-k * count): 0 times = 1.0, 1 time = 0.22, 2 times = 0.05
+        const weights = remainingPlayers.map(playerId => {
+            const count = turnOrderCounts[playerId][position];
+            return Math.exp(-decayConstant * count);
+        });
+
+        // Normalize weights to probabilities
+        const totalWeight = weights.reduce((sum, w) => sum + w, 0);
+        const probabilities = weights.map(w => w / totalWeight);
+
+        // Weighted random selection using cryptographically secure random
+        const random = secureRandom();
+        let cumulative = 0;
+        let selectedIndex = remainingPlayers.length - 1; // Default to last if rounding issues
+
+        for (let i = 0; i < probabilities.length; i++) {
+            cumulative += probabilities[i];
+            if (random < cumulative) {
+                selectedIndex = i;
+                break;
+            }
+        }
+
+        // Assign selected player to this position
+        const selectedPlayer = remainingPlayers[selectedIndex];
+        result[position - 1] = selectedPlayer;
+        remainingPlayers.splice(selectedIndex, 1);
+    }
+
+    return result;
+}
+
+/**
+ * Get Tournament Pods (published only for regular users)
  * GET /api/leagues/:id/tournament/pods
  */
 const getTournamentPods = async (req, res) => {
@@ -498,7 +570,11 @@ const getTournamentPods = async (req, res) => {
     try {
         let query = db('game_pods as gp')
             .where({ 'gp.league_id': leagueId, 'gp.is_tournament_game': true })
-            .whereNull('gp.deleted_at');
+            .whereNull('gp.deleted_at')
+            // Only show published pods (or pods where published is null for backwards compat)
+            .andWhere(function() {
+                this.where('gp.published', true).orWhereNull('gp.published');
+            });
 
         if (round) {
             query = query.where('gp.tournament_round', round);
@@ -660,14 +736,15 @@ const startChampionship = async (req, res) => {
                     .update({ championship_qualified: true });
             }
 
-            // Create championship pod
+            // Create championship pod as unpublished draft
             [podId] = await trx('game_pods').insert({
                 league_id: leagueId,
                 creator_id: adminId,
-                confirmation_status: 'active',
+                confirmation_status: 'open',
                 is_tournament_game: true,
                 tournament_round: 5,
-                is_championship_game: true
+                is_championship_game: true,
+                published: false
             });
 
             // Randomize turn order
@@ -680,32 +757,16 @@ const startChampionship = async (req, res) => {
             await trx('game_players').insert(playerInserts);
         });
 
-        // Emit WebSocket event
-        emitPodCreated(req.app, leagueId, {
-            id: podId,
-            league_id: leagueId,
-            is_tournament_game: true,
-            tournament_round: 5,
-            is_championship_game: true,
-            confirmation_status: 'active'
-        });
+        // Don't emit WebSocket events or notify players yet - pod is a draft
+        // Events will be emitted when pod is published
 
-        // Notify championship players
-        for (const player of top4) {
-            await createNotification(req.app, player.user_id, {
-                title: 'Championship Qualifier!',
-                message: "You've qualified for the Championship Game!",
-                type: 'success',
-                link: '/leagues/tournament'
-            });
-        }
-
-        logger.info('Championship started', { leagueId, podId, adminId });
+        logger.info('Championship draft pod created', { leagueId, podId, adminId });
 
         res.status(201).json({
-            message: 'Championship game created.',
+            message: 'Championship draft pod created. Review and publish when ready.',
             podId,
-            qualifiers: top4.map(p => p.user_id)
+            qualifiers: top4.map(p => p.user_id),
+            isDraft: true
         });
     } catch (err) {
         logger.error('Error starting championship', err, { leagueId });
@@ -865,6 +926,251 @@ const resetTournament = async (req, res) => {
     }
 };
 
+/**
+ * Get Draft Tournament Pods (admin only)
+ * GET /api/leagues/:id/tournament/draft-pods
+ */
+const getDraftTournamentPods = async (req, res) => {
+    const { id: leagueId } = req.params;
+
+    try {
+        const pods = await db('game_pods as gp')
+            .where({ 'gp.league_id': leagueId, 'gp.is_tournament_game': true, 'gp.published': false })
+            .whereNull('gp.deleted_at')
+            .orderBy([
+                { column: 'gp.is_championship_game', order: 'desc' },
+                { column: 'gp.tournament_round', order: 'asc' },
+                { column: 'gp.id', order: 'asc' }
+            ])
+            .select('gp.*');
+
+        // Fetch participants for each pod
+        const podsWithParticipants = await Promise.all(
+            pods.map(async (pod) => {
+                const participants = await db('game_players as gpl')
+                    .join('users as u', 'gpl.player_id', 'u.id')
+                    .where('gpl.pod_id', pod.id)
+                    .whereNull('gpl.deleted_at')
+                    .orderBy('gpl.turn_order', 'asc')
+                    .select(
+                        'u.id as player_id', 'u.firstname', 'u.lastname',
+                        'gpl.turn_order'
+                    );
+                return { ...pod, participants };
+            })
+        );
+
+        res.status(200).json({
+            draftPods: podsWithParticipants,
+            count: podsWithParticipants.length
+        });
+    } catch (err) {
+        logger.error('Error getting draft tournament pods', err, { leagueId });
+        res.status(500).json({ error: 'Failed to get draft tournament pods.' });
+    }
+};
+
+/**
+ * Publish Draft Tournament Pods (admin only)
+ * POST /api/leagues/:id/tournament/publish-pods
+ */
+const publishTournamentPods = async (req, res) => {
+    const { id: leagueId } = req.params;
+    const adminId = req.user.id;
+
+    try {
+        // Get all unpublished tournament pods for this league
+        const draftPods = await db('game_pods')
+            .where({ league_id: leagueId, is_tournament_game: true, published: false })
+            .whereNull('deleted_at');
+
+        if (draftPods.length === 0) {
+            return res.status(400).json({ error: 'No draft pods to publish.' });
+        }
+
+        const now = new Date();
+
+        // Update all draft pods to published
+        await db('game_pods')
+            .whereIn('id', draftPods.map(p => p.id))
+            .update({
+                published: true,
+                published_at: now,
+                confirmation_status: 'active'
+            });
+
+        // Emit WebSocket events for each published pod
+        for (const pod of draftPods) {
+            emitPodCreated(req.app, leagueId, {
+                id: pod.id,
+                league_id: leagueId,
+                is_tournament_game: true,
+                tournament_round: pod.tournament_round,
+                is_championship_game: pod.is_championship_game,
+                confirmation_status: 'active'
+            });
+        }
+
+        // Get qualified players for notifications
+        const qualifiedPlayers = await db('user_leagues as ul')
+            .join('users as u', 'ul.user_id', 'u.id')
+            .where({ 'ul.league_id': leagueId, 'ul.finals_qualified': true })
+            .select('u.id as player_id');
+
+        // Determine notification message based on pod type
+        const hasChampionship = draftPods.some(p => p.is_championship_game);
+        const notificationTitle = hasChampionship ? 'Championship Pod Published!' : 'Tournament Pods Published!';
+        const notificationMessage = hasChampionship
+            ? "The championship game is ready! Check your tournament pods."
+            : 'Tournament pods have been published. Play your qualifying games!';
+
+        // Notify qualified players
+        for (const player of qualifiedPlayers) {
+            await createNotification(req.app, player.player_id, {
+                title: notificationTitle,
+                message: notificationMessage,
+                type: 'info',
+                link: '/leagues/tournament'
+            });
+        }
+
+        logger.info('Tournament pods published', { leagueId, podCount: draftPods.length, adminId });
+
+        res.status(200).json({
+            message: `${draftPods.length} tournament pod(s) published.`,
+            publishedCount: draftPods.length
+        });
+    } catch (err) {
+        logger.error('Error publishing tournament pods', err, { leagueId });
+        res.status(500).json({ error: 'Failed to publish tournament pods.' });
+    }
+};
+
+/**
+ * Swap Players Between Draft Tournament Pods (admin only)
+ * POST /api/leagues/:id/tournament/swap-players
+ */
+const swapTournamentPlayers = async (req, res) => {
+    const { id: leagueId } = req.params;
+    const { player1_id, pod1_id, player2_id, pod2_id } = req.body;
+    const adminId = req.user.id;
+
+    if (!player1_id || !pod1_id || !player2_id || !pod2_id) {
+        return res.status(400).json({
+            error: 'Must provide player1_id, pod1_id, player2_id, and pod2_id.'
+        });
+    }
+
+    if (pod1_id === pod2_id) {
+        return res.status(400).json({ error: 'Cannot swap players within the same pod.' });
+    }
+
+    try {
+        // Verify both pods are unpublished tournament pods for this league
+        const pods = await db('game_pods')
+            .whereIn('id', [pod1_id, pod2_id])
+            .andWhere({ league_id: leagueId, is_tournament_game: true, published: false })
+            .whereNull('deleted_at');
+
+        if (pods.length !== 2) {
+            return res.status(400).json({
+                error: 'Both pods must be unpublished tournament draft pods for this league.'
+            });
+        }
+
+        // Verify both players exist in their respective pods
+        const [player1Entry, player2Entry] = await Promise.all([
+            db('game_players')
+                .where({ pod_id: pod1_id, player_id: player1_id })
+                .whereNull('deleted_at')
+                .first(),
+            db('game_players')
+                .where({ pod_id: pod2_id, player_id: player2_id })
+                .whereNull('deleted_at')
+                .first()
+        ]);
+
+        if (!player1Entry || !player2Entry) {
+            return res.status(400).json({ error: 'Players not found in specified pods.' });
+        }
+
+        // Swap the players
+        await db.transaction(async (trx) => {
+            await trx('game_players')
+                .where({ pod_id: pod1_id, player_id: player1_id })
+                .update({ player_id: player2_id, turn_order: player1Entry.turn_order });
+
+            await trx('game_players')
+                .where({ pod_id: pod2_id, player_id: player2_id })
+                .update({ player_id: player1_id, turn_order: player2Entry.turn_order });
+        });
+
+        logger.info('Tournament players swapped', {
+            leagueId, pod1_id, pod2_id, player1_id, player2_id, adminId
+        });
+
+        res.status(200).json({
+            message: 'Players swapped successfully.',
+            swap: { player1_id, pod1_id, player2_id, pod2_id }
+        });
+    } catch (err) {
+        logger.error('Error swapping tournament players', err, { leagueId });
+        res.status(500).json({ error: 'Failed to swap players.' });
+    }
+};
+
+/**
+ * Delete Draft Tournament Pods (admin only)
+ * DELETE /api/leagues/:id/tournament/draft-pods
+ */
+const deleteDraftTournamentPods = async (req, res) => {
+    const { id: leagueId } = req.params;
+    const { championship_only } = req.query;
+    const adminId = req.user.id;
+
+    try {
+        let query = db('game_pods')
+            .where({ league_id: leagueId, is_tournament_game: true, published: false })
+            .whereNull('deleted_at');
+
+        if (championship_only === 'true') {
+            query = query.andWhere({ is_championship_game: true });
+        }
+
+        const draftPods = await query;
+
+        if (draftPods.length === 0) {
+            return res.status(400).json({ error: 'No draft pods to delete.' });
+        }
+
+        const podIds = draftPods.map(p => p.id);
+
+        await db.transaction(async (trx) => {
+            // Delete game_players first (foreign key)
+            await trx('game_players')
+                .whereIn('pod_id', podIds)
+                .del();
+
+            // Delete the pods
+            await trx('game_pods')
+                .whereIn('id', podIds)
+                .del();
+        });
+
+        logger.info('Draft tournament pods deleted', {
+            leagueId, podCount: draftPods.length, championshipOnly: championship_only === 'true', adminId
+        });
+
+        res.status(200).json({
+            message: `${draftPods.length} draft pod(s) deleted.`,
+            deletedCount: draftPods.length
+        });
+    } catch (err) {
+        logger.error('Error deleting draft tournament pods', err, { leagueId });
+        res.status(500).json({ error: 'Failed to delete draft pods.' });
+    }
+};
+
 module.exports = {
     endRegularSeason,
     getTournamentStatus,
@@ -874,5 +1180,9 @@ module.exports = {
     getChampionshipQualifiers,
     startChampionship,
     completeTournament,
-    resetTournament
+    resetTournament,
+    getDraftTournamentPods,
+    publishTournamentPods,
+    swapTournamentPlayers,
+    deleteDraftTournamentPods
 };

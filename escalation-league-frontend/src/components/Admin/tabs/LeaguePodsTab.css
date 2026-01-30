@@ -1,0 +1,185 @@
+/* League Pods Tab Styles */
+.league-pods-tab {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Stats Row */
+.league-pods-stats-row {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.league-pods-stat-card {
+    background: var(--bg-secondary, #f8f9fa);
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+    border: 1px solid var(--border-color, #dee2e6);
+}
+
+.league-pods-stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.league-pods-stat-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.7;
+    font-weight: 500;
+}
+
+.league-pods-stat-info {
+    border-color: rgba(23, 162, 184, 0.3);
+}
+
+.league-pods-stat-info .league-pods-stat-value {
+    color: #17a2b8;
+}
+
+.league-pods-stat-warning {
+    border-color: rgba(255, 193, 7, 0.3);
+}
+
+.league-pods-stat-warning .league-pods-stat-value {
+    color: #d39e00;
+}
+
+.league-pods-stat-success {
+    border-color: rgba(40, 167, 69, 0.3);
+}
+
+.league-pods-stat-success .league-pods-stat-value {
+    color: #28a745;
+}
+
+.league-pods-stat-danger {
+    border-color: rgba(220, 53, 69, 0.3);
+}
+
+.league-pods-stat-danger .league-pods-stat-value {
+    color: #dc3545;
+}
+
+/* Filters */
+.league-pods-filters {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.league-pods-search {
+    flex: 1;
+    min-width: 200px;
+}
+
+.league-pods-filter-select {
+    width: auto;
+    min-width: 150px;
+}
+
+/* Table - Desktop */
+.league-pods-table-desktop {
+    display: block;
+}
+
+/* Cards - Mobile */
+.league-pods-card-mobile {
+    display: none;
+}
+
+.league-pods-card {
+    background: var(--bg-secondary, #fff);
+    border: 1px solid var(--border-color, #dee2e6);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.league-pods-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.league-pods-card.deleted {
+    border-color: rgba(220, 53, 69, 0.3);
+    background: rgba(220, 53, 69, 0.05);
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 991px) {
+    .league-pods-stats-row {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 767px) {
+    .league-pods-stats-row {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .league-pods-stat-card {
+        padding: 0.75rem;
+    }
+
+    .league-pods-stat-value {
+        font-size: 1.25rem;
+    }
+
+    .league-pods-filters {
+        flex-direction: column;
+    }
+
+    .league-pods-search {
+        width: 100%;
+    }
+
+    .league-pods-filter-select {
+        width: 100%;
+    }
+
+    .league-pods-table-desktop {
+        display: none;
+    }
+
+    .league-pods-card-mobile {
+        display: block;
+    }
+}
+
+@media (max-width: 575px) {
+    .league-pods-stats-row {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem;
+    }
+
+    .league-pods-stat-card {
+        padding: 0.5rem;
+    }
+
+    .league-pods-stat-value {
+        font-size: 1rem;
+    }
+
+    .league-pods-stat-label {
+        font-size: 0.6rem;
+    }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .league-pods-stat-card {
+        background: var(--bg-secondary, #2d2d2d);
+    }
+
+    .league-pods-card {
+        background: var(--bg-secondary, #2d2d2d);
+    }
+}

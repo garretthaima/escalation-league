@@ -1,0 +1,353 @@
+/* Draft Pods Preview Grid */
+.draft-pods-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+/* Draft Pod Card - matches brand.css card styling */
+.draft-pod-card {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px var(--shadow);
+}
+
+.draft-pod-card.championship {
+    border-color: #b8941f;
+    border-width: 2px;
+}
+
+.draft-pod-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.draft-pod-header .pod-number {
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+}
+
+.draft-pod-card.championship .draft-pod-header {
+    background: #fff3cd;
+}
+
+/* Draft Pod Players List */
+.draft-pod-players {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.draft-pod-player {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+    color: var(--text-primary);
+}
+
+.draft-pod-player:last-child {
+    border-bottom: none;
+}
+
+.draft-pod-player:hover {
+    background-color: var(--bg-secondary);
+}
+
+.draft-pod-player.selected {
+    background-color: rgba(45, 27, 78, 0.15);
+}
+
+.draft-pod-player.swap-target:hover {
+    background-color: rgba(184, 148, 31, 0.15);
+}
+
+.draft-pod-player .player-turn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    background: var(--bg-secondary);
+    border-radius: 50%;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-right: 0.5rem;
+    flex-shrink: 0;
+    color: var(--text-primary);
+}
+
+.draft-pod-player.selected .player-turn {
+    background: var(--brand-purple);
+    color: #fff;
+}
+
+.draft-pod-player .player-name {
+    flex-grow: 1;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+}
+
+.draft-pod-player .fa-check-circle {
+    color: var(--brand-purple);
+}
+
+.draft-pod-player .fa-exchange-alt {
+    color: #b8941f;
+}
+
+/* Dark mode support - brand purple headers like other cards */
+body.dark-mode .draft-pod-card {
+    background: #1a1a2e;
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .draft-pod-card.championship {
+    border-color: #b8941f;
+}
+
+body.dark-mode .draft-pod-header {
+    background: var(--brand-purple);
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .draft-pod-header .text-muted {
+    color: rgba(255, 255, 255, 0.7) !important;
+}
+
+body.dark-mode .draft-pod-header .badge {
+    color: #fff;
+}
+
+body.dark-mode .draft-pod-card.championship .draft-pod-header {
+    background: linear-gradient(135deg, #b8941f 0%, #8a6f17 100%);
+}
+
+body.dark-mode .draft-pod-player {
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+}
+
+body.dark-mode .draft-pod-player:hover {
+    background-color: rgba(74, 47, 112, 0.2);
+}
+
+body.dark-mode .draft-pod-player.selected {
+    background-color: rgba(74, 47, 112, 0.4);
+}
+
+body.dark-mode .draft-pod-player.swap-target:hover {
+    background-color: rgba(184, 148, 31, 0.25);
+}
+
+body.dark-mode .draft-pod-player .player-turn {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+}
+
+body.dark-mode .draft-pod-player.selected .player-turn {
+    background: var(--brand-purple-light);
+    color: #fff;
+}
+
+body.dark-mode .draft-pod-player .player-name {
+    color: var(--text-primary);
+}
+
+body.dark-mode .draft-pod-player .fa-check-circle {
+    color: var(--brand-purple-light);
+}
+
+body.dark-mode .draft-pod-player .fa-exchange-alt {
+    color: #d4af37;
+}
+
+body.dark-mode .draft-pod-header .pod-number {
+    color: #fff;
+}
+
+/* Pairing Statistics */
+.pairing-stats {
+    padding: 0.75rem;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.missing-pairings-details {
+    cursor: pointer;
+}
+
+.missing-pairings-details summary {
+    cursor: pointer;
+    user-select: none;
+}
+
+.missing-pairings-details summary::-webkit-details-marker {
+    display: none;
+}
+
+.missing-pairings-details summary::before {
+    content: '\f0da';
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+    margin-right: 0.5rem;
+    transition: transform 0.2s ease;
+    display: inline-block;
+}
+
+.missing-pairings-details[open] summary::before {
+    transform: rotate(90deg);
+}
+
+.missing-pairings-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.missing-pairings-list li {
+    background: rgba(255, 193, 7, 0.1);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 193, 7, 0.3);
+}
+
+/* Table View Styles */
+.draft-pods-table {
+    margin-bottom: 0;
+}
+
+.draft-pods-table th {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.draft-table-player {
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.draft-table-player:hover {
+    background-color: var(--bg-secondary) !important;
+}
+
+.draft-table-player.selected {
+    background-color: rgba(45, 27, 78, 0.15) !important;
+    font-weight: 600;
+}
+
+.draft-table-player.swap-target:hover {
+    background-color: rgba(184, 148, 31, 0.15) !important;
+}
+
+.draft-table-player .fa-check-circle {
+    color: var(--brand-purple);
+}
+
+/* Dark mode for pairing stats and table */
+body.dark-mode .pairing-stats {
+    background: #1a1a2e;
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .missing-pairings-list li {
+    background: rgba(255, 193, 7, 0.15);
+    border-color: rgba(255, 193, 7, 0.4);
+}
+
+body.dark-mode .draft-pods-table {
+    color: var(--text-primary);
+}
+
+body.dark-mode .draft-pods-table th {
+    color: var(--text-muted);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .draft-pods-table td {
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .draft-table-player:hover {
+    background-color: rgba(74, 47, 112, 0.2) !important;
+}
+
+body.dark-mode .draft-table-player.selected {
+    background-color: rgba(74, 47, 112, 0.4) !important;
+}
+
+body.dark-mode .draft-table-player.swap-target:hover {
+    background-color: rgba(184, 148, 31, 0.25) !important;
+}
+
+body.dark-mode .draft-table-player .fa-check-circle {
+    color: var(--brand-purple-light);
+}
+
+body.dark-mode .table-warning {
+    background-color: rgba(184, 148, 31, 0.2) !important;
+}
+
+/* Turn Order Details */
+.turn-order-details summary {
+    cursor: pointer;
+    user-select: none;
+}
+
+.turn-order-details summary::-webkit-details-marker {
+    display: none;
+}
+
+.turn-order-details summary::before {
+    content: '\f0da';
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+    margin-right: 0.5rem;
+    transition: transform 0.2s ease;
+    display: inline-block;
+}
+
+.turn-order-details[open] summary::before {
+    transform: rotate(90deg);
+}
+
+.turn-order-table {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.turn-order-table table {
+    font-size: 0.8rem;
+}
+
+.turn-order-table th {
+    position: sticky;
+    top: 0;
+    background: var(--bg-secondary);
+    z-index: 1;
+}
+
+body.dark-mode .turn-order-table th {
+    background: #2d2d2d;
+    color: var(--text-primary);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .turn-order-table td {
+    border-color: rgba(255, 255, 255, 0.1);
+}

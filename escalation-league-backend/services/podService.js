@@ -266,9 +266,15 @@ const reverseGameStats = async (participants, leagueId, isTournamentGame = false
  * @param {Array} participants - Array of participant records with player_id, result, turn_order
  * @param {number} podId - Pod ID for storing ELO history
  * @param {number} leagueId - League ID for league ELO
+ * @param {boolean} isTournamentGame - If true, skip ELO changes (tournament games don't affect ELO)
  * @returns {Promise<Array>} Array of ELO changes { playerId, eloChange, eloBefore }
  */
-const applyEloChanges = async (participants, podId, leagueId) => {
+const applyEloChanges = async (participants, podId, leagueId, isTournamentGame = false) => {
+    // Skip ELO for tournament games - tournament has its own points system
+    if (isTournamentGame) {
+        logger.debug('Skipping ELO for tournament game', { podId, leagueId });
+        return [];
+    }
     // Batch fetch current ELO ratings (avoid N+1 queries)
     const playerIds = participants.map(p => p.player_id);
 

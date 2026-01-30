@@ -94,3 +94,52 @@ export const resetTournament = async (leagueId) => {
     });
     return response.data;
 };
+
+// ============================================
+// Draft Pod Management (admin only)
+// ============================================
+
+/**
+ * Get draft tournament pods for preview (admin only)
+ * Returns unpublished tournament pods that haven't been shown to players yet
+ */
+export const getDraftTournamentPods = async (leagueId) => {
+    const response = await axiosInstance.get(`/leagues/${leagueId}/tournament/draft-pods`);
+    return response.data;
+};
+
+/**
+ * Publish all draft tournament pods (admin only)
+ * Makes pods visible to players and sends notifications
+ */
+export const publishTournamentPods = async (leagueId) => {
+    const response = await axiosInstance.post(`/leagues/${leagueId}/tournament/publish-pods`);
+    return response.data;
+};
+
+/**
+ * Swap players between draft pods (admin only)
+ * Allows admin to adjust pod compositions before publishing
+ */
+export const swapTournamentPlayers = async (leagueId, player1Id, pod1Id, player2Id, pod2Id) => {
+    const response = await axiosInstance.post(`/leagues/${leagueId}/tournament/swap-players`, {
+        player1_id: player1Id,
+        pod1_id: pod1Id,
+        player2_id: player2Id,
+        pod2_id: pod2Id
+    });
+    return response.data;
+};
+
+/**
+ * Delete draft tournament pods (admin only)
+ * Allows regenerating pods by deleting existing drafts
+ * @param {number} leagueId
+ * @param {boolean} championshipOnly - If true, only delete championship draft
+ */
+export const deleteDraftTournamentPods = async (leagueId, championshipOnly = false) => {
+    const response = await axiosInstance.delete(`/leagues/${leagueId}/tournament/draft-pods`, {
+        params: { championship_only: championshipOnly }
+    });
+    return response.data;
+};

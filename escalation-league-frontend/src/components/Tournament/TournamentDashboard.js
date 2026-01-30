@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { usePermissions } from '../context/PermissionsProvider';
+import { usePermissions } from '../../context/PermissionsProvider';
 import { getTournamentStatus, getTournamentStandings, getTournamentPods } from '../../api/tournamentApi';
 import TournamentStandings from './TournamentStandings';
 import TournamentPods from './TournamentPods';
@@ -18,7 +18,7 @@ const TournamentDashboard = () => {
     const [error, setError] = useState(null);
     const [activeTab, setActiveTab] = useState('standings');
 
-    const leagueId = activeLeague?.league_id;
+    const leagueId = activeLeague?.id || activeLeague?.league_id;
 
     const fetchTournamentData = useCallback(async () => {
         try {
@@ -54,8 +54,12 @@ const TournamentDashboard = () => {
             setLoading(false);
             return;
         }
+        // Wait for leagueId to be available from activeLeague
+        if (!leagueId) {
+            return; // Still loading, keep spinner
+        }
         fetchTournamentData();
-    }, [permissionsLoading, activeLeague, fetchTournamentData]);
+    }, [permissionsLoading, activeLeague, leagueId, fetchTournamentData]);
 
     if (permissionsLoading || loading) {
         return (

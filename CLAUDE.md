@@ -97,3 +97,46 @@ git checkout -b hotfix/fix-mobile-websocket
 2. If no tests exist, create them before modifying
 3. Update tests to cover your changes
 4. Ensure coverage doesn't decrease
+
+## Styling Guidelines
+
+### CSS Architecture
+- Global styles and CSS variables are defined in `escalation-league-frontend/src/brand.css`
+- Component-specific CSS files should be co-located with their components
+
+### Dark Mode
+- **Use `body.dark-mode` selector** for dark mode styles (NOT `@media (prefers-color-scheme: dark)`)
+- The app uses a class-based dark mode toggle, not system preference detection
+
+### CSS Variables (from brand.css)
+Use these CSS variables for consistent theming:
+- `--bg-primary`, `--bg-secondary`, `--bg-tertiary` - Background colors
+- `--text-primary`, `--text-secondary`, `--text-muted` - Text colors
+- `--border-color` - Border colors
+- `--brand-purple` (`#2d1b4e`) - Primary brand color
+- `--brand-purple-light` (`#4a2f70`) - Lighter purple variant
+- `--shadow` - Box shadow color
+
+### Dark Mode Pattern Example
+```css
+/* Light mode (default) */
+.my-component {
+    background: #fff;
+    color: #212529;
+    border: 1px solid #dee2e6;
+}
+
+/* Dark mode override */
+body.dark-mode .my-component {
+    background: #2d2d2d;
+    color: #e0e0e0;
+    border-color: #444;
+}
+```
+
+### Color Palette for Dark Mode
+- Card/container backgrounds: `#2d2d2d` or `#1a1a2e`
+- Headers: `#383838` or `var(--brand-purple)`
+- Borders: `#444` or `rgba(255, 255, 255, 0.1)`
+- Text: `#e0e0e0` or `var(--text-primary)`
+- Muted text: `#aaa`

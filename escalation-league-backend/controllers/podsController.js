@@ -346,8 +346,8 @@ const logPodResult = async (req, res) => {
             // Apply game stats using podService (handles tournament stats internally)
             await podService.applyGameStats(participants, podData.league_id, fullPod.is_tournament_game);
 
-            // Apply ELO changes using podService
-            await podService.applyEloChanges(participants, podId, podData.league_id);
+            // Apply ELO changes using podService (skip for tournament games)
+            await podService.applyEloChanges(participants, podId, podData.league_id, fullPod.is_tournament_game);
 
             // Update the pod's status to 'complete'
             await db('game_pods')
@@ -413,6 +413,9 @@ const getPods = async (req, res) => {
         if (includeDeleted !== 'true') {
             query.where({ 'gp.deleted_at': null });
         }
+
+        // Note: Tournament draft pods (published=false) are filtered in getTournamentPods,
+        // not here, since they're accessed via tournament-specific endpoints
 
         if (podId) {
             query.andWhere({ 'gp.id': podId });

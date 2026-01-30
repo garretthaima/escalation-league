@@ -14,7 +14,11 @@ const {
     getChampionshipQualifiers,
     startChampionship,
     completeTournament,
-    resetTournament
+    resetTournament,
+    getDraftTournamentPods,
+    publishTournamentPods,
+    swapTournamentPlayers,
+    deleteDraftTournamentPods
 } = require('../controllers/tournamentController');
 const authenticateToken = require('../middlewares/authentication');
 const authorizePermission = require('../middlewares/authorizePermission');
@@ -64,6 +68,38 @@ router.post(
     authenticateToken,
     authorizePermission(['tournament_manage']),
     resetTournament
+);
+
+// Get draft tournament pods for preview
+router.get(
+    '/:id/tournament/draft-pods',
+    authenticateToken,
+    authorizePermission(['tournament_manage']),
+    getDraftTournamentPods
+);
+
+// Publish draft tournament pods
+router.post(
+    '/:id/tournament/publish-pods',
+    authenticateToken,
+    authorizePermission(['tournament_manage']),
+    publishTournamentPods
+);
+
+// Swap players between draft tournament pods
+router.post(
+    '/:id/tournament/swap-players',
+    authenticateToken,
+    authorizePermission(['tournament_manage']),
+    swapTournamentPlayers
+);
+
+// Delete draft tournament pods (to regenerate)
+router.delete(
+    '/:id/tournament/draft-pods',
+    authenticateToken,
+    authorizePermission(['tournament_manage']),
+    deleteDraftTournamentPods
 );
 
 // ============================================

@@ -1,0 +1,204 @@
+/* League Users Tab Styles */
+.league-users-tab {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* Stats Summary */
+.user-stats-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.user-stat-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.375rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+/* Filters */
+.user-filters {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.user-search {
+    position: relative;
+    flex: 1;
+    min-width: 200px;
+}
+
+.user-search i {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted, #adb5bd);
+}
+
+.user-search input {
+    padding-left: 2.5rem;
+}
+
+.user-filter-select {
+    width: auto;
+    min-width: 150px;
+}
+
+/* Signup Requests List */
+.user-signup-requests-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+/* Signup Request Card */
+.user-signup-request-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    background: var(--bg-secondary, #f8f9fa);
+    border-radius: 8px;
+    border: 1px solid var(--border-color, #dee2e6);
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.user-signup-request-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.user-signup-request-user {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.user-signup-request-avatar {
+    font-size: 2rem;
+    color: var(--text-muted, #adb5bd);
+}
+
+.user-signup-request-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.user-signup-request-details strong {
+    color: var(--text-primary);
+}
+
+.user-signup-request-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Users Table */
+.users-table {
+    margin-bottom: 0;
+}
+
+.users-table th {
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary, #6c757d);
+    border-bottom: 2px solid var(--border-color, #dee2e6);
+    padding: 0.75rem;
+}
+
+.users-table td {
+    vertical-align: middle;
+    padding: 0.75rem;
+    color: var(--text-primary);
+}
+
+.users-table tbody tr {
+    transition: background-color 0.15s ease;
+}
+
+.users-table .badge {
+    font-size: 0.75rem;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 767px) {
+    .user-filters {
+        flex-direction: column;
+    }
+
+    .user-search {
+        width: 100%;
+    }
+
+    .user-filter-select {
+        width: 100%;
+    }
+
+    .user-signup-request-card {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .user-signup-request-actions {
+        justify-content: stretch;
+    }
+
+    .user-signup-request-actions .btn {
+        flex: 1;
+    }
+
+    .users-table th,
+    .users-table td {
+        padding: 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    .users-table th:nth-child(3),
+    .users-table th:nth-child(4),
+    .users-table td:nth-child(3),
+    .users-table td:nth-child(4) {
+        display: none;
+    }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .user-signup-request-card {
+        background: var(--bg-secondary, #2d2d2d);
+    }
+
+    .users-table th {
+        color: var(--text-secondary, #adb5bd);
+        border-bottom-color: var(--border-color, #495057);
+    }
+
+    .users-table td {
+        color: var(--text-primary, #f8f9fa);
+        border-bottom-color: var(--border-color, #495057);
+    }
+
+    .users-table tbody tr:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    .users-table .table-danger {
+        --bs-table-bg: rgba(220, 53, 69, 0.15);
+        --bs-table-hover-bg: rgba(220, 53, 69, 0.25);
+    }
+
+    .users-table .table-secondary {
+        --bs-table-bg: rgba(108, 117, 125, 0.15);
+        --bs-table-hover-bg: rgba(108, 117, 125, 0.25);
+    }
+}

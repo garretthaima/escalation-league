@@ -26,14 +26,13 @@ import { logoutUser } from './api/authApi';
 import { initializeAuth } from './api/axiosConfig';
 
 // Lazy load admin pages (not needed on initial load)
-const LeagueAdminPage = lazy(() => import('./components/Admin/LeagueAdminPage'));
-const PodAdminPage = lazy(() => import('./components/Admin/PodAdminPage'));
+const LeagueListPage = lazy(() => import('./components/Admin/LeagueListPage'));
+const LeagueDashboardPage = lazy(() => import('./components/Admin/LeagueDashboardPage'));
+const SessionDashboardPage = lazy(() => import('./components/Admin/SessionDashboardPage'));
 const UserRoleManagementPage = lazy(() => import('./components/Admin/UserRoleManagementPage'));
-const AttendanceAdminPage = lazy(() => import('./components/Admin/AttendanceAdminPage'));
 const ActivityLogsPage = lazy(() => import('./components/Admin/ActivityLogsPage'));
 const CreateLeaguePage = lazy(() => import('./components/Admin/CreateLeaguePage'));
 const EditPodPage = lazy(() => import('./components/Admin/EditPodPage'));
-const MatchupMatrixPage = lazy(() => import('./components/Attendance/MatchupMatrixPage'));
 
 // Lazy load heavy dashboard pages
 const BudgetDashboard = lazy(() => import('./components/Budget/BudgetDashboard'));
@@ -149,10 +148,12 @@ const App = () => {
                             <Route path="/attendance" element={<AttendancePage />} />
                             <Route path="/attendance/suggest-pods/:sessionId" element={<PodSuggestionsPage />} />
 
-                            {/* Admin Section (lazy loaded) - consolidated League Management page */}
-                            <Route path="/admin/leagues" element={<Suspense fallback={<PageLoader />}><LeagueAdminPage /></Suspense>} />
-                            <Route path="/admin/pods/:podId" element={<Suspense fallback={<PageLoader />}><EditPodPage /></Suspense>} />
+                            {/* Admin Section (lazy loaded) - Per-league management */}
+                            <Route path="/admin/leagues" element={<Suspense fallback={<PageLoader />}><LeagueListPage /></Suspense>} />
                             <Route path="/admin/leagues/create" element={<Suspense fallback={<PageLoader />}><CreateLeaguePage /></Suspense>} />
+                            <Route path="/admin/leagues/:leagueId" element={<Suspense fallback={<PageLoader />}><LeagueDashboardPage /></Suspense>} />
+                            <Route path="/admin/leagues/:leagueId/sessions/:sessionId" element={<Suspense fallback={<PageLoader />}><SessionDashboardPage /></Suspense>} />
+                            <Route path="/admin/pods/:podId" element={<Suspense fallback={<PageLoader />}><EditPodPage /></Suspense>} />
                             <Route path="/admin/users" element={<Suspense fallback={<PageLoader />}><UserRoleManagementPage /></Suspense>} />
                             <Route path="/admin/activity-logs" element={<Suspense fallback={<PageLoader />}><ActivityLogsPage /></Suspense>} />
 
