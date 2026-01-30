@@ -89,12 +89,11 @@ const endRegularSeason = async (req, res) => {
             });
         }
 
-        // Calculate qualifying spots (75% rounded to even number)
+        // Calculate qualifying spots (75% rounded to nearest even number)
         const qualificationPercent = league.tournament_qualification_percent || 75;
-        let qualifyingSpots = Math.ceil(totalPlayers * (qualificationPercent / 100));
-        if (qualifyingSpots % 2 !== 0) {
-            qualifyingSpots++; // Round up to even
-        }
+        const rawSpots = totalPlayers * (qualificationPercent / 100);
+        // Round to nearest even: divide by 2, round, multiply by 2
+        let qualifyingSpots = Math.round(rawSpots / 2) * 2;
         qualifyingSpots = Math.min(qualifyingSpots, totalPlayers);
 
         // Ensure we have at least 4 qualified players
