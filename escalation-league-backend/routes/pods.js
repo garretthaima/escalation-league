@@ -51,6 +51,7 @@ router.post(
     '/:podId/override',
     gameLimiter, // Apply game-specific rate limiting
     authenticateToken,
+    authorizePermission(['admin_pod_update']), // Only admins can override pods
     overridePod
 );
 

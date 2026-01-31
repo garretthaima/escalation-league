@@ -1,6 +1,42 @@
 const jwt = require('jsonwebtoken');
 const logger = require('../utils/logger');
 
+// Rate limiting for WebSocket events
+const rateLimitMap = new Map();
+const RATE_LIMIT_WINDOW = 60000; // 1 minute
+const RATE_LIMIT_MAX_REQUESTS = 100; // 100 events per minute
+
+const isRateLimited = (socketId) => {
+    const now = Date.now();
+    let record = rateLimitMap.get(socketId);
+
+    if (!record || now > record.resetAt) {
+        // Start new window
+        record = { count: 1, resetAt: now + RATE_LIMIT_WINDOW };
+        rateLimitMap.set(socketId, record);
+        return false;
+    }
+
+    record.count++;
+    if (record.count > RATE_LIMIT_MAX_REQUESTS) {
+        logger.warn('WebSocket rate limit exceeded', { socketId, count: record.count });
+        return true;
+    }
+    return false;
+};
+
+// Cleanup rate limit entries periodically (every 5 minutes)
+// Use unref() so this timer doesn't prevent the process from exiting (important for tests)
+const cleanupInterval = setInterval(() => {
+    const now = Date.now();
+    for (const [socketId, record] of rateLimitMap.entries()) {
+        if (now > record.resetAt) {
+            rateLimitMap.delete(socketId);
+        }
+    }
+}, 5 * 60 * 1000);
+cleanupInterval.unref();
+
 module.exports = (io) => {
     console.log('[DEBUG] Socket handler initialized');
 
@@ -63,19 +99,53 @@ module.exports = (io) => {
                    (typeof id === 'number' || (typeof id === 'string' && /^\d+$/.test(id)));
         };
 
-        // Join league room when requested
-        socket.on('join:league', (leagueId) => {
+        // Join league room when requested (with membership verification)
+        socket.on('join:league', async (leagueId) => {
+            // Rate limiting check
+            if (isRateLimited(socket.id)) {
+                socket.emit('error', { message: 'Rate limit exceeded. Please slow down.' });
+                return;
+            }
+
             if (!isValidRoomId(leagueId)) return;
-            socket.join(`league:${leagueId}`);
-            logger.info('User joined league room', {
-                userId: socket.userId,
-                leagueId,
-                socketId: socket.id
-            });
+
+            // Verify user is a member of this league
+            try {
+                // Lazy load db to avoid Redis connection during test module loading
+                const db = require('../models/db');
+                const membership = await db('user_leagues')
+                    .where({ user_id: socket.userId, league_id: leagueId, is_active: true })
+                    .first();
+
+                if (!membership) {
+                    socket.emit('error', { message: 'Access denied. You are not a member of this league.' });
+                    logger.warn('Unauthorized league room access attempt', {
+                        userId: socket.userId,
+                        leagueId,
+                        socketId: socket.id
+                    });
+                    return;
+                }
+
+                socket.join(`league:${leagueId}`);
+                logger.info('User joined league room', {
+                    userId: socket.userId,
+                    leagueId,
+                    socketId: socket.id
+                });
+            } catch (err) {
+                logger.error('Error verifying league membership for WebSocket', {
+                    userId: socket.userId,
+                    leagueId,
+                    error: err.message
+                });
+                socket.emit('error', { message: 'Failed to join league room.' });
+            }
         });
 
         // Leave league room when requested
         socket.on('leave:league', (leagueId) => {
+            if (isRateLimited(socket.id)) return;
             if (!isValidRoomId(leagueId)) return;
             socket.leave(`league:${leagueId}`);
             logger.info('User left league room', {
@@ -87,6 +157,7 @@ module.exports = (io) => {
 
         // Join pod room when viewing/participating
         socket.on('join:pod', (podId) => {
+            if (isRateLimited(socket.id)) return;
             if (!isValidRoomId(podId)) return;
             socket.join(`pod:${podId}`);
             logger.info('User joined pod room', {
@@ -98,6 +169,7 @@ module.exports = (io) => {
 
         // Leave pod room
         socket.on('leave:pod', (podId) => {
+            if (isRateLimited(socket.id)) return;
             if (!isValidRoomId(podId)) return;
             socket.leave(`pod:${podId}`);
             logger.info('User left pod room', {
@@ -109,6 +181,7 @@ module.exports = (io) => {
 
         // Join session room for attendance updates
         socket.on('join:session', (sessionId) => {
+            if (isRateLimited(socket.id)) return;
             if (!isValidRoomId(sessionId)) return;
             socket.join(`session:${sessionId}`);
             logger.info('User joined session room', {
@@ -120,6 +193,7 @@ module.exports = (io) => {
 
         // Leave session room
         socket.on('leave:session', (sessionId) => {
+            if (isRateLimited(socket.id)) return;
             if (!isValidRoomId(sessionId)) return;
             socket.leave(`session:${sessionId}`);
             logger.info('User left session room', {

@@ -287,7 +287,9 @@ describe('Auth Routes', () => {
                 });
 
             expect(res.status).toBe(400);
-            expect(res.body).toHaveProperty('error', 'Email and password are required.');
+            // Joi validation now catches this
+            expect(res.body).toHaveProperty('error', 'Validation failed');
+            expect(res.body.details).toContain('Password is required');
         });
 
         it('should handle case-insensitive email login', async () => {
@@ -316,7 +318,7 @@ describe('Auth Routes', () => {
             expect(res.body).toHaveProperty('token');
         });
 
-        it('should allow banned user to login but block token usage', async () => {
+        it('should block banned user from logging in', async () => {
             const testEmail = `banned-${Date.now()}-${Math.random()}@example.com`;
             const testPassword = 'TestPass123!';
 
@@ -337,7 +339,7 @@ describe('Auth Routes', () => {
             const testDb = require('../helpers/testDb');
             await testDb('users').where({ id: userId }).update({ is_banned: 1 });
 
-            // Attempt to login - will succeed because loginUser doesn't check is_banned
+            // Attempt to login - should fail because banned users are blocked at login
             const loginRes = await request(app)
                 .post('/api/auth/login')
                 .send({
@@ -345,16 +347,9 @@ describe('Auth Routes', () => {
                     password: testPassword
                 });
 
-            expect(loginRes.status).toBe(200);
-            expect(loginRes.body).toHaveProperty('token');
-
-            // However, using the token should be blocked by authentication middleware
-            const protectedRes = await request(app)
-                .get('/api/users/profile')
-                .set('Authorization', `Bearer ${loginRes.body.token}`);
-
-            expect(protectedRes.status).toBe(403);
-            expect(protectedRes.body).toHaveProperty('error', 'Account is banned.');
+            // Security fix: banned users are now blocked at login, not just token usage
+            expect(loginRes.status).toBe(401);
+            expect(loginRes.body).toHaveProperty('error', 'Invalid email or password');
         });
 
         it('should reject login for inactive user', async () => {
@@ -435,9 +430,10 @@ describe('Auth Routes', () => {
                     password: `' OR '1'='1' --`
                 });
 
-            // Should safely handle without bypassing authentication
-            expect(res.status).toBe(401);
-            expect(res.body).toHaveProperty('error', 'Invalid email or password');
+            // Joi validation catches invalid email format before it reaches controller
+            // This provides defense-in-depth alongside Knex's parameterized queries
+            expect(res.status).toBe(400);
+            expect(res.body).toHaveProperty('error', 'Validation failed');
         });
 
         it('should handle multiple failed login attempts gracefully', async () => {

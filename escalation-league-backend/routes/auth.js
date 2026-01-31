@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const { authLimiter, loginLimiter } = require('../middlewares/rateLimitMiddleware');
 const authenticateToken = require('../middlewares/authentication');
+const { validateBody } = require('../middlewares/validate');
+const { authSchemas } = require('../validation/schemas');
 const {
     registerUser,
     loginUser,
@@ -23,8 +25,8 @@ const {
 } = require('../controllers/discordController');
 
 // Authentication Endpoints
-router.post('/register', authLimiter, registerUser);
-router.post('/login', loginLimiter, loginUser); // Use strict limiter for password login
+router.post('/register', authLimiter, validateBody(authSchemas.register), registerUser);
+router.post('/login', loginLimiter, validateBody(authSchemas.login), loginUser); // Use strict limiter for password login
 router.post('/google-auth', authLimiter, googleAuth); // Use relaxed limiter for OAuth
 router.post('/verify-google-token', authLimiter, verifyGoogleToken);
 

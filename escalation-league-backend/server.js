@@ -85,11 +85,11 @@ app.use('/api', apiLimiter);
   console.log(`Serving profile pictures from ${profilePicturesPath}`);
 
   // Health check endpoint (before routes, no auth required)
+  // Only expose minimal info - uptime removed for security
   app.get('/api/health', (req, res) => {
-    res.status(200).json({ 
-      status: 'ok', 
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime()
+    res.status(200).json({
+      status: 'ok',
+      timestamp: new Date().toISOString()
     });
   });
 

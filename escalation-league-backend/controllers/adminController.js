@@ -273,6 +273,22 @@ const assignUserRole = async (req, res) => {
     }
 
     try {
+        // Security check: Validate role hierarchy
+        // Role IDs are ordered by privilege level (1 = super_admin is highest)
+        // Users can only assign roles at or below their own privilege level
+        const adminRoleId = req.user.role_id;
+
+        // Only super admins can assign super admin role
+        if (roleId === 1 && adminRoleId !== 1) {
+            return res.status(403).json({ error: 'Only super admins can assign super admin role.' });
+        }
+
+        // Non-super admins cannot assign roles with higher privileges than their own
+        // Lower role_id = higher privilege (1 = super_admin, 2 = admin, etc.)
+        if (adminRoleId !== 1 && roleId < adminRoleId) {
+            return res.status(403).json({ error: 'Cannot assign higher privileges than your own.' });
+        }
+
         // Verify the user exists
         const user = await db('users').where({ id: userId }).first();
         if (!user) {

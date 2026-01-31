@@ -153,14 +153,15 @@ const revokeRefreshTokensByUser = async (userId) => {
         .update({ is_revoked: true });
 
     // Clear from Redis using pipeline for efficiency
-    if (tokens.length > 0) {
-        try {
-            const pipeline = redis.pipeline();
-            tokens.forEach(t => pipeline.del(`${REDIS_PREFIX}${t.token_hash}`));
-            await pipeline.exec();
-        } catch (err) {
-            logger.warn('Failed to clear tokens from Redis cache', { error: err.message });
-        }
+    try {
+        const pipeline = redis.pipeline();
+        // Clear all refresh tokens
+        tokens.forEach(t => pipeline.del(`${REDIS_PREFIX}${t.token_hash}`));
+        // Also clear user's role cache to ensure fresh permissions on next login
+        pipeline.del(`user:role:${userId}`);
+        await pipeline.exec();
+    } catch (err) {
+        logger.warn('Failed to clear tokens/cache from Redis', { error: err.message });
     }
 
     logger.info('All refresh tokens revoked for user', { userId, count: tokens.length });

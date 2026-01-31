@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const db = require('../models/db');
 const logger = require('../utils/logger');
 
@@ -20,12 +21,16 @@ const getDiscordAuthUrl = async (req, res) => {
         }
 
         // Store the user ID in state to link after OAuth completes
-        // We encode the user ID and a random nonce for security
-        const state = Buffer.from(JSON.stringify({
+        // Use cryptographically secure nonce and HMAC signature for security
+        const stateData = {
             userId: req.user.id,
-            nonce: Math.random().toString(36).substring(7),
+            nonce: crypto.randomBytes(16).toString('hex'),
             timestamp: Date.now()
-        })).toString('base64');
+        };
+        const signature = crypto.createHmac('sha256', process.env.JWT_SECRET)
+            .update(JSON.stringify(stateData))
+            .digest('hex');
+        const state = Buffer.from(JSON.stringify({ data: stateData, sig: signature })).toString('base64');
 
         const params = new URLSearchParams({
             client_id: clientId,
@@ -64,11 +69,27 @@ const discordCallback = async (req, res) => {
         }
 
         // Decode and validate state
-        let stateData;
+        let statePayload;
         try {
-            stateData = JSON.parse(Buffer.from(state, 'base64').toString());
+            statePayload = JSON.parse(Buffer.from(state, 'base64').toString());
         } catch (e) {
             logger.warn('Discord callback invalid state');
+            return res.redirect(`${frontendUrl}/profile?discord=error&message=invalid_state`);
+        }
+
+        // Verify HMAC signature to prevent state tampering
+        const { data: stateData, sig: providedSignature } = statePayload;
+        if (!stateData || !providedSignature) {
+            logger.warn('Discord callback missing state data or signature');
+            return res.redirect(`${frontendUrl}/profile?discord=error&message=invalid_state`);
+        }
+
+        const expectedSignature = crypto.createHmac('sha256', process.env.JWT_SECRET)
+            .update(JSON.stringify(stateData))
+            .digest('hex');
+
+        if (!crypto.timingSafeEqual(Buffer.from(providedSignature), Buffer.from(expectedSignature))) {
+            logger.warn('Discord callback state signature mismatch');
             return res.redirect(`${frontendUrl}/profile?discord=error&message=invalid_state`);
         }
 

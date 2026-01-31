@@ -18,12 +18,15 @@ const authenticateToken = require('../middlewares/authentication');
 const authorizePermission = require('../middlewares/authorizePermission');
 const authorizeLeagueAccess = require('../middlewares/authorizeLeagueAccess');
 const { cacheMiddleware, CACHE_TTL } = require('../middlewares/cacheMiddleware');
+const { validateBody } = require('../middlewares/validate');
+const { leagueSchemas } = require('../validation/schemas');
 
 // League Management Endpoints
 router.post(
     '/',
     authenticateToken,
     authorizePermission(['league_create']), // Permission to create a league
+    validateBody(leagueSchemas.create),
     createLeague
 );
 
@@ -38,6 +41,7 @@ router.put(
     '/:id',
     authenticateToken,
     authorizePermission(['league_update']), // Permission to update league details
+    validateBody(leagueSchemas.update),
     updateLeague
 );
 
