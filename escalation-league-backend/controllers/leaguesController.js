@@ -105,6 +105,22 @@ const updateLeague = async (req, res) => {
     }
 
     try {
+        // Security check: Verify user has authority to update this specific league
+        // Super admins (role_id === 1) can update any league
+        // Others must be an admin of this specific league
+        const userId = req.user.id;
+        const roleId = req.user.role_id;
+
+        if (roleId !== 1) {
+            const userLeague = await db('user_leagues')
+                .where({ user_id: userId, league_id: id })
+                .first();
+
+            if (!userLeague || userLeague.league_role !== 'admin') {
+                return res.status(403).json({ error: 'You can only update leagues you administer.' });
+            }
+        }
+
         const updates = {};
         if (name !== undefined) updates.name = name;
         if (start_date !== undefined) updates.start_date = start_date;

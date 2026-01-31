@@ -119,6 +119,7 @@ const loginUser = async (req, res) => {
             .whereRaw('LOWER(users.email) = ?', [email.toLowerCase()]) // Ensure case-insensitive matching
             .andWhere('users.is_deleted', 0) // Exclude deleted users
             .andWhere('users.is_active', 1) // Exclude inactive users
+            .andWhere('users.is_banned', 0) // Exclude banned users
             .first();
 
 
@@ -197,6 +198,20 @@ const googleAuth = async (req, res) => {
 
         // Check if the user exists in the database
         let user = await db('users').where({ email }).first();
+
+        // Check if existing user is banned or inactive
+        if (user) {
+            if (user.is_deleted) {
+                return res.status(403).json({ error: 'Account has been deleted.' });
+            }
+            if (!user.is_active) {
+                return res.status(403).json({ error: 'Account is inactive.' });
+            }
+            if (user.is_banned) {
+                return res.status(403).json({ error: 'Account is banned.' });
+            }
+        }
+
         if (!user) {
             // Create a new user if not found
             // Google users are automatically email-verified
@@ -272,7 +287,15 @@ const googleAuth = async (req, res) => {
 const verifyGoogleToken = async (req, res) => {
     const { token } = req.body;
 
+    if (!token) {
+        return res.status(400).json({ error: 'Token is required' });
+    }
+
     try {
+        // Fetch the Google Client ID dynamically (matching googleAuth pattern)
+        const CLIENT_ID = await getSetting('google_client_id');
+        const client = new OAuth2Client(CLIENT_ID);
+
         const ticket = await client.verifyIdToken({
             idToken: token,
             audience: CLIENT_ID,

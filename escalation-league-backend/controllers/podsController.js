@@ -170,6 +170,14 @@ const joinPod = async (req, res) => {
             return res.status(404).json({ error: 'Pod not found or is no longer open.' });
         }
 
+        // Security check: Verify user is a member of the league this pod belongs to
+        const leagueMember = await db('user_leagues')
+            .where({ user_id: playerId, league_id: pod.league_id, is_active: true })
+            .first();
+        if (!leagueMember) {
+            return res.status(403).json({ error: 'You must be a league member to join pods.' });
+        }
+
         // Check if the pod already has enough participants
         const participantCountResult = await db('game_players').where({ pod_id: podId }).count('id as count').first();
         const participantCount = participantCountResult?.count || 0;

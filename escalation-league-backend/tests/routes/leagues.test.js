@@ -110,7 +110,9 @@ describe('League Routes', () => {
                 });
 
             expect(res.status).toBe(400);
-            expect(res.body).toHaveProperty('error', 'Name, start_date, and end_date are required.');
+            // Joi validation now catches missing required fields
+            expect(res.body).toHaveProperty('error', 'Validation failed');
+            expect(res.body.details).toBeDefined();
         });
 
         // TODO: Add test for user without league_create permission
