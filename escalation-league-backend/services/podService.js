@@ -87,8 +87,8 @@ const calculatePoints = (result, league) => {
 
 /**
  * Apply game stats for completed pods
- * Updates both global user stats and league-specific stats
- * Also handles tournament stats if isTournamentGame is true
+ * For regular season games: updates global user stats and league-specific stats
+ * For tournament games: only updates tournament-specific stats (not regular season leaderboard)
  *
  * @param {Array} participants - Array of participant records with player_id, result
  * @param {number} leagueId - League ID for league stats
@@ -106,31 +106,8 @@ const applyGameStats = async (participants, leagueId, isTournamentGame = false) 
     for (const p of participants) {
         // DQ'd players get a loss on their record but 0 points
         const isDq = p.result === 'disqualified';
-        const wins = p.result === 'win' ? 1 : 0;
-        const losses = (p.result === 'loss' || isDq) ? 1 : 0;
-        const draws = p.result === 'draw' ? 1 : 0;
-        const points = isDq ? 0 : calculatePoints(p.result, league);
 
-        // Update global user stats
-        await db('users')
-            .where({ id: p.player_id })
-            .increment({
-                wins,
-                losses,
-                draws
-            });
-
-        // Update league-specific stats
-        await db('user_leagues')
-            .where({ user_id: p.player_id, league_id: leagueId })
-            .increment({
-                league_wins: wins,
-                league_losses: losses,
-                league_draws: draws,
-                total_points: points
-            });
-
-        // Apply tournament stats if this is a tournament game
+        // Tournament games only update tournament stats, not regular season stats
         if (isTournamentGame) {
             let tPoints = 0;
             let tWins = 0;
@@ -157,6 +134,31 @@ const applyGameStats = async (participants, leagueId, isTournamentGame = false) 
                     tournament_non_wins: tNonWins,
                     tournament_dqs: tDqs
                 });
+        } else {
+            // Regular season games update global and league stats
+            const wins = p.result === 'win' ? 1 : 0;
+            const losses = (p.result === 'loss' || isDq) ? 1 : 0;
+            const draws = p.result === 'draw' ? 1 : 0;
+            const points = isDq ? 0 : calculatePoints(p.result, league);
+
+            // Update global user stats
+            await db('users')
+                .where({ id: p.player_id })
+                .increment({
+                    wins,
+                    losses,
+                    draws
+                });
+
+            // Update league-specific stats
+            await db('user_leagues')
+                .where({ user_id: p.player_id, league_id: leagueId })
+                .increment({
+                    league_wins: wins,
+                    league_losses: losses,
+                    league_draws: draws,
+                    total_points: points
+                });
         }
     }
 
@@ -169,8 +171,8 @@ const applyGameStats = async (participants, leagueId, isTournamentGame = false) 
 
 /**
  * Reverse game stats for a pod (used when editing/deleting completed pods)
- * Reverses both global user stats and league-specific stats
- * Also reverses tournament stats if isTournamentGame is true
+ * For regular season games: reverses global user stats and league-specific stats
+ * For tournament games: only reverses tournament-specific stats
  *
  * @param {Array} participants - Array of participant records with player_id, result, elo_change
  * @param {number} leagueId - League ID for league stats
@@ -188,42 +190,8 @@ const reverseGameStats = async (participants, leagueId, isTournamentGame = false
     for (const p of participants) {
         // DQ'd players had a loss recorded but 0 points
         const isDq = p.result === 'disqualified';
-        const wins = p.result === 'win' ? -1 : 0;
-        const losses = (p.result === 'loss' || isDq) ? -1 : 0;
-        const draws = p.result === 'draw' ? -1 : 0;
-        const points = isDq ? 0 : -calculatePoints(p.result, league);
 
-        // Reverse global user stats
-        await db('users')
-            .where({ id: p.player_id })
-            .increment({
-                wins,
-                losses,
-                draws
-            });
-
-        // Reverse league stats
-        await db('user_leagues')
-            .where({ user_id: p.player_id, league_id: leagueId })
-            .increment({
-                league_wins: wins,
-                league_losses: losses,
-                league_draws: draws,
-                total_points: points
-            });
-
-        // Reverse ELO using stored elo_change
-        if (p.elo_change && p.elo_change !== 0) {
-            await db('users')
-                .where({ id: p.player_id })
-                .decrement('elo_rating', p.elo_change);
-
-            await db('user_leagues')
-                .where({ user_id: p.player_id, league_id: leagueId })
-                .decrement('elo_rating', p.elo_change);
-        }
-
-        // Reverse tournament stats if this was a tournament game
+        // Tournament games only reverse tournament stats, not regular season stats
         if (isTournamentGame) {
             let tPoints = 0;
             let tWins = 0;
@@ -249,6 +217,42 @@ const reverseGameStats = async (participants, leagueId, isTournamentGame = false
                     tournament_non_wins: tNonWins,
                     tournament_dqs: tDqs
                 });
+        } else {
+            // Regular season games - reverse global and league stats
+            const wins = p.result === 'win' ? -1 : 0;
+            const losses = (p.result === 'loss' || isDq) ? -1 : 0;
+            const draws = p.result === 'draw' ? -1 : 0;
+            const points = isDq ? 0 : -calculatePoints(p.result, league);
+
+            // Reverse global user stats
+            await db('users')
+                .where({ id: p.player_id })
+                .increment({
+                    wins,
+                    losses,
+                    draws
+                });
+
+            // Reverse league stats
+            await db('user_leagues')
+                .where({ user_id: p.player_id, league_id: leagueId })
+                .increment({
+                    league_wins: wins,
+                    league_losses: losses,
+                    league_draws: draws,
+                    total_points: points
+                });
+
+            // Reverse ELO using stored elo_change (only for regular season games)
+            if (p.elo_change && p.elo_change !== 0) {
+                await db('users')
+                    .where({ id: p.player_id })
+                    .decrement('elo_rating', p.elo_change);
+
+                await db('user_leagues')
+                    .where({ user_id: p.player_id, league_id: leagueId })
+                    .decrement('elo_rating', p.elo_change);
+            }
         }
     }
 
