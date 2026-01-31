@@ -176,23 +176,34 @@
     }
 
     .league-dashboard-tabs {
-        overflow-x: auto;
-        flex-wrap: nowrap;
-        -webkit-overflow-scrolling: touch;
-    }
-
-    .league-dashboard-tabs .nav-item {
-        flex-shrink: 0;
+        flex-wrap: wrap;
     }
 
     .league-dashboard-tabs .nav-link {
-        padding: 0.5rem 1rem;
+        padding: 0.5rem 0.75rem;
         font-size: 0.875rem;
-        white-space: nowrap;
+    }
+}
+
+/* On very small screens, show icon-only tabs */
+@media (max-width: 480px) {
+    .league-dashboard-tabs {
+        justify-content: center;
     }
 
-    .league-dashboard-tabs .nav-link i {
+    .league-dashboard-tabs .nav-link {
+        padding: 0.6rem 0.75rem;
+    }
+
+    /* Hide tab text on very small screens */
+    .league-dashboard-tabs .nav-link .tab-text {
         display: none;
+    }
+
+    /* Ensure icon is visible and centered */
+    .league-dashboard-tabs .nav-link i {
+        margin: 0;
+        font-size: 1rem;
     }
 }
 

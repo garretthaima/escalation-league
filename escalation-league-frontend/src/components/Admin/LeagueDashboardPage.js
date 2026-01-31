@@ -227,36 +227,40 @@ const LeagueDashboardPage = () => {
                         <button
                             className={`nav-link ${activeTab === 'settings' ? 'active' : ''}`}
                             onClick={() => handleTabChange('settings')}
+                            title="Settings"
                         >
-                            <i className="fas fa-cog me-1"></i>
-                            Settings
+                            <i className="fas fa-cog"></i>
+                            <span className="tab-text ms-1">Settings</span>
                         </button>
                     </li>
                     <li className="nav-item">
                         <button
                             className={`nav-link ${activeTab === 'users' ? 'active' : ''}`}
                             onClick={() => handleTabChange('users')}
+                            title="Users"
                         >
-                            <i className="fas fa-users me-1"></i>
-                            Users
+                            <i className="fas fa-users"></i>
+                            <span className="tab-text ms-1">Users</span>
                         </button>
                     </li>
                     <li className="nav-item">
                         <button
                             className={`nav-link ${activeTab === 'attendance' ? 'active' : ''}`}
                             onClick={() => handleTabChange('attendance')}
+                            title="Attendance"
                         >
-                            <i className="fas fa-clipboard-check me-1"></i>
-                            Attendance
+                            <i className="fas fa-clipboard-check"></i>
+                            <span className="tab-text ms-1">Attendance</span>
                         </button>
                     </li>
                     <li className="nav-item">
                         <button
                             className={`nav-link ${activeTab === 'pods' ? 'active' : ''}`}
                             onClick={() => handleTabChange('pods')}
+                            title="Pods"
                         >
-                            <i className="fas fa-gamepad me-1"></i>
-                            Pods
+                            <i className="fas fa-gamepad"></i>
+                            <span className="tab-text ms-1">Pods</span>
                         </button>
                     </li>
                     {hasTournamentManage && (
@@ -264,9 +268,10 @@ const LeagueDashboardPage = () => {
                             <button
                                 className={`nav-link ${activeTab === 'tournament' ? 'active' : ''}`}
                                 onClick={() => handleTabChange('tournament')}
+                                title="Tournament"
                             >
-                                <i className="fas fa-trophy me-1"></i>
-                                Tournament
+                                <i className="fas fa-trophy"></i>
+                                <span className="tab-text ms-1">Tournament</span>
                             </button>
                         </li>
                     )}

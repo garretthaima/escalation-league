@@ -161,7 +161,7 @@ const AttendanceAdminTab = ({ leagueId: propLeagueId }) => {
                                 <th>Date</th>
                                 <th>Name</th>
                                 <th className="text-center">Status</th>
-                                <th className="text-center">Attending</th>
+                                <th className="text-center"><span className="d-none d-sm-inline">Attending</span><span className="d-sm-none">#</span></th>
                                 <th className="text-center">Discord Poll</th>
                                 <th className="text-end">Actions</th>
                             </tr>
@@ -206,8 +206,10 @@ const AttendanceAdminTab = ({ leagueId: propLeagueId }) => {
                                                 e.stopPropagation();
                                                 handleSessionClick(session);
                                             }}
+                                            title="Manage Session"
                                         >
-                                            Manage
+                                            <i className="fas fa-cog"></i>
+                                            <span className="manage-btn-text ms-1">Manage</span>
                                         </button>
                                     </td>
                                 </tr>

@@ -553,47 +553,51 @@ const SessionDashboardPage = () => {
 
                 {/* Attendance Table */}
                 <div className="card mb-4">
-                    <div className="card-header">
-                        <i className="fas fa-users me-2"></i>
-                        Attendance
-                        <span className="badge bg-success ms-2">{attending.length} attending</span>
-                        <span className="badge bg-secondary ms-1">{notAttending.length} out</span>
+                    <div className="card-header session-attendance-header">
+                        <span>
+                            <i className="fas fa-users me-2"></i>
+                            Attendance
+                        </span>
+                        <span className="badge bg-success">{attending.length} attending</span>
+                        <span className="badge bg-secondary">{notAttending.length} out</span>
                         {canModifyAttendance && noResponse.length > 0 && (
-                            <span className="badge bg-warning text-dark ms-1">{noResponse.length} no response</span>
+                            <span className="badge bg-warning text-dark">{noResponse.length} no response</span>
                         )}
                     </div>
                     <div className="card-body p-0">
                         <div className="table-responsive">
-                            <table className="table table-hover mb-0">
+                            <table className="table table-hover mb-0 session-attendance-table">
                                 <thead>
                                     <tr>
-                                        <th>Name</th>
-                                        <th className="text-center">Status</th>
-                                        <th className="text-center">Source</th>
-                                        {canModifyAttendance && <th className="text-end">Actions</th>}
+                                        <th className="col-name">Name</th>
+                                        <th className="text-center col-status">Status</th>
+                                        <th className="text-center col-source">Source</th>
+                                        {canModifyAttendance && <th className="text-end col-actions">Actions</th>}
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {attending.map(a => (
                                         <tr key={a.user_id} className="table-success">
-                                            <td><strong>{a.firstname} {a.lastname}</strong></td>
-                                            <td className="text-center">
+                                            <td className="col-name"><strong>{a.firstname} {a.lastname}</strong></td>
+                                            <td className="text-center col-status">
                                                 <span className="badge bg-success">Attending</span>
                                             </td>
-                                            <td className="text-center">
+                                            <td className="text-center col-source">
                                                 {a.updated_via === 'discord' ? (
                                                     <span className="badge bg-primary"><DiscordIcon /> Discord</span>
                                                 ) : (
-                                                    <span className="text-muted">Manual</span>
+                                                    <span className="text-muted">-</span>
                                                 )}
                                             </td>
                                             {canModifyAttendance && (
-                                                <td className="text-end">
+                                                <td className="text-end col-actions">
                                                     <button
                                                         className="btn btn-sm btn-outline-danger"
                                                         onClick={() => handleAdminCheckOut(a.user_id)}
+                                                        title="Mark Out"
                                                     >
-                                                        Mark Out
+                                                        <i className="fas fa-times"></i>
+                                                        <span className="action-btn-text ms-1">Out</span>
                                                     </button>
                                                 </td>
                                             )}
@@ -601,24 +605,26 @@ const SessionDashboardPage = () => {
                                     ))}
                                     {notAttending.map(a => (
                                         <tr key={a.user_id} className="table-secondary">
-                                            <td><strong>{a.firstname} {a.lastname}</strong></td>
-                                            <td className="text-center">
+                                            <td className="col-name"><strong>{a.firstname} {a.lastname}</strong></td>
+                                            <td className="text-center col-status">
                                                 <span className="badge bg-secondary">Can't Make It</span>
                                             </td>
-                                            <td className="text-center">
+                                            <td className="text-center col-source">
                                                 {a.updated_via === 'discord' ? (
                                                     <span className="badge bg-primary"><DiscordIcon /> Discord</span>
                                                 ) : (
-                                                    <span className="text-muted">Manual</span>
+                                                    <span className="text-muted">-</span>
                                                 )}
                                             </td>
                                             {canModifyAttendance && (
-                                                <td className="text-end">
+                                                <td className="text-end col-actions">
                                                     <button
                                                         className="btn btn-sm btn-outline-success"
                                                         onClick={() => handleAdminCheckIn(a.user_id)}
+                                                        title="Mark In"
                                                     >
-                                                        Mark In
+                                                        <i className="fas fa-check"></i>
+                                                        <span className="action-btn-text ms-1">In</span>
                                                     </button>
                                                 </td>
                                             )}
@@ -626,26 +632,30 @@ const SessionDashboardPage = () => {
                                     ))}
                                     {canModifyAttendance && noResponse.map(p => (
                                         <tr key={p.user_id}>
-                                            <td><strong>{p.firstname} {p.lastname}</strong></td>
-                                            <td className="text-center">
+                                            <td className="col-name"><strong>{p.firstname} {p.lastname}</strong></td>
+                                            <td className="text-center col-status">
                                                 <span className="badge bg-warning text-dark">No Response</span>
                                             </td>
-                                            <td className="text-center">
+                                            <td className="text-center col-source">
                                                 <span className="text-muted">-</span>
                                             </td>
-                                            <td className="text-end">
+                                            <td className="text-end col-actions">
                                                 <div className="d-flex gap-2 justify-content-end">
                                                     <button
                                                         className="btn btn-sm btn-success"
                                                         onClick={() => handleAdminCheckIn(p.user_id)}
+                                                        title="Mark In"
                                                     >
-                                                        Mark In
+                                                        <i className="fas fa-check"></i>
+                                                        <span className="action-btn-text ms-1">In</span>
                                                     </button>
                                                     <button
                                                         className="btn btn-sm btn-outline-secondary"
                                                         onClick={() => handleAdminCheckOut(p.user_id)}
+                                                        title="Mark Out"
                                                     >
-                                                        Mark Out
+                                                        <i className="fas fa-times"></i>
+                                                        <span className="action-btn-text ms-1">Out</span>
                                                     </button>
                                                 </div>
                                             </td>

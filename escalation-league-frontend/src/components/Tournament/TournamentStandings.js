@@ -56,50 +56,52 @@ const TournamentStandings = ({ standings, currentUserId, tournamentWinPoints, to
             </div>
             <div className="card-body p-0">
                 <div className="table-responsive">
-                    <table className="table table-hover mb-0">
+                    <table className="table table-hover mb-0 tournament-standings-table">
                         <thead className="table-light">
                             <tr>
                                 <th
                                     onClick={() => handleSort('tournament_rank')}
-                                    style={{ cursor: 'pointer', width: '60px' }}
+                                    style={{ cursor: 'pointer' }}
+                                    className="col-rank"
                                 >
                                     Rank {getSortIcon('tournament_rank')}
                                 </th>
                                 <th
                                     onClick={() => handleSort('firstname')}
                                     style={{ cursor: 'pointer' }}
+                                    className="col-player"
                                 >
                                     Player {getSortIcon('firstname')}
                                 </th>
                                 <th
                                     onClick={() => handleSort('tournament_points')}
-                                    style={{ cursor: 'pointer', width: '80px' }}
-                                    className="text-center"
+                                    style={{ cursor: 'pointer' }}
+                                    className="text-center col-points"
                                 >
-                                    Points {getSortIcon('tournament_points')}
+                                    Pts {getSortIcon('tournament_points')}
                                 </th>
                                 <th
                                     onClick={() => handleSort('tournament_wins')}
-                                    style={{ cursor: 'pointer', width: '80px' }}
+                                    style={{ cursor: 'pointer' }}
                                     className="text-center d-none d-md-table-cell"
                                 >
                                     Wins {getSortIcon('tournament_wins')}
                                 </th>
                                 <th
                                     onClick={() => handleSort('tournament_non_wins')}
-                                    style={{ cursor: 'pointer', width: '100px' }}
+                                    style={{ cursor: 'pointer' }}
                                     className="text-center d-none d-md-table-cell"
                                 >
                                     Non-Wins {getSortIcon('tournament_non_wins')}
                                 </th>
                                 <th
                                     onClick={() => handleSort('tournament_seed')}
-                                    style={{ cursor: 'pointer', width: '80px' }}
+                                    style={{ cursor: 'pointer' }}
                                     className="text-center d-none d-lg-table-cell"
                                 >
                                     Seed {getSortIcon('tournament_seed')}
                                 </th>
-                                <th style={{ width: '120px' }} className="text-center">
+                                <th className="text-center col-status">
                                     Status
                                 </th>
                             </tr>
@@ -114,7 +116,7 @@ const TournamentStandings = ({ standings, currentUserId, tournamentWinPoints, to
                                         key={player.player_id}
                                         className={isCurrentUser ? 'table-primary' : ''}
                                     >
-                                        <td className="fw-bold">
+                                        <td className="fw-bold col-rank">
                                             {player.tournament_rank <= 3 && (
                                                 <i className={`fas fa-medal me-1 ${
                                                     player.tournament_rank === 1 ? 'text-warning' :
@@ -124,7 +126,7 @@ const TournamentStandings = ({ standings, currentUserId, tournamentWinPoints, to
                                             )}
                                             {player.tournament_rank}
                                         </td>
-                                        <td>
+                                        <td className="col-player">
                                             <span className={isCurrentUser ? 'fw-bold' : ''}>
                                                 {player.firstname} {player.lastname}
                                             </span>
@@ -132,7 +134,7 @@ const TournamentStandings = ({ standings, currentUserId, tournamentWinPoints, to
                                                 <span className="badge bg-primary ms-2">You</span>
                                             )}
                                         </td>
-                                        <td className="text-center">
+                                        <td className="text-center col-points">
                                             <span className="badge bg-primary fs-6">
                                                 {player.tournament_points}
                                             </span>
@@ -150,21 +152,21 @@ const TournamentStandings = ({ standings, currentUserId, tournamentWinPoints, to
                                         <td className="text-center d-none d-lg-table-cell">
                                             #{player.tournament_seed}
                                         </td>
-                                        <td className="text-center">
+                                        <td className="text-center col-status">
                                             {player.is_champion ? (
                                                 <span className="badge bg-warning text-dark">
-                                                    <i className="fas fa-crown me-1"></i>
-                                                    Champion
+                                                    <i className="fas fa-crown"></i>
+                                                    <span className="status-badge-text ms-1">Champion</span>
                                                 </span>
                                             ) : player.championship_qualified ? (
                                                 <span className="badge bg-success">
-                                                    <i className="fas fa-star me-1"></i>
-                                                    Finals
+                                                    <i className="fas fa-star"></i>
+                                                    <span className="status-badge-text ms-1">Finals</span>
                                                 </span>
                                             ) : isTop4 ? (
                                                 <span className="badge bg-primary">
-                                                    <i className="fas fa-arrow-up me-1"></i>
-                                                    Top 4
+                                                    <i className="fas fa-arrow-up"></i>
+                                                    <span className="status-badge-text ms-1">Top 4</span>
                                                 </span>
                                             ) : (
                                                 <span className="badge bg-secondary">-</span>

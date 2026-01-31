@@ -108,7 +108,7 @@ const TournamentDashboard = () => {
     return (
         <div className="container mt-4 tournament-dashboard">
             {/* Header */}
-            <div className="d-flex justify-content-between align-items-center mb-4">
+            <div className="tournament-header mb-4">
                 <div>
                     <h2 className="mb-1">
                         <i className="fas fa-trophy text-warning me-2"></i>
@@ -119,13 +119,13 @@ const TournamentDashboard = () => {
                     </p>
                 </div>
                 {isTournament && (
-                    <div className="badge bg-warning text-dark fs-6">
+                    <div className="badge bg-warning text-dark fs-6 tournament-status-badge">
                         <i className="fas fa-flag-checkered me-1"></i>
                         Tournament in Progress
                     </div>
                 )}
                 {isCompleted && champion && (
-                    <div className="badge bg-success fs-6">
+                    <div className="badge bg-success fs-6 tournament-status-badge">
                         <i className="fas fa-crown me-1"></i>
                         Champion: {champion.firstname} {champion.lastname}
                     </div>
