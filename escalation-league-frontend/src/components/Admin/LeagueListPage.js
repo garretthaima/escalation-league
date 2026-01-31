@@ -1,9 +1,18 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { getLeagues } from '../../api/leaguesApi';
 import { formatDate } from '../../utils/dateFormatter';
 import CollapsibleSection from '../Shared/CollapsibleSection';
 import './LeagueListPage.css';
+
+// Tab display names for legacy route redirects
+const TAB_DISPLAY_NAMES = {
+    pods: 'Pods',
+    attendance: 'Attendance',
+    settings: 'Settings',
+    users: 'Users',
+    tournament: 'Tournament'
+};
 
 // Stat Card Component
 const StatCard = ({ icon, label, value, variant = 'default' }) => (
@@ -86,11 +95,16 @@ const LeagueCard = ({ league, onClick }) => {
 // Main League List Page component
 const LeagueListPage = () => {
     const navigate = useNavigate();
+    const location = useLocation();
 
     // State
     const [leagues, setLeagues] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+
+    // Check if we have a hash for tab redirection (from legacy routes)
+    const targetTab = location.hash ? location.hash : '';
+    const targetTabName = targetTab.replace('#', '');
 
     // Calculate stats
     const activeLeague = leagues.find(l => l.is_active);
@@ -113,9 +127,18 @@ const LeagueListPage = () => {
         fetchData();
     }, [fetchData]);
 
+    // Auto-redirect to active league if coming from a legacy route with a target tab
+    useEffect(() => {
+        if (targetTabName && TAB_DISPLAY_NAMES[targetTabName] && activeLeague && leagues.length > 0) {
+            // Auto-navigate to active league with the target tab
+            navigate(`/admin/leagues/${activeLeague.id}${targetTab}`, { replace: true });
+        }
+    }, [targetTabName, activeLeague, leagues, navigate, targetTab]);
+
     // Handlers
     const handleLeagueClick = (league) => {
-        navigate(`/admin/leagues/${league.id}`);
+        // Preserve the hash (targetTab) when navigating to the league dashboard
+        navigate(`/admin/leagues/${league.id}${targetTab}`);
     };
 
     // Render
@@ -159,6 +182,16 @@ const LeagueListPage = () => {
                         Create League
                     </button>
                 </div>
+
+                {/* Target Tab Info (shown when redirected from legacy routes - only if no active league) */}
+                {targetTabName && TAB_DISPLAY_NAMES[targetTabName] && !activeLeague && (
+                    <div className="alert alert-info d-flex align-items-center mb-3">
+                        <i className="fas fa-info-circle me-2"></i>
+                        <span>
+                            Select a league to open the <strong>{TAB_DISPLAY_NAMES[targetTabName]}</strong> tab.
+                        </span>
+                    </div>
+                )}
 
                 {/* Stats Row */}
                 <div className="stats-row">
