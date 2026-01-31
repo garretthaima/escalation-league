@@ -1,0 +1,134 @@
+/* Attendance Admin Tab Styles */
+.attendance-admin-tab {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Sessions Table */
+.sessions-table {
+    margin-bottom: 0;
+}
+
+.sessions-table th {
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary, #6c757d);
+    border-bottom: 2px solid var(--border-color, #dee2e6);
+    padding: 0.75rem;
+}
+
+.sessions-table td {
+    vertical-align: middle;
+    padding: 0.75rem;
+    color: var(--text-primary);
+}
+
+.sessions-table tbody tr {
+    transition: background-color 0.15s ease;
+}
+
+.sessions-table tbody tr:hover {
+    background-color: rgba(108, 92, 231, 0.05);
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 767px) {
+    /* Hide Discord Poll column */
+    .sessions-table th:nth-child(5),
+    .sessions-table td:nth-child(5) {
+        display: none;
+    }
+
+    .sessions-table th,
+    .sessions-table td {
+        padding: 0.5rem;
+        font-size: 0.875rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .sessions-table {
+        font-size: 0.75rem;
+        table-layout: fixed;
+        width: 100%;
+    }
+
+    .sessions-table th,
+    .sessions-table td {
+        padding: 0.35rem 0.25rem;
+    }
+
+    /* Hide Discord Poll AND Actions columns on small screens - row is clickable anyway */
+    .sessions-table th:nth-child(5),
+    .sessions-table td:nth-child(5),
+    .sessions-table th:nth-child(6),
+    .sessions-table td:nth-child(6) {
+        display: none;
+    }
+
+    /* Column widths for 4-column layout: Date, Name, Status, Attending */
+    .sessions-table th:nth-child(1),
+    .sessions-table td:nth-child(1) {
+        width: 70px;
+    }
+
+    .sessions-table th:nth-child(2),
+    .sessions-table td:nth-child(2) {
+        width: auto;
+        max-width: 80px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .sessions-table th:nth-child(3),
+    .sessions-table td:nth-child(3) {
+        width: 65px;
+    }
+
+    .sessions-table th:nth-child(4),
+    .sessions-table td:nth-child(4) {
+        width: 55px;
+    }
+
+    /* Smaller badges */
+    .sessions-table .badge {
+        font-size: 0.65rem;
+        padding: 0.15em 0.35em;
+    }
+
+    /* Header badges wrap */
+    .attendance-admin-tab .d-flex.justify-content-between {
+        flex-direction: column;
+        gap: 0.75rem;
+        align-items: flex-start !important;
+    }
+
+    .attendance-admin-tab .d-flex.justify-content-between .btn {
+        width: 100%;
+    }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .sessions-table th {
+        color: var(--text-secondary, #adb5bd);
+        border-bottom-color: var(--border-color, #495057);
+    }
+
+    .sessions-table td {
+        color: var(--text-primary, #f8f9fa);
+        border-bottom-color: var(--border-color, #495057);
+    }
+
+    .sessions-table tbody tr:hover {
+        background-color: rgba(108, 92, 231, 0.1);
+    }
+
+    .sessions-table .table-secondary {
+        --bs-table-bg: rgba(108, 117, 125, 0.15);
+        --bs-table-hover-bg: rgba(108, 117, 125, 0.25);
+    }
+}

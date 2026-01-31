@@ -1,0 +1,394 @@
+/* League List Page Styles */
+.league-list-page {
+    padding-bottom: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* Header */
+.league-list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.league-list-header h2 {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+/* Alert Banner */
+.alert-banner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    animation: slideIn 0.3s ease-out;
+}
+
+.alert-banner-warning {
+    background: linear-gradient(135deg, rgba(255, 193, 7, 0.15) 0%, rgba(255, 193, 7, 0.08) 100%);
+    border: 1px solid rgba(255, 193, 7, 0.3);
+    color: var(--text-primary);
+}
+
+.alert-banner-content {
+    display: flex;
+    align-items: center;
+    font-weight: 500;
+}
+
+.alert-banner-content i {
+    color: #ffc107;
+}
+
+/* Stats Row */
+.league-list-page .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Stat Card */
+.stat-card {
+    background: var(--bg-secondary, #f8f9fa);
+    border-radius: 12px;
+    padding: 1.25rem;
+    text-align: center;
+    border: 1px solid var(--border-color, #dee2e6);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card-clickable {
+    cursor: pointer;
+}
+
+.stat-card-clickable:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.stat-card-icon {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+    opacity: 0.8;
+}
+
+.stat-card-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 0.25rem;
+    word-break: break-word;
+}
+
+.stat-card-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.7;
+    font-weight: 500;
+}
+
+/* Stat Card Variants */
+.stat-card-primary {
+    background: linear-gradient(135deg, rgba(108, 92, 231, 0.1) 0%, rgba(108, 92, 231, 0.05) 100%);
+    border-color: rgba(108, 92, 231, 0.2);
+}
+
+.stat-card-primary .stat-card-icon,
+.stat-card-primary .stat-card-value {
+    color: var(--brand-purple, #6c5ce7);
+}
+
+.stat-card-success {
+    background: linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, rgba(40, 167, 69, 0.05) 100%);
+    border-color: rgba(40, 167, 69, 0.2);
+}
+
+.stat-card-success .stat-card-icon,
+.stat-card-success .stat-card-value {
+    color: #28a745;
+}
+
+.stat-card-info {
+    background: linear-gradient(135deg, rgba(23, 162, 184, 0.1) 0%, rgba(23, 162, 184, 0.05) 100%);
+    border-color: rgba(23, 162, 184, 0.2);
+}
+
+.stat-card-info .stat-card-icon,
+.stat-card-info .stat-card-value {
+    color: #17a2b8;
+}
+
+.stat-card-warning {
+    background: linear-gradient(135deg, rgba(255, 193, 7, 0.15) 0%, rgba(255, 193, 7, 0.08) 100%);
+    border-color: rgba(255, 193, 7, 0.3);
+}
+
+.stat-card-warning .stat-card-icon,
+.stat-card-warning .stat-card-value {
+    color: #d39e00;
+}
+
+/* League Cards Grid */
+.league-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1rem;
+}
+
+/* League Card */
+.league-card {
+    background: var(--bg-secondary, #fff);
+    border-radius: 12px;
+    border: 1px solid var(--border-color, #dee2e6);
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.league-card-clickable {
+    cursor: pointer;
+}
+
+.league-card-clickable:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.league-card-clickable:focus {
+    outline: 2px solid var(--brand-purple, #6c5ce7);
+    outline-offset: 2px;
+}
+
+.league-card-active {
+    border-color: rgba(40, 167, 69, 0.5);
+    box-shadow: 0 0 0 1px rgba(40, 167, 69, 0.2);
+}
+
+.league-card-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border-color, #dee2e6);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.league-card-title {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.league-card-title h5 {
+    margin: 0;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.league-card-body {
+    padding: 1rem 1.25rem;
+}
+
+.league-card-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.league-stat {
+    font-size: 0.875rem;
+    color: var(--text-secondary, #6c757d);
+    display: flex;
+    align-items: center;
+}
+
+.league-stat i {
+    width: 20px;
+    color: var(--text-muted, #adb5bd);
+}
+
+.league-card-footer {
+    padding: 0.75rem 1.25rem;
+    background: var(--bg-tertiary, #f8f9fa);
+    border-top: 1px solid var(--border-color, #dee2e6);
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+/* Signup Requests List */
+.signup-requests-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+/* Signup Request Card */
+.signup-request-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    background: var(--bg-secondary, #f8f9fa);
+    border-radius: 8px;
+    border: 1px solid var(--border-color, #dee2e6);
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.signup-request-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.signup-request-user {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.signup-request-avatar {
+    font-size: 2rem;
+    color: var(--text-muted, #adb5bd);
+}
+
+.signup-request-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.signup-request-details strong {
+    color: var(--text-primary);
+}
+
+.signup-request-details .text-muted {
+    font-size: 0.875rem;
+}
+
+.signup-request-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Animations */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 991px) {
+    .league-list-page .stats-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 767px) {
+    .league-list-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .league-list-header .btn {
+        width: 100%;
+    }
+
+    .alert-banner {
+        flex-direction: column;
+        gap: 0.75rem;
+        text-align: center;
+    }
+
+    .alert-banner .btn {
+        width: 100%;
+    }
+
+    .league-list-page .stats-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .stat-card {
+        padding: 1rem;
+    }
+
+    .stat-card-value {
+        font-size: 1.25rem;
+    }
+
+    .league-cards-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .signup-request-card {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .signup-request-actions {
+        justify-content: stretch;
+    }
+
+    .signup-request-actions .btn {
+        flex: 1;
+    }
+}
+
+@media (max-width: 575px) {
+    .league-list-page .stats-row {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+    }
+
+    .stat-card {
+        padding: 0.75rem;
+    }
+
+    .stat-card-icon {
+        font-size: 1.25rem;
+    }
+
+    .stat-card-value {
+        font-size: 1rem;
+    }
+
+    .stat-card-label {
+        font-size: 0.65rem;
+    }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .stat-card {
+        background: var(--bg-secondary, #2d2d2d);
+    }
+
+    .league-card {
+        background: var(--bg-secondary, #2d2d2d);
+    }
+
+    .signup-request-card {
+        background: var(--bg-secondary, #2d2d2d);
+    }
+
+    .alert-banner-warning {
+        background: linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(255, 193, 7, 0.05) 100%);
+    }
+}

@@ -1,0 +1,193 @@
+/* Tournament Pods Grid */
+.tournament-pods-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1rem;
+}
+
+/* Tournament Pod Card */
+.tournament-pod-card {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px var(--shadow);
+}
+
+.tournament-pod-card.user-in-pod {
+    border-color: var(--brand-purple);
+    border-width: 2px;
+}
+
+.tournament-pod-card.championship {
+    border-color: #b8941f;
+    border-width: 2px;
+}
+
+.tournament-pod-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.tournament-pod-header .pod-number {
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+}
+
+.tournament-pod-card.championship .tournament-pod-header {
+    background: #fff3cd;
+}
+
+/* Tournament Pod Players List */
+.tournament-pod-players {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.tournament-pod-player {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+.tournament-pod-player:last-child {
+    border-bottom: none;
+}
+
+.tournament-pod-player.current-user {
+    background-color: rgba(45, 27, 78, 0.1);
+}
+
+.tournament-pod-player.winner {
+    background-color: rgba(25, 135, 84, 0.1);
+}
+
+.tournament-pod-player .player-turn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    background: var(--bg-secondary);
+    border-radius: 50%;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-right: 0.5rem;
+    flex-shrink: 0;
+    color: var(--text-primary);
+}
+
+.tournament-pod-player .player-name {
+    flex-grow: 1;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+}
+
+.tournament-pod-player .player-result {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.tournament-pod-footer {
+    padding: 0.5rem 0.75rem;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border-color);
+    text-align: center;
+    font-size: 0.875rem;
+}
+
+/* Table View Styles */
+.tournament-pods-table {
+    margin-bottom: 0;
+}
+
+.tournament-pods-table th {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+/* Dark mode support */
+body.dark-mode .tournament-pod-card {
+    background: #1a1a2e;
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .tournament-pod-card.user-in-pod {
+    border-color: var(--brand-purple-light);
+}
+
+body.dark-mode .tournament-pod-card.championship {
+    border-color: #b8941f;
+}
+
+body.dark-mode .tournament-pod-header {
+    background: var(--brand-purple);
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .tournament-pod-header .pod-number {
+    color: #fff;
+}
+
+body.dark-mode .tournament-pod-card.championship .tournament-pod-header {
+    background: linear-gradient(135deg, #b8941f 0%, #8a6f17 100%);
+}
+
+body.dark-mode .tournament-pod-player {
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+}
+
+body.dark-mode .tournament-pod-player.current-user {
+    background-color: rgba(74, 47, 112, 0.3);
+}
+
+body.dark-mode .tournament-pod-player.winner {
+    background-color: rgba(25, 135, 84, 0.2);
+}
+
+body.dark-mode .tournament-pod-player .player-turn {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+}
+
+body.dark-mode .tournament-pod-player .player-name {
+    color: var(--text-primary);
+}
+
+body.dark-mode .tournament-pod-footer {
+    background: rgba(255, 255, 255, 0.05);
+    border-top-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .tournament-pods-table {
+    color: var(--text-primary);
+}
+
+body.dark-mode .tournament-pods-table th {
+    color: var(--text-muted);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .tournament-pods-table td {
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .table-primary {
+    background-color: rgba(74, 47, 112, 0.3) !important;
+}
+
+body.dark-mode .table-warning {
+    background-color: rgba(184, 148, 31, 0.2) !important;
+}

@@ -320,9 +320,9 @@ describe('navbarLinks', () => {
             expect(result[5].icon).toBe('fa-cog');
         });
 
-        it('should have 6 children', () => {
+        it('should have 3 children (consolidated admin menu)', () => {
             const result = navbarLinks(false);
-            expect(result[5].children).toHaveLength(6);
+            expect(result[5].children).toHaveLength(3);
         });
 
         describe('Admin children links', () => {
@@ -334,44 +334,20 @@ describe('navbarLinks', () => {
                 expect(result[5].children[0].icon).toBe('fa-trophy');
             });
 
-            it('should have Pods second', () => {
+            it('should have User Roles second', () => {
                 const result = navbarLinks(false);
-                expect(result[5].children[1].label).toBe('Pods');
-                expect(result[5].children[1].path).toBe('/admin/pods');
+                expect(result[5].children[1].label).toBe('User Roles');
+                expect(result[5].children[1].path).toBe('/admin/users');
                 expect(result[5].children[1].order).toBe(2);
-                expect(result[5].children[1].icon).toBe('fa-users');
+                expect(result[5].children[1].icon).toBe('fa-user-shield');
             });
 
-            it('should have Attendance third', () => {
+            it('should have Activity Logs third', () => {
                 const result = navbarLinks(false);
-                expect(result[5].children[2].label).toBe('Attendance');
-                expect(result[5].children[2].path).toBe('/admin/attendance');
+                expect(result[5].children[2].label).toBe('Activity Logs');
+                expect(result[5].children[2].path).toBe('/admin/activity-logs');
                 expect(result[5].children[2].order).toBe(3);
-                expect(result[5].children[2].icon).toBe('fa-clipboard-list');
-            });
-
-            it('should have User Roles fourth', () => {
-                const result = navbarLinks(false);
-                expect(result[5].children[3].label).toBe('User Roles');
-                expect(result[5].children[3].path).toBe('/admin/users');
-                expect(result[5].children[3].order).toBe(4);
-                expect(result[5].children[3].icon).toBe('fa-user-shield');
-            });
-
-            it('should have Matchup Matrix fifth', () => {
-                const result = navbarLinks(false);
-                expect(result[5].children[4].label).toBe('Matchup Matrix');
-                expect(result[5].children[4].path).toBe('/admin/matchup-matrix');
-                expect(result[5].children[4].order).toBe(5);
-                expect(result[5].children[4].icon).toBe('fa-th');
-            });
-
-            it('should have Activity Logs sixth', () => {
-                const result = navbarLinks(false);
-                expect(result[5].children[5].label).toBe('Activity Logs');
-                expect(result[5].children[5].path).toBe('/admin/activity-logs');
-                expect(result[5].children[5].order).toBe(6);
-                expect(result[5].children[5].icon).toBe('fa-history');
+                expect(result[5].children[2].icon).toBe('fa-history');
             });
         });
 

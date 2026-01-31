@@ -35,7 +35,7 @@ const updatePod = async (req, res) => {
 
         // If pod was complete, reverse old stats before making changes
         if (currentPod.confirmation_status === 'complete' && currentPod.league_id) {
-            await podService.reverseGameStats(currentParticipants, currentPod.league_id);
+            await podService.reverseGameStats(currentParticipants, currentPod.league_id, currentPod.is_tournament_game);
         }
 
         // Update participants FIRST if provided (before updating pod status)
@@ -87,11 +87,11 @@ const updatePod = async (req, res) => {
             const pod = await podService.getById(podId);
 
             if (pod && pod.league_id) {
-                // Apply game stats using podService
-                await podService.applyGameStats(newParticipants, pod.league_id);
+                // Apply game stats using podService (handles tournament stats internally)
+                await podService.applyGameStats(newParticipants, pod.league_id, pod.is_tournament_game);
 
-                // Apply ELO changes using podService
-                await podService.applyEloChanges(newParticipants, podId, pod.league_id);
+                // Apply ELO changes using podService (skip for tournament games)
+                await podService.applyEloChanges(newParticipants, podId, pod.league_id, pod.is_tournament_game);
             }
         }
 
@@ -483,10 +483,10 @@ const setWinner = async (req, res) => {
         // Apply game stats if pod has a league
         if (pod.league_id) {
             // Apply stats (wins/losses to users and user_leagues)
-            await podService.applyGameStats(updatedParticipants, pod.league_id);
+            await podService.applyGameStats(updatedParticipants, pod.league_id, pod.is_tournament_game);
 
-            // Apply ELO changes
-            await podService.applyEloChanges(updatedParticipants, podId, pod.league_id);
+            // Apply ELO changes (skip for tournament games)
+            await podService.applyEloChanges(updatedParticipants, podId, pod.league_id, pod.is_tournament_game);
 
             // Invalidate caches
             await cacheInvalidators.gameCompleted(pod.league_id);
@@ -676,8 +676,8 @@ const forceComplete = async (req, res) => {
 
         // Apply game stats if pod has a league
         if (pod.league_id) {
-            await podService.applyGameStats(updatedParticipants, pod.league_id);
-            await podService.applyEloChanges(updatedParticipants, podId, pod.league_id);
+            await podService.applyGameStats(updatedParticipants, pod.league_id, pod.is_tournament_game);
+            await podService.applyEloChanges(updatedParticipants, podId, pod.league_id, pod.is_tournament_game);
             await cacheInvalidators.gameCompleted(pod.league_id);
         }
 

@@ -1,0 +1,233 @@
+/* League Dashboard Page Styles */
+.league-dashboard {
+    padding-bottom: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* Back Link */
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    color: var(--text-secondary, #6c757d);
+    text-decoration: none;
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+    transition: color 0.2s ease;
+}
+
+.back-link:hover {
+    color: var(--text-primary);
+}
+
+/* League Header */
+.league-dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+    padding: 1.5rem;
+    background: var(--bg-secondary, #f8f9fa);
+    border-radius: 12px;
+    border: 1px solid var(--border-color, #dee2e6);
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.league-header-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.league-header-title {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.league-header-title h2 {
+    margin: 0;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.league-header-badges {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.league-header-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+}
+
+.league-meta-item {
+    font-size: 0.875rem;
+    color: var(--text-secondary, #6c757d);
+    display: flex;
+    align-items: center;
+}
+
+.league-meta-item i {
+    color: var(--text-muted, #adb5bd);
+    margin-right: 0.25rem;
+}
+
+.league-header-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+/* Tabs */
+.league-dashboard-tabs {
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid var(--border-color, #dee2e6);
+}
+
+.league-dashboard-tabs .nav-link {
+    border: none;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    padding: 0.75rem 1.25rem;
+    color: var(--text-secondary, #6c757d);
+    font-weight: 500;
+    transition: all 0.2s ease;
+    background: none;
+}
+
+.league-dashboard-tabs .nav-link:hover {
+    color: var(--text-primary);
+    border-bottom-color: var(--border-color, #dee2e6);
+}
+
+.league-dashboard-tabs .nav-link.active {
+    color: var(--brand-purple, #6c5ce7);
+    border-bottom-color: var(--brand-purple, #6c5ce7);
+    background: none;
+}
+
+.league-dashboard-tabs .nav-link i {
+    font-size: 0.875rem;
+}
+
+/* Tab Content */
+.league-dashboard-content {
+    min-height: 400px;
+}
+
+/* Ensure Bootstrap grid works properly inside tabs */
+.league-dashboard-content .row {
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.league-dashboard-content .col-lg-3,
+.league-dashboard-content .col-lg-4,
+.league-dashboard-content .col-lg-6,
+.league-dashboard-content .col-lg-9 {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+}
+
+.league-dashboard-content .col-lg-3:first-child,
+.league-dashboard-content .col-lg-4:first-child {
+    padding-left: 0;
+}
+
+.league-dashboard-content .col-lg-9:last-child,
+.league-dashboard-content .col-lg-6:last-child {
+    padding-right: 0;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 991px) {
+    .league-header-meta {
+        gap: 1rem;
+    }
+}
+
+@media (max-width: 767px) {
+    .league-dashboard-header {
+        flex-direction: column;
+        padding: 1rem;
+    }
+
+    .league-header-actions {
+        width: 100%;
+    }
+
+    .league-header-actions .btn {
+        flex: 1;
+    }
+
+    .league-header-title {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .league-header-meta {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .league-dashboard-tabs {
+        flex-wrap: wrap;
+    }
+
+    .league-dashboard-tabs .nav-link {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+    }
+}
+
+/* On very small screens, show icon-only tabs */
+@media (max-width: 480px) {
+    .league-dashboard-tabs {
+        justify-content: center;
+    }
+
+    .league-dashboard-tabs .nav-link {
+        padding: 0.6rem 0.75rem;
+    }
+
+    /* Hide tab text on very small screens */
+    .league-dashboard-tabs .nav-link .tab-text {
+        display: none;
+    }
+
+    /* Ensure icon is visible and centered */
+    .league-dashboard-tabs .nav-link i {
+        margin: 0;
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 575px) {
+    .league-dashboard-header {
+        padding: 0.75rem;
+    }
+
+    .league-header-title h2 {
+        font-size: 1.25rem;
+    }
+
+    .league-meta-item {
+        font-size: 0.8rem;
+    }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .league-dashboard-header {
+        background: var(--bg-secondary, #2d2d2d);
+    }
+
+    .back-link:hover {
+        color: var(--text-primary, #fff);
+    }
+}

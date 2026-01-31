@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { getLeagueDetails, getLeagueStats } from '../../../api/leaguesApi';
 import { getLeagueParticipants, getUserLeagueStats } from '../../../api/userLeaguesApi';
 import { getMetagameAnalysis } from '../../../api/metagameApi';
@@ -164,6 +164,31 @@ const LeagueDashboard = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Tournament Banner - Show when tournament is active or completed */}
+            {(contextLeague?.league_phase === 'tournament' || contextLeague?.league_phase === 'completed') && (
+                <div className="card mb-4 border-warning">
+                    <div className="card-body">
+                        <div className="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 className="card-title mb-1">
+                                    <i className="fas fa-trophy text-warning me-2"></i>
+                                    {contextLeague?.league_phase === 'completed' ? 'Season Complete!' : 'Finals Tournament'}
+                                </h5>
+                                <p className="card-text text-muted mb-0">
+                                    {contextLeague?.league_phase === 'completed'
+                                        ? 'View the final standings and champion.'
+                                        : 'The regular season has ended. Check out the tournament bracket and standings!'}
+                                </p>
+                            </div>
+                            <Link to="/leagues/tournament" className="btn btn-outline-warning">
+                                <i className="fas fa-arrow-right me-1"></i>
+                                View Tournament
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Your Standing Card */}
             <UserStandingCard

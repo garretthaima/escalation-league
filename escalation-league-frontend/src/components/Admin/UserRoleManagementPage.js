@@ -771,7 +771,7 @@ const UserRoleManagementPage = () => {
                                         )}
                                     </div>
                                     <div className="card-footer">
-                                        <div className="d-flex gap-2 align-items-center">
+                                        <div className="d-flex gap-2">
                                             <button
                                                 className="btn btn-primary btn-sm flex-grow-1"
                                                 onClick={() => handleEditRole(roleData)}
@@ -779,17 +779,15 @@ const UserRoleManagementPage = () => {
                                                 <i className="fas fa-edit me-2"></i>
                                                 Edit
                                             </button>
-                                            {!isProtectedRole(roleData.role.name) ? (
+                                            {!isProtectedRole(roleData.role.name) && (
                                                 <button
-                                                    className="btn btn-outline-danger btn-sm d-flex align-items-center justify-content-center"
+                                                    className="btn btn-outline-danger btn-sm d-flex align-items-center justify-content-center flex-shrink-0"
                                                     onClick={() => handleOpenDeleteModal(roleData)}
                                                     title="Delete role"
-                                                    style={{ width: '36px', height: '36px' }}
+                                                    style={{ width: '38px', height: '38px' }}
                                                 >
                                                     <i className="fas fa-trash"></i>
                                                 </button>
-                                            ) : (
-                                                <div style={{ width: '36px' }}></div>
                                             )}
                                         </div>
                                     </div>

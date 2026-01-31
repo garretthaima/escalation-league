@@ -11,7 +11,44 @@ const getLeagueSessions = async (req, res) => {
             .where({ league_id })
             .orderBy('session_date', 'desc');
 
-        res.status(200).json(sessions);
+        // Get attendance counts for each session
+        const sessionIds = sessions.map(s => s.id);
+        const attendanceCounts = await db('session_attendance')
+            .whereIn('session_id', sessionIds)
+            .select('session_id')
+            .count('* as total_responses')
+            .select(db.raw('SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as attending_count'))
+            .groupBy('session_id');
+
+        // Get active poll info for each session
+        const activePolls = await db('attendance_polls')
+            .whereIn('session_id', sessionIds)
+            .select('session_id', 'discord_message_id');
+
+        // Create lookup maps
+        const attendanceMap = {};
+        attendanceCounts.forEach(ac => {
+            attendanceMap[ac.session_id] = {
+                attending_count: parseInt(ac.attending_count) || 0,
+                total_responses: parseInt(ac.total_responses) || 0
+            };
+        });
+
+        const pollMap = {};
+        activePolls.forEach(p => {
+            pollMap[p.session_id] = p.discord_message_id;
+        });
+
+        // Merge data
+        const sessionsWithCounts = sessions.map(session => ({
+            ...session,
+            attending_count: attendanceMap[session.id]?.attending_count || 0,
+            total_responses: attendanceMap[session.id]?.total_responses || 0,
+            has_active_poll: !!pollMap[session.id],
+            poll_message_id: pollMap[session.id] || null
+        }));
+
+        res.status(200).json(sessionsWithCounts);
     } catch (err) {
         console.error('Error fetching sessions:', err.message);
         res.status(500).json({ error: 'Failed to fetch sessions.' });

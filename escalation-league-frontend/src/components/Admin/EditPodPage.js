@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import {
     updatePod,
     deletePod,
@@ -18,7 +18,11 @@ import './EditPodPage.css';
 const EditPodPage = () => {
     const { podId } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
     const { showToast } = useToast();
+
+    // Get the league ID from navigation state (if coming from LeaguePodsTab)
+    const fromLeagueId = location.state?.fromLeagueId;
 
     const [pod, setPod] = useState(null);
     const [participants, setParticipants] = useState([]);
@@ -51,6 +55,15 @@ const EditPodPage = () => {
         dragOverId,
         dragHandlers: { handleDragStart, handleDragOver, handleDragLeave, handleDrop, handleDragEnd }
     } = useTurnOrder([]);
+
+    // Navigate back to the correct page (league dashboard if came from there, otherwise /admin/pods)
+    const navigateBack = useCallback(() => {
+        if (fromLeagueId) {
+            navigate(`/admin/leagues/${fromLeagueId}#pods`);
+        } else {
+            navigate('/admin/pods');
+        }
+    }, [fromLeagueId, navigate]);
 
     useEffect(() => {
         const fetchPodDetails = async () => {
@@ -98,12 +111,12 @@ const EditPodPage = () => {
                     }
                 } else {
                     showToast('Pod not found', 'error');
-                    navigate('/admin/pods');
+                    navigateBack();
                 }
             } catch (err) {
                 console.error('Error fetching pod details:', err.message);
                 showToast('Failed to load pod details', 'error');
-                navigate('/admin/pods');
+                navigateBack();
             } finally {
                 setLoading(false);
             }
@@ -274,7 +287,7 @@ const EditPodPage = () => {
         try {
             await deletePod(pod.id);
             showToast('Pod deleted successfully', 'success');
-            navigate('/admin/pods');
+            navigateBack();
         } catch (err) {
             console.error('Error deleting pod:', err.message);
             showToast('Failed to delete pod', 'error');
@@ -344,7 +357,7 @@ const EditPodPage = () => {
                 ? 'Pod updated and moved to pending'
                 : 'Pod updated successfully';
             showToast(message, 'success');
-            navigate('/admin/pods');
+            navigateBack();
         } catch (err) {
             console.error('Error updating pod:', err.message);
             showToast('Failed to update pod', 'error');
@@ -356,7 +369,7 @@ const EditPodPage = () => {
         try {
             await forceCompleteApi(pod.id);
             showToast('Pod completed. Stats have been applied.', 'success');
-            navigate('/admin/pods');
+            navigateBack();
         } catch (err) {
             console.error('Error force completing pod:', err.message);
             showToast(err.response?.data?.error || 'Failed to force complete', 'error');
@@ -384,10 +397,10 @@ const EditPodPage = () => {
                 <div>
                     <button
                         className="btn-back-link text-decoration-none p-0 mb-2"
-                        onClick={() => navigate('/admin/pods')}
+                        onClick={navigateBack}
                     >
                         <i className="fas fa-arrow-left me-2"></i>
-                        Back to Pods
+                        {fromLeagueId ? 'Back to League' : 'Back to Pods'}
                     </button>
                     <h2 className="mb-0">
                         <i className="fas fa-edit me-2"></i>

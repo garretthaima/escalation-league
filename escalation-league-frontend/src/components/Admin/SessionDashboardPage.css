@@ -1,0 +1,163 @@
+/* Session Dashboard Page Styles */
+.session-dashboard {
+    padding-bottom: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* Back Link */
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    color: var(--text-secondary, #6c757d);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: color 0.2s ease;
+}
+
+.back-link:hover {
+    color: var(--brand-purple, #6c5ce7);
+}
+
+/* Session Header */
+.session-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 1.5rem;
+    background: var(--bg-secondary, #f8f9fa);
+    border-radius: 12px;
+    border: 1px solid var(--border-color, #dee2e6);
+}
+
+.session-header h2 {
+    margin: 0 0 0.25rem 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.session-date {
+    margin: 0;
+    color: var(--text-secondary, #6c757d);
+    font-size: 0.95rem;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 767px) {
+    .session-header {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .session-header h2 {
+        font-size: 1.25rem;
+    }
+
+    /* Make action buttons wrap nicely */
+    .session-dashboard .d-flex.flex-wrap.gap-2 {
+        gap: 0.5rem !important;
+    }
+
+    .session-dashboard .d-flex.flex-wrap.gap-2 .btn {
+        font-size: 0.8rem;
+        padding: 0.4rem 0.6rem;
+    }
+}
+
+/* Attendance Table Mobile Styles */
+.session-attendance-table {
+    font-size: 0.9rem;
+}
+
+.session-attendance-table th,
+.session-attendance-table td {
+    padding: 0.75rem 0.5rem;
+    vertical-align: middle;
+}
+
+/* Name column */
+.session-attendance-table .col-name {
+    min-width: 100px;
+}
+
+/* Status column */
+.session-attendance-table .col-status {
+    white-space: nowrap;
+}
+
+/* Source column */
+.session-attendance-table .col-source {
+    white-space: nowrap;
+}
+
+/* Actions column */
+.session-attendance-table .col-actions {
+    white-space: nowrap;
+}
+
+/* Action button text - hide on mobile */
+.session-attendance-table .action-btn-text {
+    display: inline;
+}
+
+@media (max-width: 576px) {
+    .session-attendance-table {
+        font-size: 0.8rem;
+    }
+
+    .session-attendance-table th,
+    .session-attendance-table td {
+        padding: 0.5rem 0.35rem;
+    }
+
+    /* Hide Source column on very small screens */
+    .session-attendance-table .col-source {
+        display: none;
+    }
+
+    /* Make status badges smaller */
+    .session-attendance-table .badge {
+        font-size: 0.7rem;
+        padding: 0.25em 0.4em;
+    }
+
+    /* Hide action button text, show icons only */
+    .session-attendance-table .action-btn-text {
+        display: none;
+    }
+
+    .session-attendance-table .btn-sm {
+        padding: 0.35rem 0.5rem;
+        font-size: 0.75rem;
+    }
+
+    /* Keep action buttons side by side - don't stack */
+    .session-attendance-table .d-flex.gap-2 {
+        gap: 0.25rem !important;
+        flex-wrap: nowrap;
+    }
+}
+
+/* Attendance header badges - wrap on mobile */
+.session-attendance-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.session-attendance-header .badge {
+    margin: 0 !important;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .session-header {
+        background: var(--bg-secondary, #2d2d2d);
+    }
+
+    .back-link:hover {
+        color: var(--text-primary, #fff);
+    }
+}
