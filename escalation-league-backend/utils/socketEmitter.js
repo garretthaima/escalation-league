@@ -7,14 +7,20 @@
 const logger = require('./logger');
 
 /**
- * Emit pod created event to league room
+ * Emit pod created event to league room and creator's personal room
+ * (Personal room ensures creator gets immediate update even if league room join is pending)
  */
 const emitPodCreated = (app, leagueId, podData) => {
     try {
         const io = app.get('io');
         if (io) {
+            // Emit to league room (for all members)
             io.to(`league:${leagueId}`).emit('pod:created', podData);
-            logger.info('WebSocket emitted pod:created', { leagueId, podId: podData.id });
+            // Also emit to creator's personal room (ensures they get update immediately)
+            if (podData.creator_id) {
+                io.to(`user:${podData.creator_id}`).emit('pod:created', podData);
+            }
+            logger.info('WebSocket emitted pod:created', { leagueId, podId: podData.id, creatorId: podData.creator_id });
         }
     } catch (err) {
         logger.error('Failed to emit pod:created', { error: err.message });
